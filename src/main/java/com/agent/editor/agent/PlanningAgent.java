@@ -140,30 +140,32 @@ public class PlanningAgent extends BaseAgent {
         
         prompt.append(buildSystemPrompt(state));
         prompt.append("\n\n");
-        prompt.append("First, analyze the instruction and create a detailed execution plan.\n");
-        prompt.append("Then start executing the first step.\n\n");
-        prompt.append("Format your response as:\n\n");
-        prompt.append("PLANNING: 1. First step 2. Second step 3. Third step ...\n");
-        prompt.append("EXECUTION: First step action\n");
+        prompt.append("Please analyze the instruction, create a plan, and execute it.\n");
         
         return prompt.toString();
     }
 
     @Override
-    protected String getNextPrompt(AgentState state, AgentStep previousStep) {
+    protected String getNextPrompt(AgentState state, AgentStep previousStep, Map<String, Object> previousMetadata) {
         StringBuilder prompt = new StringBuilder();
         
         prompt.append(buildSystemPrompt(state));
         prompt.append("\n\n");
         
-        prompt.append("Previous step result:\n");
-        prompt.append(previousStep.getResult());
-        prompt.append("\n\n");
+        if (previousMetadata != null && previousMetadata.containsKey("toolName")) {
+            String toolName = (String) previousMetadata.get("toolName");
+            String toolArguments = (String) previousMetadata.get("toolArguments");
+            String toolResult = (String) previousMetadata.get("toolResult");
+            
+            prompt.append("Function called: ").append(toolName).append("\n");
+            prompt.append("Arguments: ").append(toolArguments).append("\n");
+            prompt.append("Result:\n").append(toolResult).append("\n\n");
+        } else {
+            prompt.append("Previous step result:\n");
+            prompt.append(previousStep.getResult()).append("\n\n");
+        }
         
-        prompt.append("Based on the above result:\n");
-        prompt.append("- If the task is complete, provide FINAL: document_content\n");
-        prompt.append("- If more steps are needed, provide: NEXT STEP: action\n");
-        prompt.append("- You can also update the plan if needed\n\n");
+        prompt.append("Please continue executing the plan or complete the task.\n");
         
         return prompt.toString();
     }

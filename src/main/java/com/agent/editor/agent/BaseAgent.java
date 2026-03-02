@@ -43,11 +43,12 @@ public abstract class BaseAgent implements AgentExecutor {
     
     protected abstract String getInitialPrompt(AgentState state);
     
-    protected abstract String getNextPrompt(AgentState state, AgentStep previousStep);
+    protected abstract String getNextPrompt(AgentState state, AgentStep previousStep, 
+                                           Map<String, Object> previousMetadata);
+
+    protected abstract String extractContent(String response, AgentStepType stepType);
     
     protected abstract AgentStepType parseResponse(String response, AgentState state);
-    
-    protected abstract String extractContent(String response, AgentStepType stepType);
 
     public abstract void sendStepUpdate(AgentState state, AgentStep step);
 
@@ -114,7 +115,7 @@ public abstract class BaseAgent implements AgentExecutor {
                 if (state.getCurrentStep() == 1) {
                     prompt = getInitialPrompt(state);
                 } else {
-                    prompt = getNextPrompt(state, previousStep);
+                    prompt = getNextPrompt(state, previousStep, previousStep.getMetadata());
                 }
                 
                 logger.info("【构造的Prompt】:\n{}", prompt);
@@ -161,6 +162,13 @@ public abstract class BaseAgent implements AgentExecutor {
                 
                 if (aiMessage.hasToolExecutionRequests()) {
                     stepType = AgentStepType.OBSERVATION;
+                    if (response.equals("done")) {
+                        stepType = AgentStepType.COMPLETED;
+                    }
+                    ToolExecutionRequest toolRequest = aiMessage.toolExecutionRequests().get(0);
+                    metadata.put("toolName", toolRequest.name());
+                    metadata.put("toolArguments", toolRequest.arguments());
+                    metadata.put("toolResult", response);
                 }
                 
                 AgentStep step = createStep(state, stepType, content, metadata);
@@ -169,12 +177,13 @@ public abstract class BaseAgent implements AgentExecutor {
                 sendStepUpdate(state, step);
                 
                 if (stepType == AgentStepType.COMPLETED || stepType == AgentStepType.RESULT) {
-                    if (content != null && content.length() > 10) {
-                        logger.info("【文档更新】: 即将更新文档内容");
-                        state.getDocument().setContent(content);
-                        logger.info("【文档已更新】:\n{}", content);
-                    }
+//                    if (content != null && content.length() > 10) {
+//                        logger.info("【文档更新】: 即将更新文档内容");
+//                        state.getDocument().setContent(content);
+//                        logger.info("【文档已更新】:\n{}", content);
+//                    }
                     state.setCompleted(true);
+                    sendStepUpdate(state, step);
                     break;
                 }
                 
@@ -189,113 +198,6 @@ public abstract class BaseAgent implements AgentExecutor {
                 break;
             }
         }
-    }
-    
-    protected String extractAction(String response) {
-        Matcher matcher = ACTION_PATTERN.matcher(response);
-        
-        if (matcher.find()) {
-            return matcher.group(1).trim() + "(" + matcher.group(2).trim() + ")";
-        }
-        
-        return null;
-    }
-    
-    protected String executeTool(String action, Document document) {
-        if (action == null || action.isEmpty()) {
-            return "No action to execute";
-        }
-        
-        logger.info("Executing tool: {}", action);
-        
-        try {
-            if (action.startsWith("edit_document")) {
-                String content = extractParameter(action, "content");
-                String operation = extractParameter(action, "operation");
-                
-                if (content != null && !content.isEmpty()) {
-                    String oldContent = document.getContent();
-                    document.setContent(content);
-                    logger.info("文档已更新, 旧内容长度: {}, 新内容长度: {}", oldContent.length(), content.length());
-                    return "Document edited successfully.\n\nUpdated document content:\n" + content;
-                }
-                return "Edit operation executed but no content provided";
-                
-            } else if (action.startsWith("read_document")) {
-                return "Current document content:\n" + document.getContent();
-                
-            } else if (action.startsWith("search_content")) {
-                String pattern = extractParameter(action, "pattern");
-                String content = document.getContent();
-                
-                if (pattern != null && content != null) {
-                    boolean found = content.toLowerCase().contains(pattern.toLowerCase());
-                    return "Search for '" + pattern + "': " + (found ? "Found in document" : "Not found in document");
-                }
-                return "Search completed, but no pattern provided";
-                
-            } else if (action.startsWith("format_document")) {
-                String style = extractParameter(action, "style");
-                String content = document.getContent();
-                
-                if ("indent".equals(style)) {
-                    StringBuilder formatted = new StringBuilder();
-                    String[] lines = content.split("\n");
-                    for (int i = 0; i < lines.length; i++) {
-                        formatted.append("  ").append(lines[i]).append("\n");
-                    }
-                    document.setContent(formatted.toString().trim());
-                    return "Document formatted with indentation.\n\nFormatted content:\n" + document.getContent();
-                }
-                
-                return "Document formatting applied with style: " + (style != null ? style : "default");
-                
-            } else if (action.startsWith("analyze_document")) {
-                String analysisType = extractParameter(action, "analysisType");
-                String content = document.getContent();
-                
-                int wordCount = content != null ? content.split("\\s+").length : 0;
-                int lineCount = content != null ? content.split("\n").length : 0;
-                
-                return "Document analyzed:\n" +
-                       "- Word count: " + wordCount + "\n" +
-                       "- Line count: " + lineCount + "\n" +
-                       "- Character count: " + (content != null ? content.length() : 0) + "\n" +
-                       "- Analysis type: " + (analysisType != null ? analysisType : "general");
-                
-            } else if (action.startsWith("undo_change")) {
-                return "Undo operation: Original content restored";
-                
-            } else if (action.startsWith("preview_changes")) {
-                String content = extractParameter(action, "content");
-                return "Preview:\n" + (content != null ? content : "No content to preview");
-                
-            } else if (action.startsWith("compare_versions")) {
-                String version = extractParameter(action, "version");
-                String currentContent = document.getContent();
-                
-                return "Comparing current version with " + (version != null ? version : "original") + ":\n" +
-                       "Current content (" + currentContent.length() + " chars):\n" + currentContent;
-            }
-        } catch (Exception e) {
-            logger.error("Error executing tool: {}", action, e);
-            return "Error executing tool: " + e.getMessage();
-        }
-        
-        return "Unknown action: " + action;
-    }
-    
-    private String extractParameter(String action, String paramName) {
-        Pattern pattern = Pattern.compile(paramName + "=([^,)]+)");
-        Matcher matcher = pattern.matcher(action);
-        
-        if (matcher.find()) {
-            String value = matcher.group(1).trim();
-            value = value.replace("'", "").replace("\"", "");
-            return value;
-        }
-        
-        return null;
     }
     
     protected String executeToolByName(ToolExecutionRequest toolRequest, Document document) {
@@ -355,6 +257,9 @@ public abstract class BaseAgent implements AgentExecutor {
                     
                 case "compareVersions":
                     return "Current version (" + document.getContent().length() + " chars):\n" + document.getContent();
+
+                case "terminateTask":
+                    return "done";
                     
                 default:
                     return "Unknown tool: " + toolName;

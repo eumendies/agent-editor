@@ -43,10 +43,10 @@ public class ReActAgent extends BaseAgent {
     @Override
     protected List<ToolSpecification> buildTools() {
         return Arrays.asList(
-            ToolSpecification.builder()
-                .name("readDocument")
-                .description("Read the current document content")
-                .build(),
+//            ToolSpecification.builder()
+//                .name("readDocument")
+//                .description("Read the current document content")
+//                .build(),
             ToolSpecification.builder()
                 .name("editDocument")
                 .description("Edit the document content with specified changes")
@@ -86,7 +86,11 @@ public class ReActAgent extends BaseAgent {
             ToolSpecification.builder()
                 .name("compareVersions")
                 .description("Compare current document with original")
-                .build()
+                .build(),
+            ToolSpecification.builder()
+                    .name("terminateTask")
+                    .description("Terminate the current task immediately")
+                    .build()
         );
     }
 
@@ -125,6 +129,7 @@ public class ReActAgent extends BaseAgent {
         );
         step.setThought(content);
         step.setResult(content);
+        step.setMetadata(metadata);
         
         if (type == AgentStepType.COMPLETED) {
             step.setFinal(true);
@@ -139,31 +144,32 @@ public class ReActAgent extends BaseAgent {
         
         prompt.append(buildSystemPrompt(state));
         prompt.append("\n\n");
-        prompt.append("First, analyze the instruction and document.\n");
-        prompt.append("Then provide your response in this format:\n\n");
-        prompt.append("THOUGHT: Your reasoning about what to do\n");
-        prompt.append("ACTION: tool_name(parameter)\n");
-        prompt.append("RESULT: What you expect to happen (or the final document content if task is complete)\n");
+        prompt.append("Please complete the user's request.\n");
         
         return prompt.toString();
     }
 
     @Override
-    protected String getNextPrompt(AgentState state, AgentStep previousStep) {
+    protected String getNextPrompt(AgentState state, AgentStep previousStep, Map<String, Object> previousMetadata) {
         StringBuilder prompt = new StringBuilder();
         
         prompt.append(buildSystemPrompt(state));
         prompt.append("\n\n");
         
-        prompt.append("Previous step result:\n");
-        prompt.append(previousStep.getResult());
-        prompt.append("\n\n");
+        if (previousMetadata != null && previousMetadata.containsKey("toolName")) {
+            String toolName = (String) previousMetadata.get("toolName");
+            String toolArguments = (String) previousMetadata.get("toolArguments");
+            String toolResult = (String) previousMetadata.get("toolResult");
+            prompt.append("## Previous Action: \n");
+            prompt.append("Function called: ").append(toolName).append("\n");
+            prompt.append("Arguments: ").append(toolArguments).append("\n");
+            prompt.append("Result:\n").append(toolResult).append("\n\n");
+        } else {
+            prompt.append("Previous step result:\n");
+            prompt.append(previousStep.getResult()).append("\n\n");
+        }
         
-        prompt.append("Based on the above result, what's your next step?\n");
-        prompt.append("If the task is complete, provide the final result.\n");
-        prompt.append("Format:\n");
-        prompt.append("THOUGHT: Your reasoning\n");
-        prompt.append("ACTION: tool_name(parameter) OR FINAL: document_content\n");
+        prompt.append("Please continue or complete the task based on the above result.\n");
         
         return prompt.toString();
     }
