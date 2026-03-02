@@ -28,9 +28,6 @@ public class AgentController {
     
     @Autowired
     private DocumentService documentService;
-    
-    @Autowired
-    private WebSocketService webSocketService;
 
     @PostMapping("/execute")
     @Operation(summary = "Execute agent task", description = "Execute an AI agent task to edit a document")
