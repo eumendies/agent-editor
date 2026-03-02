@@ -2,7 +2,9 @@ package com.agent.editor.agent;
 
 import com.agent.editor.model.*;
 import com.agent.editor.dto.WebSocketMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +20,7 @@ public class ReActAgent extends BaseAgent {
     private static final Logger logger = LoggerFactory.getLogger(ReActAgent.class);
     
     @Autowired
-    private ChatLanguageModel chatLanguageModel;
+    private ChatModel chatLanguageModel;
     
     private static final Pattern THOUGHT_PATTERN = Pattern.compile(
         "(?:THOUGHT|REASONING):\\s*(.*?)(?:ACTION|$)", 
@@ -39,17 +41,52 @@ public class ReActAgent extends BaseAgent {
     }
 
     @Override
-    protected List<String> buildToolPrompt() {
+    protected List<ToolSpecification> buildTools() {
         return Arrays.asList(
-            "You have access to the following tools:",
-            "- read_document: Read the current document content",
-            "- edit_document: Edit the document content with specified changes",
-            "- search_content: Search for specific text in the document",
-            "- format_document: Format the document according to specified style",
-            "- analyze_document: Analyze the document for issues or suggestions",
-            "- undo_change: Undo the last change made to the document",
-            "- preview_changes: Preview changes before applying them",
-            "- compare_versions: Compare current document with previous versions"
+            ToolSpecification.builder()
+                .name("readDocument")
+                .description("Read the current document content")
+                .build(),
+            ToolSpecification.builder()
+                .name("editDocument")
+                .description("Edit the document content with specified changes")
+                .parameters(JsonObjectSchema.builder()
+                    .addStringProperty("content", "The new content to replace the document")
+                    .required("content")
+                    .build())
+                .build(),
+            ToolSpecification.builder()
+                .name("searchContent")
+                .description("Search for specific text in the document")
+                .parameters(JsonObjectSchema.builder()
+                    .addStringProperty("pattern", "The text pattern to search for")
+                    .required("pattern")
+                    .build())
+                .build(),
+            ToolSpecification.builder()
+                .name("formatDocument")
+                .description("Format the document with indentation")
+                .build(),
+            ToolSpecification.builder()
+                .name("analyzeDocument")
+                .description("Analyze the document for word count, line count, etc.")
+                .build(),
+            ToolSpecification.builder()
+                .name("undoChange")
+                .description("Undo the last change")
+                .build(),
+            ToolSpecification.builder()
+                .name("previewChanges")
+                .description("Preview changes before applying")
+                .parameters(JsonObjectSchema.builder()
+                    .addStringProperty("content", "Content to preview")
+                    .required("content")
+                    .build())
+                .build(),
+            ToolSpecification.builder()
+                .name("compareVersions")
+                .description("Compare current document with original")
+                .build()
         );
     }
 
@@ -62,18 +99,9 @@ public class ReActAgent extends BaseAgent {
         prompt.append("## ReAct Pattern\n");
         prompt.append("Think step by step:\n");
         prompt.append("1. Analyze the user's instruction\n");
-        prompt.append("2. Take ONE action at a time\n");
+        prompt.append("2. Take ONE action (by function calling) at a time\n");
         prompt.append("3. Observe the result\n");
         prompt.append("4. Continue or complete based on the result\n\n");
-        
-        prompt.append("## Available Tools\n");
-        for (String line : buildToolPrompt()) {
-            prompt.append(line).append("\n");
-        }
-        
-        prompt.append("\n## Important Rules\n");
-        prompt.append("- Return ONLY ONE action per response\n");
-        prompt.append("- After each action, wait for the result before taking the next\n");
         
         prompt.append("\n## Current Document:\n");
         prompt.append(state.getDocument().getContent());

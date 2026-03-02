@@ -2,7 +2,9 @@ package com.agent.editor.agent;
 
 import com.agent.editor.model.*;
 import com.agent.editor.dto.WebSocketMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +20,7 @@ public class PlanningAgent extends BaseAgent {
     private static final Logger logger = LoggerFactory.getLogger(PlanningAgent.class);
     
     @Autowired
-    private ChatLanguageModel chatLanguageModel;
+    private ChatModel chatLanguageModel;
     
     private static final Pattern PLAN_PATTERN = Pattern.compile(
         "(?:PLAN|PLANNING):\\s*(.*?)(?:EXECUTION|$)", 
@@ -41,17 +43,52 @@ public class PlanningAgent extends BaseAgent {
     }
 
     @Override
-    protected List<String> buildToolPrompt() {
+    protected List<ToolSpecification> buildTools() {
         return Arrays.asList(
-            "Available tools for planning agent:",
-            "- read_document: Read the current document content",
-            "- edit_document: Edit the document content with specified changes",
-            "- search_content: Search for specific text in document",
-            "- format_document: Format the document",
-            "- analyze_document: Analyze document quality",
-            "- undo_change: Undo last change",
-            "- preview_changes: Preview changes before applying",
-            "- compare_versions: Compare document versions"
+            ToolSpecification.builder()
+                .name("readDocument")
+                .description("Read the current document content")
+                .build(),
+            ToolSpecification.builder()
+                .name("editDocument")
+                .description("Edit the document content with specified changes")
+                .parameters(JsonObjectSchema.builder()
+                    .addStringProperty("content", "The new content to replace the document")
+                    .required("content")
+                    .build())
+                .build(),
+            ToolSpecification.builder()
+                .name("searchContent")
+                .description("Search for specific text in the document")
+                .parameters(JsonObjectSchema.builder()
+                    .addStringProperty("pattern", "The text pattern to search for")
+                    .required("pattern")
+                    .build())
+                .build(),
+            ToolSpecification.builder()
+                .name("formatDocument")
+                .description("Format the document with indentation")
+                .build(),
+            ToolSpecification.builder()
+                .name("analyzeDocument")
+                .description("Analyze the document for word count, line count, etc.")
+                .build(),
+            ToolSpecification.builder()
+                .name("undoChange")
+                .description("Undo the last change")
+                .build(),
+            ToolSpecification.builder()
+                .name("previewChanges")
+                .description("Preview changes before applying")
+                .parameters(JsonObjectSchema.builder()
+                    .addStringProperty("content", "Content to preview")
+                    .required("content")
+                    .build())
+                .build(),
+            ToolSpecification.builder()
+                .name("compareVersions")
+                .description("Compare current document with original")
+                .build()
         );
     }
 
@@ -66,16 +103,6 @@ public class PlanningAgent extends BaseAgent {
         prompt.append("2. Then execute each step one by one (EXECUTION phase)\n");
         prompt.append("3. Validate each step's result\n");
         prompt.append("4. When all steps are done, provide the final result (COMPLETED phase)\n\n");
-        
-        prompt.append("## Available Tools\n");
-        for (String line : buildToolPrompt()) {
-            prompt.append(line).append("\n");
-        }
-        
-        prompt.append("\n## Important Rules\n");
-        prompt.append("- Create a clear plan first, then execute step by step\n");
-        prompt.append("- Execute only ONE step at a time\n");
-        prompt.append("- After each step, evaluate if it's complete before moving to the next\n");
         
         prompt.append("\n## Current Document:\n");
         prompt.append(state.getDocument().getContent());

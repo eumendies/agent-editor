@@ -3,10 +3,13 @@ package com.agent.editor.agent;
 import com.agent.editor.model.*;
 import com.agent.editor.dto.*;
 import com.agent.editor.websocket.WebSocketService;
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +23,7 @@ public abstract class BaseAgent implements AgentExecutor {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     
     @Autowired
-    protected ChatLanguageModel chatLanguageModel;
+    protected ChatModel chatLanguageModel;
     
     @Autowired
     protected WebSocketService websocketService;
@@ -31,7 +34,7 @@ public abstract class BaseAgent implements AgentExecutor {
 
     public abstract AgentMode getMode();
     
-    protected abstract List<String> buildToolPrompt();
+    protected abstract List<ToolSpecification> buildTools();
     
     protected abstract String buildSystemPrompt(AgentState state);
     
@@ -117,8 +120,32 @@ public abstract class BaseAgent implements AgentExecutor {
                 logger.info("【构造的Prompt】:\n{}", prompt);
                 logger.info("───────────────────────────────────────");
 
-                Response<AiMessage> aiMessageResponse = chatLanguageModel.generate(UserMessage.from(prompt));
-                String response = aiMessageResponse.content().toString();
+                List<ToolSpecification> tools = buildTools();
+                
+                ChatRequest chatRequest = ChatRequest.builder()
+                        .messages(UserMessage.from(prompt))
+                        .toolSpecifications(tools)
+                        .build();
+                
+                ChatResponse aiMessageResponse = chatLanguageModel.chat(chatRequest);
+                AiMessage aiMessage = aiMessageResponse.aiMessage();
+                String response;
+                
+                if (aiMessage.hasToolExecutionRequests()) {
+                    logger.info("【AI请求执行工具】");
+                    List<ToolExecutionRequest> toolRequests = aiMessage.toolExecutionRequests();
+                    
+                    for (ToolExecutionRequest toolRequest : toolRequests) {
+                        logger.info("  - 工具: {}, 参数: {}", toolRequest.name(), toolRequest.arguments());
+                    }
+                    
+                    String toolResult = executeToolByName(toolRequests.get(0), state.getDocument());
+                    logger.info("【工具执行结果】: {}", toolResult);
+                    
+                    response = toolResult;
+                } else {
+                    response = aiMessage.text();
+                }
                 
                 logger.info("【AI输出】:\n{}", response);
                 logger.info("───────────────────────────────────────");
@@ -132,14 +159,7 @@ public abstract class BaseAgent implements AgentExecutor {
                 Map<String, Object> metadata = new HashMap<>();
                 metadata.put("rawResponse", response);
                 
-                if (stepType == AgentStepType.ACTION) {
-                    String action = extractAction(response);
-                    metadata.put("action", action);
-                    logger.info("【工具执行】: 开始执行工具 - {}", action);
-                    
-                    String toolResult = executeTool(action, state.getDocument());
-                    logger.info("【工具执行结果】: {}", toolResult);
-                    content = toolResult;
+                if (aiMessage.hasToolExecutionRequests()) {
                     stepType = AgentStepType.OBSERVATION;
                 }
                 
@@ -276,5 +296,98 @@ public abstract class BaseAgent implements AgentExecutor {
         }
         
         return null;
+    }
+    
+    protected String executeToolByName(ToolExecutionRequest toolRequest, Document document) {
+        String toolName = toolRequest.name();
+        String arguments = toolRequest.arguments();
+        
+        logger.info("执行工具: {}, 参数: {}", toolName, arguments);
+        
+        try {
+            Map<String, Object> params = parseJsonArguments(arguments);
+            
+            switch (toolName) {
+                case "readDocument":
+                    return document.getContent();
+                    
+                case "editDocument":
+                    Object contentObj = params.get("content");
+                    if (contentObj != null) {
+                        String newContent = contentObj.toString();
+                        document.setContent(newContent);
+                        return "Document edited successfully.\n\n" + newContent;
+                    }
+                    return "No content provided";
+                    
+                case "searchContent":
+                    Object patternObj = params.get("pattern");
+                    if (patternObj != null && document.getContent() != null) {
+                        String pattern = patternObj.toString();
+                        boolean found = document.getContent().toLowerCase().contains(pattern.toLowerCase());
+                        return "Search for '" + pattern + "': " + (found ? "Found" : "Not found");
+                    }
+                    return "Search completed";
+                    
+                case "formatDocument":
+                    if (document.getContent() != null) {
+                        StringBuilder formatted = new StringBuilder();
+                        for (String line : document.getContent().split("\n")) {
+                            formatted.append("  ").append(line).append("\n");
+                        }
+                        document.setContent(formatted.toString().trim());
+                        return "Document formatted:\n" + document.getContent();
+                    }
+                    return "No content to format";
+                    
+                case "analyzeDocument":
+                    String content = document.getContent();
+                    int words = content != null ? content.split("\\s+").length : 0;
+                    int lines = content != null ? content.split("\n").length : 0;
+                    return "Words: " + words + ", Lines: " + lines + ", Chars: " + (content != null ? content.length() : 0);
+                    
+                case "undoChange":
+                    return "Undo completed";
+                    
+                case "previewChanges":
+                    Object previewContent = params.get("content");
+                    return "Preview:\n" + (previewContent != null ? previewContent.toString() : "No content");
+                    
+                case "compareVersions":
+                    return "Current version (" + document.getContent().length() + " chars):\n" + document.getContent();
+                    
+                default:
+                    return "Unknown tool: " + toolName;
+            }
+        } catch (Exception e) {
+            logger.error("Error executing tool: {}", toolName, e);
+            return "Error: " + e.getMessage();
+        }
+    }
+    
+    private Map<String, Object> parseJsonArguments(String json) {
+        Map<String, Object> result = new HashMap<>();
+        if (json == null || json.isEmpty()) {
+            return result;
+        }
+        
+        json = json.trim();
+        if (json.startsWith("{")) {
+            json = json.substring(1);
+        }
+        if (json.endsWith("}")) {
+            json = json.substring(0, json.length() - 1);
+        }
+        
+        String[] pairs = json.split(",");
+        for (String pair : pairs) {
+            String[] keyValue = pair.split(":");
+            if (keyValue.length == 2) {
+                String key = keyValue[0].trim().replace("\"", "").replace("'", "");
+                String value = keyValue[1].trim().replace("\"", "").replace("'", "");
+                result.put(key, value);
+            }
+        }
+        return result;
     }
 }
