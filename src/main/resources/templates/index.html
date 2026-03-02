@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Editor - Agent Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        h1 {
+            font-size: 24px;
+            color: #4fc3f7;
+        }
+        
+        .status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        
+        .status.connected {
+            background: #2e7d32;
+            color: #fff;
+        }
+        
+        .status.disconnected {
+            background: #c62828;
+            color: #fff;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .panel {
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #404040;
+        }
+        
+        .panel-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 300px;
+            background: #1e1e1e;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            color: #e0e0e0;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #4fc3f7;
+        }
+        
+        .agent-controls {
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .instruction-input {
+            width: 100%;
+            background: #1e1e1e;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            color: #e0e0e0;
+            padding: 15px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .instruction-input:focus {
+            outline: none;
+            border-color: #4fc3f7;
+        }
+        
+        .controls-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        select {
+            background: #1e1e1e;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            color: #e0e0e0;
+            padding: 10px 15px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #4fc3f7;
+            border: none;
+            border-radius: 4px;
+            color: #1e1e1e;
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        button:hover {
+            background: #81d4fa;
+        }
+        
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        
+        button.secondary {
+            background: #616161;
+            color: #fff;
+        }
+        
+        button.secondary:hover {
+            background: #757575;
+        }
+        
+        .steps-panel {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .step-item {
+            background: #1e1e1e;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 3px solid #4fc3f7;
+        }
+        
+        .step-item.thinking {
+            border-left-color: #ff9800;
+        }
+        
+        .step-item.action {
+            border-left-color: #4caf50;
+        }
+        
+        .step-item.observation {
+            border-left-color: #9c27b0;
+        }
+        
+        .step-item.completed {
+            border-left-color: #00bcd4;
+        }
+        
+        .step-item.error {
+            border-left-color: #f44336;
+        }
+        
+        .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .step-number {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .step-type {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: #404040;
+        }
+        
+        .step-content {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .diff-view {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            background: #1e1e1e;
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .diff-add {
+            color: #81c784;
+            background: rgba(129, 199, 132, 0.1);
+        }
+        
+        .diff-remove {
+            color: #e57373;
+            background: rgba(229, 115, 115, 0.1);
+        }
+        
+        .diff-same {
+            color: #888;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #404040;
+            border-radius: 2px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #4fc3f7;
+            transition: width 0.3s ease;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 AI Editor Agent</h1>
+            <span id="wsStatus" class="status disconnected">Disconnected</span>
+        </header>
+        
+        <div class="agent-controls">
+            <textarea id="instructionInput" class="instruction-input" 
+                placeholder="Enter your instruction for the AI agent...&#10;Example: 'Format this document with proper paragraphs and add a conclusion'"></textarea>
+            <div class="controls-row">
+                <select id="agentMode">
+                    <option value="REACT">ReAct Agent (Reasoning + Acting)</option>
+                    <option value="PLANNING">Planning Agent (Structured Planning)</option>
+                </select>
+                <select id="documentSelect">
+                    <option value="doc-001">Sample Document</option>
+                </select>
+                <button id="executeBtn" onclick="executeAgent()">🚀 Execute Agent</button>
+                <button class="secondary" onclick="clearSteps()">Clear Steps</button>
+            </div>
+            <div class="progress-bar" id="progressBar" style="display: none;">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">📄 Document Content</span>
+                    <button class="secondary" onclick="loadDocument()" style="padding: 5px 12px; font-size: 12px;">Refresh</button>
+                </div>
+                <textarea id="documentContent" readonly></textarea>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">🔄 Diff View</span>
+                </div>
+                <div id="diffView" class="diff-view">
+                    <div class="empty-state">Execute an agent task to see diff changes</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="panel" style="margin-top: 20px;">
+            <div class="panel-header">
+                <span class="panel-title">📊 Agent Execution Steps</span>
+                <span id="stepCount" style="color: #888; font-size: 14px;">0 steps</span>
+            </div>
+            <div id="stepsContainer" class="steps-panel">
+                <div class="empty-state">Agent execution steps will appear here</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let ws = null;
+        let currentTaskId = null;
+        let sessionId = null;
+        
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/agent`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function() {
+                document.getElementById('wsStatus').textContent = 'Connected';
+                document.getElementById('wsStatus').className = 'status connected';
+            };
+            
+            ws.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                
+                if (message.type === 'CONNECTED') {
+                    sessionId = message.sessionId;
+                }
+                
+                handleWebSocketMessage(message);
+            };
+            
+            ws.onclose = function() {
+                document.getElementById('wsStatus').textContent = 'Disconnected';
+                document.getElementById('wsStatus').className = 'status disconnected';
+                setTimeout(initWebSocket, 3000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+        }
+        
+        function handleWebSocketMessage(message) {
+            switch(message.type) {
+                case 'STEP':
+                    addStepToUI(message);
+                    break;
+                case 'COMPLETED':
+                    document.getElementById('executeBtn').disabled = false;
+                    loadDocument();
+                    showProgress(100);
+                    break;
+                case 'ERROR':
+                    addStepToUI({
+                        stepType: 'ERROR',
+                        content: message.content
+                    });
+                    document.getElementById('executeBtn').disabled = false;
+                    break;
+                case 'PROGRESS':
+                    const progress = parseInt(message.content.match(/\d+/)[0]);
+                    showProgress(progress);
+                    break;
+            }
+        }
+        
+        function addStepToUI(message) {
+            const container = document.getElementById('stepsContainer');
+            const emptyState = container.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            
+            const stepDiv = document.createElement('div');
+            stepDiv.className = `step-item ${message.stepType?.toLowerCase() || 'observation'}`;
+            
+            const stepNumber = container.children.length + 1;
+            
+            stepDiv.innerHTML = `
+                <div class="step-header">
+                    <span class="step-number">Step ${stepNumber}</span>
+                    <span class="step-type">${message.stepType || 'OBSERVATION'}</span>
+                </div>
+                <div class="step-content">${message.content || 'No content'}</div>
+            `;
+            
+            container.appendChild(stepDiv);
+            container.scrollTop = container.scrollHeight;
+            
+            document.getElementById('stepCount').textContent = `${stepNumber} steps`;
+        }
+        
+        async function executeAgent() {
+            const instruction = document.getElementById('instructionInput').value;
+            const mode = document.getElementById('agentMode').value;
+            const documentId = document.getElementById('documentSelect').value;
+            
+            if (!instruction.trim()) {
+                alert('Please enter an instruction');
+                return;
+            }
+            
+            document.getElementById('executeBtn').disabled = true;
+            document.getElementById('progressBar').style.display = 'block';
+            showProgress(10);
+            
+            try {
+                const response = await fetch('/api/v1/agent/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        documentId: documentId,
+                        instruction: instruction,
+                        mode: mode,
+                        sessionId: sessionId,
+                        maxSteps: 10
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Agent execution failed');
+                }
+                
+                const result = await response.json();
+                currentTaskId = result.taskId;
+                
+                loadDiffHistory(documentId);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to execute agent: ' + error.message);
+                document.getElementById('executeBtn').disabled = false;
+            }
+        }
+        
+        async function loadDocument() {
+            const documentId = document.getElementById('documentSelect').value;
+            
+            try {
+                const response = await fetch(`/api/v1/documents/${documentId}`);
+                if (response.ok) {
+                    const doc = await response.json();
+                    document.getElementById('documentContent').value = doc.content;
+                }
+            } catch (error) {
+                console.error('Error loading document:', error);
+            }
+        }
+        
+        async function loadDiffHistory(documentId) {
+            try {
+                const response = await fetch(`/api/v1/diff/document/${documentId}`);
+                if (response.ok) {
+                    const history = await response.json();
+                    if (history.length > 0) {
+                        const latestDiff = history[history.length - 1];
+                        document.getElementById('diffView').innerHTML = latestDiff.diffHtml;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading diff:', error);
+            }
+        }
+        
+        function clearSteps() {
+            document.getElementById('stepsContainer').innerHTML = 
+                '<div class="empty-state">Agent execution steps will appear here</div>';
+            document.getElementById('stepCount').textContent = '0 steps';
+            document.getElementById('diffView').innerHTML = 
+                '<div class="empty-state">Execute an agent task to see diff changes</div>';
+        }
+        
+        function showProgress(percent) {
+            document.getElementById('progressFill').style.width = percent + '%';
+        }
+        
+        window.onload = function() {
+            initWebSocket();
+            loadDocument();
+        };
+    </script>
+</body>
+</html>

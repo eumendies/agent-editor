@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: ai-editor
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+server:
+  port: 8080
+
+# LangChain4j Configuration
+langchain4j:
+  open-ai:
+    chat-model:
+      api-key: ${EMBEDDING_API_KEY:}
+      model-name: qwen3.5-flash
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      temperature: 0.7
+      max-tokens: 4000
+    embedding-model:
+      model-name: text-embedding-v4
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api-key: ${EMBEDDING_API_KEY:}
+
+# Swagger/OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Logging
+logging:
+  level:
+    com.agent.editor: DEBUG
+    dev.langchain4j: DEBUG
