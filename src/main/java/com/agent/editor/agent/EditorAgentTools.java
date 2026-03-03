@@ -7,12 +7,14 @@ import com.agent.editor.websocket.WebSocketService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.service.tool.DefaultToolExecutor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Data
 @AllArgsConstructor
@@ -83,31 +85,8 @@ public class EditorAgentTools {
         }
     }
 
-    private Map<String, Object> parseJsonArguments(String json) {
-        if (json == null || json.isEmpty()) {
-            return new HashMap<>();
-        }
-
-        try {
-            return objectMapper.readValue(json, Map.class);
-        } catch (Exception e) {
-            return new HashMap<>();
-        }
-    }
-
     public String executeTool(ToolExecutionRequest request) {
-        String toolName = request.name();
-        String arguments = request.arguments();
-        Map<String, Object> params = parseJsonArguments(arguments);
-
-        return switch (toolName) {
-            case "editDocument" -> editDocument((String) params.get("content"));
-            case "searchContent" -> searchContent((String) params.get("pattern"));
-            case "analyzeDocument" -> analyzeDocument();
-            case "terminateTask" -> terminateTask();
-            case "respondToUser" -> respondToUser((String) params.get("message"));
-            case "replaceContent" -> replaceContent((String) params.get("pattern"), (String) params.get("replacement"));
-            default -> "Unknown tool: " + toolName;
-        };
+        return new DefaultToolExecutor(this, request)
+                .execute(request, UUID.randomUUID());
     }
 }
