@@ -3,48 +3,39 @@ package com.agent.editor.agent;
 import com.agent.editor.model.AgentMode;
 import com.agent.editor.model.AgentStep;
 import com.agent.editor.model.Document;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class AgentState {
-    private String taskId;
+    
+    private final String taskId;
     private String sessionId;
-    private Document document;
-    private String instruction;
-    private AgentMode mode;
-    private List<AgentStep> steps;
+    private final Document document;
+    private final String instruction;
+    private final AgentMode mode;
+    private final List<AgentStep> steps;
     private int currentStep;
     private int maxSteps;
     private String status;
-    private String currentThought;
-    private String currentAction;
-    private String currentObservation;
-    private boolean isCompleted;
+    private boolean completed;
     private long startTime;
     private long endTime;
 
-    public AgentState() {
+    public AgentState(Document document, String instruction, AgentMode mode) {
         this.taskId = UUID.randomUUID().toString();
+        this.document = document;
+        this.instruction = instruction;
+        this.mode = mode;
         this.steps = new ArrayList<>();
         this.currentStep = 0;
         this.status = "PENDING";
         this.maxSteps = 10;
     }
 
-    public AgentState(Document document, String instruction, AgentMode mode) {
-        this();
-        this.document = document;
-        this.instruction = instruction;
-        this.mode = mode;
-    }
-
     public String getTaskId() {
         return taskId;
-    }
-
-    public void setTaskId(String taskId) {
-        this.taskId = taskId;
     }
 
     public String getSessionId() {
@@ -59,40 +50,20 @@ public class AgentState {
         return document;
     }
 
-    public void setDocument(Document document) {
-        this.document = document;
-    }
-
     public String getInstruction() {
         return instruction;
-    }
-
-    public void setInstruction(String instruction) {
-        this.instruction = instruction;
     }
 
     public AgentMode getMode() {
         return mode;
     }
 
-    public void setMode(AgentMode mode) {
-        this.mode = mode;
-    }
-
     public List<AgentStep> getSteps() {
         return steps;
     }
 
-    public void setSteps(List<AgentStep> steps) {
-        this.steps = steps;
-    }
-
     public int getCurrentStep() {
         return currentStep;
-    }
-
-    public void setCurrentStep(int currentStep) {
-        this.currentStep = currentStep;
     }
 
     public int getMaxSteps() {
@@ -111,36 +82,12 @@ public class AgentState {
         this.status = status;
     }
 
-    public String getCurrentThought() {
-        return currentThought;
-    }
-
-    public void setCurrentThought(String currentThought) {
-        this.currentThought = currentThought;
-    }
-
-    public String getCurrentAction() {
-        return currentAction;
-    }
-
-    public void setCurrentAction(String currentAction) {
-        this.currentAction = currentAction;
-    }
-
-    public String getCurrentObservation() {
-        return currentObservation;
-    }
-
-    public void setCurrentObservation(String currentObservation) {
-        this.currentObservation = currentObservation;
-    }
-
     public boolean isCompleted() {
-        return isCompleted;
+        return completed;
     }
 
     public void setCompleted(boolean completed) {
-        isCompleted = completed;
+        this.completed = completed;
     }
 
     public long getStartTime() {
