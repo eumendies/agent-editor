@@ -1,6 +1,9 @@
 package com.agent.editor.agent;
 
 import com.agent.editor.model.AgentMode;
+import com.agent.editor.websocket.WebSocketService;
+import dev.langchain4j.model.chat.ChatModel;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -8,27 +11,27 @@ import java.util.Map;
 
 @Component
 public class AgentFactory {
-    
-    private final Map<AgentMode, AgentExecutor> agentMap = new HashMap<>();
+    @Autowired
+    private ChatModel chatModel;
 
-    public AgentFactory(ReActAgent reactAgent, PlanningAgent planningAgent) {
-        agentMap.put(AgentMode.REACT, reactAgent);
-        agentMap.put(AgentMode.PLANNING, planningAgent);
-    }
+    @Autowired
+    private WebSocketService websocketService;
 
     public AgentExecutor getAgent(AgentMode mode) {
-        AgentExecutor agent = agentMap.get(mode);
-        if (agent == null) {
-            return agentMap.get(AgentMode.REACT);
-        }
-        return agent;
+        return ReActAgent.builder()
+                .chatLanguageModel(chatModel)
+                .websocketService(websocketService)
+                .build();
     }
 
     public AgentExecutor getDefaultAgent() {
-        return agentMap.get(AgentMode.REACT);
+        return ReActAgent.builder()
+                .chatLanguageModel(chatModel)
+                .websocketService(websocketService)
+                .build();
     }
 
     public boolean isModeSupported(AgentMode mode) {
-        return agentMap.containsKey(mode);
+        return true;
     }
 }

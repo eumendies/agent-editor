@@ -3,24 +3,18 @@ package com.agent.editor.agent;
 import com.agent.editor.dto.WebSocketMessage;
 import com.agent.editor.model.*;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
-import org.springframework.stereotype.Component;
+import lombok.experimental.SuperBuilder;
 
 import java.util.*;
 
-@Component
+@SuperBuilder
 public class ReActAgent extends BaseAgent {
-
     @Override
     public AgentMode getMode() {
         return AgentMode.REACT;
     }
 
-    @Override
-    protected List<ToolSpecification> buildTools() {
-        return AgentTools.defaultTools();
-    }
 
     @Override
     protected String buildSystemPrompt() {
@@ -70,7 +64,7 @@ public class ReActAgent extends BaseAgent {
         
         List<ToolExecutionRequest> requests = aiMessage.toolExecutionRequests();
         for (ToolExecutionRequest request : requests) {
-            if (AgentTools.TERMINATE_TASK.equalsIgnoreCase(request.name())) {
+            if ("terminateTask".equals(request.name())) {
                 return AgentStepType.COMPLETED;
             }
         }

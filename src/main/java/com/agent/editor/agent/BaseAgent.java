@@ -6,6 +6,7 @@ import com.agent.editor.websocket.WebSocketService;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.agent.tool.ToolSpecifications;
 import dev.langchain4j.data.message.*;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -13,33 +14,28 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import lombok.experimental.SuperBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*;
 
+@SuperBuilder
 public abstract class BaseAgent implements AgentExecutor {
     
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-    
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    
-    @Autowired
+
     protected ChatModel chatLanguageModel;
-    
-    @Autowired
+
     protected WebSocketService websocketService;
     
     private ChatMemory chatMemory;
 
     private AgentState state;
 
+    private EditorAgentTools tools;
+
     public abstract AgentMode getMode();
-    
-    protected abstract List<ToolSpecification> buildTools();
     
     protected abstract String buildSystemPrompt();
     
@@ -60,6 +56,30 @@ public abstract class BaseAgent implements AgentExecutor {
                 "User instruction: " + instruction;
     }
 
+    private void initAgent(Document document, String instruction, String sessionId, AgentMode mode, Integer maxSteps) {
+        this.chatMemory = MessageWindowChatMemory.builder()
+                .maxMessages(20)
+                .build();
+
+        String systemPrompt = buildSystemPrompt();
+        chatMemory.add(SystemMessage.from(systemPrompt));
+
+        String userMessage = buildUserMessage(document, instruction);
+        chatMemory.add(UserMessage.from(userMessage));
+
+        this.state = new AgentState(document, instruction, mode);
+        state.setSessionId(sessionId);
+        state.setStatus("RUNNING");
+
+        if (maxSteps != null) {
+            state.setMaxSteps(maxSteps);
+        }
+
+        state.setStartTime(System.currentTimeMillis());
+
+        this.tools = new EditorAgentTools(state, websocketService);
+    }
+
     @Override
     public AgentState execute(Document document, String instruction, String sessionId, 
                               AgentMode mode, Integer maxSteps) {
@@ -71,25 +91,7 @@ public abstract class BaseAgent implements AgentExecutor {
         logger.info("原始文档内容:\n{}", document.getContent());
         logger.info("========================================");
         
-        this.chatMemory = MessageWindowChatMemory.builder()
-                .maxMessages(20)
-                .build();
-
-        String systemPrompt = buildSystemPrompt();
-        chatMemory.add(SystemMessage.from(systemPrompt));
-        
-        String userMessage = buildUserMessage(document, instruction);
-        chatMemory.add(UserMessage.from(userMessage));
-        
-        this.state = new AgentState(document, instruction, mode);
-        state.setSessionId(sessionId);
-        state.setStatus("RUNNING");
-        
-        if (maxSteps != null) {
-            state.setMaxSteps(maxSteps);
-        }
-        
-        state.setStartTime(System.currentTimeMillis());
+        initAgent(document, instruction, sessionId, mode, maxSteps);
         
         try {
             executeLoop();
@@ -126,10 +128,10 @@ public abstract class BaseAgent implements AgentExecutor {
             logger.info("═══════════════════════════════════════════");
             
             try {
-                List<ToolSpecification> tools = buildTools();
+                List<ToolSpecification> toolSpecifications = ToolSpecifications.toolSpecificationsFrom(EditorAgentTools.class);
                 ChatRequest chatRequest = ChatRequest.builder()
                         .messages(chatMemory.messages())
-                        .toolSpecifications(tools)
+                        .toolSpecifications(toolSpecifications)
                         .build();
 
                 ChatResponse aiMessageResponse = chatLanguageModel.chat(chatRequest);
@@ -145,7 +147,7 @@ public abstract class BaseAgent implements AgentExecutor {
                     
                     for (ToolExecutionRequest toolRequest : toolRequests) {
                         logger.info("  - 工具: {}, 参数: {}", toolRequest.name(), toolRequest.arguments());
-                        String toolResult = executeToolByName(toolRequest, state.getDocument());
+                        String toolResult = tools.executeTool(toolRequest);
                         logger.info("【工具执行结果】: {}", toolResult);
 
                         ToolExecutionResultMessage toolResultMessage = ToolExecutionResultMessage.from(toolRequest, toolResult);
@@ -180,99 +182,6 @@ public abstract class BaseAgent implements AgentExecutor {
                 sendStepUpdate(state, errorStep);
                 break;
             }
-        }
-    }
-    
-    protected String executeToolByName(ToolExecutionRequest toolRequest, Document document) {
-        String toolName = toolRequest.name();
-        String arguments = toolRequest.arguments();
-        
-        logger.info("执行工具: {}, 参数: {}", toolName, arguments);
-        
-        try {
-            Map<String, Object> params = parseJsonArguments(arguments);
-            
-            switch (toolName) {
-                case "readDocument":
-                    return document.getContent();
-                    
-                case "editDocument":
-                    Object contentObj = params.get("content");
-                    if (contentObj != null) {
-                        String newContent = contentObj.toString();
-                        document.setContent(newContent);
-                        return "Document edited successfully.\n\n" + newContent;
-                    }
-                    return "No content provided";
-                    
-                case "searchContent":
-                    Object patternObj = params.get("pattern");
-                    if (patternObj != null && document.getContent() != null) {
-                        String pattern = patternObj.toString();
-                        boolean found = document.getContent().toLowerCase().contains(pattern.toLowerCase());
-                        return "Search for '" + pattern + "': " + (found ? "Found" : "Not found");
-                    }
-                    return "Search completed";
-                    
-                case "formatDocument":
-                    if (document.getContent() != null) {
-                        StringBuilder formatted = new StringBuilder();
-                        for (String line : document.getContent().split("\n")) {
-                            formatted.append("  ").append(line).append("\n");
-                        }
-                        document.setContent(formatted.toString().trim());
-                        return "Document formatted:\n" + document.getContent();
-                    }
-                    return "No content to format";
-                    
-                case "analyzeDocument":
-                    String content = document.getContent();
-                    int words = content != null ? content.split("\\s+").length : 0;
-                    int lines = content != null ? content.split("\n").length : 0;
-                    return "Words: " + words + ", Lines: " + lines + ", Chars: " + (content != null ? content.length() : 0);
-                    
-                case "undoChange":
-                    return "Undo completed";
-                    
-                case "previewChanges":
-                    Object previewContent = params.get("content");
-                    return "Preview:\n" + (previewContent != null ? previewContent.toString() : "No content");
-                    
-                case "compareVersions":
-                    return "Current version (" + document.getContent().length() + " chars):\n" + document.getContent();
-
-                case "terminateTask":
-                    return "done";
-                    
-                case "respondToUser":
-                    Object messageObj = params.get("message");
-                    if (messageObj != null) {
-                        AgentStep userStep = createStep(state, AgentStepType.USER_MESSAGE, messageObj.toString(), new HashMap<>());
-                        state.addStep(userStep);
-                        sendStepUpdate(state, userStep);
-                        return "RESPOND_TO_USER SUCCESS";
-                    } else {
-                        return "RESPOND_TO_USER: No message provided";
-                    }
-                default:
-                    return "Unknown tool: " + toolName;
-            }
-        } catch (Exception e) {
-            logger.error("Error executing tool: {}", toolName, e);
-            return "Error: " + e.getMessage();
-        }
-    }
-    
-    private Map<String, Object> parseJsonArguments(String json) {
-        if (json == null || json.isEmpty()) {
-            return new HashMap<>();
-        }
-        
-        try {
-            return objectMapper.readValue(json, Map.class);
-        } catch (Exception e) {
-            logger.warn("Failed to parse JSON arguments: {}", json, e);
-            return new HashMap<>();
         }
     }
 }
