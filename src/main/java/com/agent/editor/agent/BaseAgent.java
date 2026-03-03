@@ -3,24 +3,29 @@ package com.agent.editor.agent;
 import com.agent.editor.model.*;
 import com.agent.editor.dto.*;
 import com.agent.editor.websocket.WebSocketService;
+
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.message.*;
+import dev.langchain4j.memory.ChatMemory;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public abstract class BaseAgent implements AgentExecutor {
     
     protected final Logger logger = LoggerFactory.getLogger(getClass());
+    
+    private final ObjectMapper objectMapper = new ObjectMapper();
     
     @Autowired
     protected ChatModel chatLanguageModel;
@@ -28,29 +33,32 @@ public abstract class BaseAgent implements AgentExecutor {
     @Autowired
     protected WebSocketService websocketService;
     
-    private static final Pattern ACTION_PATTERN = Pattern.compile(
-        "ACTION:\\s*(\\w+)\\((.*?)\\)", Pattern.CASE_INSENSITIVE
-    );
+    private ChatMemory chatMemory;
+
+    private AgentState state;
 
     public abstract AgentMode getMode();
     
     protected abstract List<ToolSpecification> buildTools();
     
-    protected abstract String buildSystemPrompt(AgentState state);
+    protected abstract String buildSystemPrompt();
     
     protected abstract AgentStep createStep(AgentState state, AgentStepType type, 
                                              String content, Map<String, Object> metadata);
-    
-    protected abstract String getInitialPrompt(AgentState state);
-    
-    protected abstract String getNextPrompt(AgentState state, AgentStep previousStep, 
-                                           Map<String, Object> previousMetadata);
 
-    protected abstract String extractContent(String response, AgentStepType stepType);
+    protected abstract String extractContent(AiMessage aiMessage, AgentStepType stepType);
     
-    protected abstract AgentStepType parseResponse(String response, AgentState state);
+    protected abstract AgentStepType parseResponse(AiMessage aiMessage, AgentState state);
 
     public abstract void sendStepUpdate(AgentState state, AgentStep step);
+    
+    protected String buildUserMessage(Document document, String instruction) {
+        return "Current document content:\n" +
+                "---BEGIN---\n" +
+                document.getContent() +
+                "\n---END---\n\n" +
+                "User instruction: " + instruction;
+    }
 
     @Override
     public AgentState execute(Document document, String instruction, String sessionId, 
@@ -63,7 +71,17 @@ public abstract class BaseAgent implements AgentExecutor {
         logger.info("原始文档内容:\n{}", document.getContent());
         logger.info("========================================");
         
-        AgentState state = new AgentState(document, instruction, mode);
+        this.chatMemory = MessageWindowChatMemory.builder()
+                .maxMessages(20)
+                .build();
+
+        String systemPrompt = buildSystemPrompt();
+        chatMemory.add(SystemMessage.from(systemPrompt));
+        
+        String userMessage = buildUserMessage(document, instruction);
+        chatMemory.add(UserMessage.from(userMessage));
+        
+        this.state = new AgentState(document, instruction, mode);
         state.setSessionId(sessionId);
         state.setStatus("RUNNING");
         
@@ -74,7 +92,7 @@ public abstract class BaseAgent implements AgentExecutor {
         state.setStartTime(System.currentTimeMillis());
         
         try {
-            executeLoop(state);
+            executeLoop();
             
             if (state.isCompleted()) {
                 state.setStatus("COMPLETED");
@@ -99,38 +117,27 @@ public abstract class BaseAgent implements AgentExecutor {
         return state;
     }
 
-    protected void executeLoop(AgentState state) {
-        AgentStep previousStep = null;
-        
+    protected void executeLoop() {
         while (state.getCurrentStep() < state.getMaxSteps() && !state.isCompleted()) {
             state.incrementStep();
-            
             logger.info("");
             logger.info("═══════════════════════════════════════════");
             logger.info("步骤 {}/{} - {}", state.getCurrentStep(), state.getMaxSteps(), state.getMode());
             logger.info("═══════════════════════════════════════════");
             
             try {
-                String prompt;
-                if (state.getCurrentStep() == 1) {
-                    prompt = getInitialPrompt(state);
-                } else {
-                    prompt = getNextPrompt(state, previousStep, previousStep.getMetadata());
-                }
-                
-                logger.info("【构造的Prompt】:\n{}", prompt);
-                logger.info("───────────────────────────────────────");
-
                 List<ToolSpecification> tools = buildTools();
-                
                 ChatRequest chatRequest = ChatRequest.builder()
-                        .messages(UserMessage.from(prompt))
+                        .messages(chatMemory.messages())
                         .toolSpecifications(tools)
                         .build();
-                
+
                 ChatResponse aiMessageResponse = chatLanguageModel.chat(chatRequest);
                 AiMessage aiMessage = aiMessageResponse.aiMessage();
-                String response;
+                chatMemory.add(aiMessage);
+                
+                String response = aiMessage.text();
+                logger.info("【AI原始响应】: {}\n", response);
                 
                 if (aiMessage.hasToolExecutionRequests()) {
                     logger.info("【AI请求执行工具】");
@@ -138,38 +145,22 @@ public abstract class BaseAgent implements AgentExecutor {
                     
                     for (ToolExecutionRequest toolRequest : toolRequests) {
                         logger.info("  - 工具: {}, 参数: {}", toolRequest.name(), toolRequest.arguments());
+                        String toolResult = executeToolByName(toolRequest, state.getDocument());
+                        logger.info("【工具执行结果】: {}", toolResult);
+
+                        ToolExecutionResultMessage toolResultMessage = ToolExecutionResultMessage.from(toolRequest, toolResult);
+                        chatMemory.add(toolResultMessage);
                     }
-                    
-                    String toolResult = executeToolByName(toolRequests.get(0), state.getDocument());
-                    logger.info("【工具执行结果】: {}", toolResult);
-                    
-                    response = toolResult;
-                } else {
-                    response = aiMessage.text();
                 }
                 
-                logger.info("【AI输出】:\n{}", response);
-                logger.info("───────────────────────────────────────");
-                
-                AgentStepType stepType = parseResponse(response, state);
+                AgentStepType stepType = parseResponse(aiMessage, state);
                 logger.info("【解析的步骤类型】: {}", stepType);
                 
-                String content = extractContent(response, stepType);
+                String content = extractContent(aiMessage, stepType);
                 logger.info("【提取的内容】: {}", content != null ? (content.length() > 100 ? content.substring(0, 100) + "..." : content) : "null");
                 
                 Map<String, Object> metadata = new HashMap<>();
                 metadata.put("rawResponse", response);
-                
-                if (aiMessage.hasToolExecutionRequests()) {
-                    stepType = AgentStepType.OBSERVATION;
-                    if (response.equals("done")) {
-                        stepType = AgentStepType.COMPLETED;
-                    }
-                    ToolExecutionRequest toolRequest = aiMessage.toolExecutionRequests().get(0);
-                    metadata.put("toolName", toolRequest.name());
-                    metadata.put("toolArguments", toolRequest.arguments());
-                    metadata.put("toolResult", response);
-                }
                 
                 AgentStep step = createStep(state, stepType, content, metadata);
                 state.addStep(step);
@@ -177,18 +168,10 @@ public abstract class BaseAgent implements AgentExecutor {
                 sendStepUpdate(state, step);
                 
                 if (stepType == AgentStepType.COMPLETED || stepType == AgentStepType.RESULT) {
-//                    if (content != null && content.length() > 10) {
-//                        logger.info("【文档更新】: 即将更新文档内容");
-//                        state.getDocument().setContent(content);
-//                        logger.info("【文档已更新】:\n{}", content);
-//                    }
                     state.setCompleted(true);
-                    sendStepUpdate(state, step);
                     break;
                 }
-                
-                previousStep = step;
-                
+
             } catch (Exception e) {
                 logger.error("【步骤执行错误】 at step {}", state.getCurrentStep(), e);
                 AgentStep errorStep = createStep(state, AgentStepType.ERROR, 
@@ -261,6 +244,16 @@ public abstract class BaseAgent implements AgentExecutor {
                 case "terminateTask":
                     return "done";
                     
+                case "respondToUser":
+                    Object messageObj = params.get("message");
+                    if (messageObj != null) {
+                        AgentStep userStep = createStep(state, AgentStepType.USER_MESSAGE, messageObj.toString(), new HashMap<>());
+                        state.addStep(userStep);
+                        sendStepUpdate(state, userStep);
+                        return "RESPOND_TO_USER SUCCESS";
+                    } else {
+                        return "RESPOND_TO_USER: No message provided";
+                    }
                 default:
                     return "Unknown tool: " + toolName;
             }
@@ -271,28 +264,15 @@ public abstract class BaseAgent implements AgentExecutor {
     }
     
     private Map<String, Object> parseJsonArguments(String json) {
-        Map<String, Object> result = new HashMap<>();
         if (json == null || json.isEmpty()) {
-            return result;
+            return new HashMap<>();
         }
         
-        json = json.trim();
-        if (json.startsWith("{")) {
-            json = json.substring(1);
+        try {
+            return objectMapper.readValue(json, Map.class);
+        } catch (Exception e) {
+            logger.warn("Failed to parse JSON arguments: {}", json, e);
+            return new HashMap<>();
         }
-        if (json.endsWith("}")) {
-            json = json.substring(0, json.length() - 1);
-        }
-        
-        String[] pairs = json.split(",");
-        for (String pair : pairs) {
-            String[] keyValue = pair.split(":");
-            if (keyValue.length == 2) {
-                String key = keyValue[0].trim().replace("\"", "").replace("'", "");
-                String value = keyValue[1].trim().replace("\"", "").replace("'", "");
-                result.put(key, value);
-            }
-        }
-        return result;
     }
 }

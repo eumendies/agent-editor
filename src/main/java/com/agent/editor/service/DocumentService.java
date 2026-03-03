@@ -12,10 +12,12 @@ import com.agent.editor.websocket.WebSocketService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -113,6 +115,73 @@ public class DocumentService {
             
             diffHistory.computeIfAbsent(document.getId(), k -> new ArrayList<>()).add(diff);
         }
+        
+        return buildTaskResponse(state);
+    }
+
+    public AgentTaskResponse startAgentTaskAsync(AgentTaskRequest request) {
+        Document document = getDocument(request.getDocumentId());
+        
+        if (document == null) {
+            throw new IllegalArgumentException("Document not found: " + request.getDocumentId());
+        }
+        
+        AgentMode mode = request.getMode() != null ? request.getMode() : AgentMode.REACT;
+        
+        AgentExecutor agent = agentFactory.getAgent(mode);
+        
+        if (agent == null) {
+            throw new IllegalArgumentException("Unsupported agent mode: " + mode);
+        }
+        
+        String sessionId = request.getSessionId() != null ? 
+            request.getSessionId() : UUID.randomUUID().toString();
+        
+        AgentState state = new AgentState(document, request.getInstruction(), mode);
+        state.setSessionId(sessionId);
+        state.setStatus("RUNNING");
+        
+        if (request.getMaxSteps() != null) {
+            state.setMaxSteps(request.getMaxSteps());
+        }
+        
+        state.setStartTime(System.currentTimeMillis());
+        
+        agentTasks.put(state.getTaskId(), state);
+        
+        logger.info("Created async task: taskId={}, mode={}, document={}", 
+            state.getTaskId(), mode, document.getId());
+        
+        CompletableFuture.runAsync(() -> {
+            try {
+                AgentState resultState = agent.execute(
+                    document, 
+                    request.getInstruction(), 
+                    sessionId, 
+                    mode, 
+                    request.getMaxSteps()
+                );
+                
+                agentTasks.put(resultState.getTaskId(), resultState);
+                
+                if (resultState.getDocument().getContent() != null) {
+                    String originalContent = document.getContent();
+                    updateDocument(document.getId(), resultState.getDocument().getContent());
+                    
+                    DiffResult diff = generateDiff(document.getId(), originalContent, 
+                        resultState.getDocument().getContent());
+                    
+                    diffHistory.computeIfAbsent(document.getId(), k -> new ArrayList<>()).add(diff);
+                }
+                
+                logger.info("Async task completed: taskId={}, status={}", 
+                    resultState.getTaskId(), resultState.getStatus());
+                
+            } catch (Exception e) {
+                logger.error("Async task failed: taskId={}", state.getTaskId(), e);
+                state.setStatus("ERROR");
+            }
+        });
         
         return buildTaskResponse(state);
     }

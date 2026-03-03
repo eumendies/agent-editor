@@ -3,6 +3,7 @@ package com.agent.editor.agent;
 import com.agent.editor.model.*;
 import com.agent.editor.dto.WebSocketMessage;
 import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import org.slf4j.Logger;
@@ -88,12 +89,24 @@ public class PlanningAgent extends BaseAgent {
             ToolSpecification.builder()
                 .name("compareVersions")
                 .description("Compare current document with original")
+                .build(),
+            ToolSpecification.builder()
+                .name("terminateTask")
+                .description("Terminate the current task immediately")
+                .build(),
+            ToolSpecification.builder()
+                .name("respondToUser")
+                .description("Send a message directly to the user. Use this when you want to communicate with the user without modifying the document, such as asking for clarification, providing summaries, or explaining what you're doing.")
+                .parameters(JsonObjectSchema.builder()
+                    .addStringProperty("message", "The message to send to the user")
+                    .required("message")
+                    .build())
                 .build()
         );
     }
 
     @Override
-    protected String buildSystemPrompt(AgentState state) {
+    protected String buildSystemPrompt() {
         StringBuilder prompt = new StringBuilder();
         prompt.append("You are an AI-powered document editing agent using the Planning pattern.\n");
         prompt.append("Your goal is to create and execute a structured plan to fulfill user instructions.\n\n");
@@ -103,12 +116,6 @@ public class PlanningAgent extends BaseAgent {
         prompt.append("2. Then execute each step one by one (EXECUTION phase)\n");
         prompt.append("3. Validate each step's result\n");
         prompt.append("4. When all steps are done, provide the final result (COMPLETED phase)\n\n");
-        
-        prompt.append("\n## Current Document:\n");
-        prompt.append(state.getDocument().getContent());
-        
-        prompt.append("\n\n## User Instruction:\n");
-        prompt.append(state.getInstruction());
         
         logger.info("【Planning系统Prompt构建完成】, 长度: {}", prompt.length());
         
@@ -133,45 +140,10 @@ public class PlanningAgent extends BaseAgent {
         
         return step;
     }
-
+    
     @Override
-    protected String getInitialPrompt(AgentState state) {
-        StringBuilder prompt = new StringBuilder();
-        
-        prompt.append(buildSystemPrompt(state));
-        prompt.append("\n\n");
-        prompt.append("Please analyze the instruction, create a plan, and execute it.\n");
-        
-        return prompt.toString();
-    }
-
-    @Override
-    protected String getNextPrompt(AgentState state, AgentStep previousStep, Map<String, Object> previousMetadata) {
-        StringBuilder prompt = new StringBuilder();
-        
-        prompt.append(buildSystemPrompt(state));
-        prompt.append("\n\n");
-        
-        if (previousMetadata != null && previousMetadata.containsKey("toolName")) {
-            String toolName = (String) previousMetadata.get("toolName");
-            String toolArguments = (String) previousMetadata.get("toolArguments");
-            String toolResult = (String) previousMetadata.get("toolResult");
-            
-            prompt.append("Function called: ").append(toolName).append("\n");
-            prompt.append("Arguments: ").append(toolArguments).append("\n");
-            prompt.append("Result:\n").append(toolResult).append("\n\n");
-        } else {
-            prompt.append("Previous step result:\n");
-            prompt.append(previousStep.getResult()).append("\n\n");
-        }
-        
-        prompt.append("Please continue executing the plan or complete the task.\n");
-        
-        return prompt.toString();
-    }
-
-    @Override
-    protected AgentStepType parseResponse(String response, AgentState state) {
+    protected AgentStepType parseResponse(AiMessage aiMessage, AgentState state) {
+        String response = aiMessage.text();
         String lower = response.toLowerCase();
         
         if (lower.contains("final:") || lower.contains("completed:") || 
@@ -191,7 +163,8 @@ public class PlanningAgent extends BaseAgent {
     }
 
     @Override
-    protected String extractContent(String response, AgentStepType stepType) {
+    protected String extractContent(AiMessage aiMessage, AgentStepType stepType) {
+        String response = aiMessage.text();
         if (stepType == AgentStepType.COMPLETED) {
             Matcher matcher = COMPLETED_PATTERN.matcher(response);
             if (matcher.find()) {

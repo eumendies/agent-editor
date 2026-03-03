@@ -36,7 +36,7 @@ public class AgentController {
             request.getMode(), request.getDocumentId(), request.getInstruction());
         
         try {
-            AgentTaskResponse response = documentService.executeAgentTask(request);
+            AgentTaskResponse response = documentService.startAgentTaskAsync(request);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             logger.error("Agent task execution failed", e);

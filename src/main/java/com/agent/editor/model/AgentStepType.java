@@ -7,5 +7,6 @@ public enum AgentStepType {
     OBSERVATION,
     RESULT,
     ERROR,
-    COMPLETED
+    COMPLETED,
+    USER_MESSAGE
 }

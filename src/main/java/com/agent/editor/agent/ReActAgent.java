@@ -2,7 +2,9 @@ package com.agent.editor.agent;
 
 import com.agent.editor.model.*;
 import com.agent.editor.dto.WebSocketMessage;
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import org.slf4j.Logger;
@@ -11,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
@@ -90,32 +91,16 @@ public class ReActAgent extends BaseAgent {
             ToolSpecification.builder()
                     .name("terminateTask")
                     .description("Terminate the current task immediately")
+                    .build(),
+            ToolSpecification.builder()
+                    .name("respondToUser")
+                    .description("Send a message directly to the user. Use this when you want to communicate with the user without modifying the document, such as asking for clarification, providing summaries, or explaining what you're doing.")
+                    .parameters(JsonObjectSchema.builder()
+                        .addStringProperty("message", "The message to send to the user")
+                        .required("message")
+                        .build())
                     .build()
         );
-    }
-
-    @Override
-    protected String buildSystemPrompt(AgentState state) {
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("You are an AI-powered document editing agent using the ReAct (Reasoning + Acting) pattern.\n");
-        prompt.append("Your goal is to understand user instructions and edit the document accordingly.\n\n");
-        
-        prompt.append("## ReAct Pattern\n");
-        prompt.append("Think step by step:\n");
-        prompt.append("1. Analyze the user's instruction\n");
-        prompt.append("2. Take ONE action (by function calling) at a time\n");
-        prompt.append("3. Observe the result\n");
-        prompt.append("4. Continue or complete based on the result\n\n");
-        
-        prompt.append("\n## Current Document:\n");
-        prompt.append(state.getDocument().getContent());
-        
-        prompt.append("\n\n## User Instruction:\n");
-        prompt.append(state.getInstruction());
-        
-        logger.info("【ReAct系统Prompt构建完成】, 长度: {}", prompt.length());
-        
-        return prompt.toString();
     }
 
     @Override
@@ -139,73 +124,63 @@ public class ReActAgent extends BaseAgent {
     }
 
     @Override
-    protected String getInitialPrompt(AgentState state) {
+    protected String buildSystemPrompt() {
         StringBuilder prompt = new StringBuilder();
+        prompt.append("You are an AI-powered document editing agent using the ReAct (Reasoning + Acting) pattern.\n");
+        prompt.append("Your goal is to understand user instructions and edit the document accordingly.\n\n");
         
-        prompt.append(buildSystemPrompt(state));
-        prompt.append("\n\n");
-        prompt.append("Please complete the user's request.\n");
+        prompt.append("## ReAct Pattern\n");
+        prompt.append("Think step by step:\n");
+        prompt.append("1. Analyze the user's instruction\n");
+        prompt.append("2. Take ONE action at a time using the available tools\n");
+        prompt.append("3. Observe the result\n");
+        prompt.append("4. Continue or complete based on the result\n");
+        prompt.append("5. Complete the task by answering with 'done' or calling terminateTask function when finished\n\n");
+        
+        logger.info("【ReAct系统Prompt构建完成】, 长度: {}", prompt.length());
         
         return prompt.toString();
     }
 
     @Override
-    protected String getNextPrompt(AgentState state, AgentStep previousStep, Map<String, Object> previousMetadata) {
-        StringBuilder prompt = new StringBuilder();
-        
-        prompt.append(buildSystemPrompt(state));
-        prompt.append("\n\n");
-        
-        if (previousMetadata != null && previousMetadata.containsKey("toolName")) {
-            String toolName = (String) previousMetadata.get("toolName");
-            String toolArguments = (String) previousMetadata.get("toolArguments");
-            String toolResult = (String) previousMetadata.get("toolResult");
-            prompt.append("## Previous Action: \n");
-            prompt.append("Function called: ").append(toolName).append("\n");
-            prompt.append("Arguments: ").append(toolArguments).append("\n");
-            prompt.append("Result:\n").append(toolResult).append("\n\n");
+    protected AgentStepType parseResponse(AiMessage aiMessage, AgentState state) {
+        if (!aiMessage.hasToolExecutionRequests()) {
+            String lower = aiMessage.text().toLowerCase();
+            if (lower.contains("final:") || lower.contains("task complete") || lower.contains("done")) {
+                return AgentStepType.COMPLETED;
+            }
+            return AgentStepType.THINKING;
         } else {
-            prompt.append("Previous step result:\n");
-            prompt.append(previousStep.getResult()).append("\n\n");
-        }
-        
-        prompt.append("Please continue or complete the task based on the above result.\n");
-        
-        return prompt.toString();
-    }
-
-    @Override
-    protected AgentStepType parseResponse(String response, AgentState state) {
-        String lower = response.toLowerCase();
-        
-        if (lower.contains("final:") || lower.contains("task complete") || lower.contains("done")) {
-            return AgentStepType.COMPLETED;
-        }
-        
-        if (ACTION_PATTERN_LOCAL.matcher(response).find()) {
+            List<ToolExecutionRequest> toolExecutionRequests = aiMessage.toolExecutionRequests();
+            for (ToolExecutionRequest request : toolExecutionRequests) {
+                if ("terminateTask".equalsIgnoreCase(request.name())) {
+                    return AgentStepType.COMPLETED;
+                }
+            }
             return AgentStepType.ACTION;
         }
-        
-        return AgentStepType.THINKING;
     }
 
     @Override
-    protected String extractContent(String response, AgentStepType stepType) {
+    protected String extractContent(AiMessage aiMessage, AgentStepType stepType) {
         if (stepType == AgentStepType.ACTION) {
-            Matcher thoughtMatcher = THOUGHT_PATTERN.matcher(response);
-            if (thoughtMatcher.find()) {
-                return thoughtMatcher.group(1).trim();
+            List<ToolExecutionRequest> toolExecutionRequests = aiMessage.toolExecutionRequests();
+            StringBuilder actionContent = new StringBuilder();
+            for (ToolExecutionRequest request : toolExecutionRequests) {
+                actionContent.append("ACTION: ").append(request.name()).append("\n");
             }
+            return actionContent.toString();
+        }
+
+        if (stepType == AgentStepType.THINKING) {
+            return aiMessage.text();
         }
         
         if (stepType == AgentStepType.COMPLETED) {
-            Matcher resultMatcher = RESULT_PATTERN.matcher(response);
-            if (resultMatcher.find()) {
-                return resultMatcher.group(1).trim();
-            }
+            return "done";
         }
         
-        return response.length() > 500 ? response.substring(0, 500) : response;
+        return aiMessage.text();
     }
 
     @Override
