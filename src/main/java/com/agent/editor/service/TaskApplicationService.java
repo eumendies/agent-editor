@@ -88,6 +88,9 @@ public class TaskApplicationService {
         if (mode == AgentMode.PLANNING) {
             return AgentType.PLANNING;
         }
+        if (mode == AgentMode.SUPERVISOR) {
+            return AgentType.SUPERVISOR;
+        }
         return AgentType.REACT;
     }
 

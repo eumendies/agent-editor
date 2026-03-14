@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class DefaultExecutionRuntimeTest {
 
@@ -56,6 +57,28 @@ class DefaultExecutionRuntimeTest {
 
         assertEquals("updated", result.finalMessage());
         assertEquals("body world", result.finalContent());
+    }
+
+    @Test
+    void shouldRejectToolCallsOutsideAllowedWorkerTools() {
+        ToolRegistry registry = new ToolRegistry();
+        registry.register(new AppendToolHandler());
+        ExecutionRuntime runtime = new DefaultExecutionRuntime(registry, event -> {});
+        ExecutionRequest request = new ExecutionRequest(
+                "task-3",
+                "session-3",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-3", "title", "body"),
+                "use tool",
+                3,
+                List.of("searchContent")
+        );
+
+        IllegalStateException error = assertThrows(IllegalStateException.class, () ->
+                runtime.run(new ToolUsingAgentDefinition(), request)
+        );
+
+        assertEquals("No tool handler registered for appendText", error.getMessage());
     }
 
     private static final class CompletingAgentDefinition implements AgentDefinition {

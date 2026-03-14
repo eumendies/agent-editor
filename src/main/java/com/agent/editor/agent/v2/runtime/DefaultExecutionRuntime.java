@@ -34,7 +34,7 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
         while (state.iteration() < request.maxIterations() && !state.completed()) {
             eventPublisher.publish(new ExecutionEvent(EventType.ITERATION_STARTED, request.taskId(), "iteration " + state.iteration()));
 
-            ExecutionContext context = new ExecutionContext(request, state, toolRegistry.specifications());
+            ExecutionContext context = new ExecutionContext(request, state, toolRegistry.specifications(request.allowedTools()));
             Decision decision = definition.decide(context);
 
             if (decision instanceof Decision.Complete complete) {
@@ -43,7 +43,12 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
             }
 
             if (decision instanceof Decision.ToolCalls toolCalls) {
-                ToolExecutionOutcome outcome = executeTools(request.taskId(), state.currentContent(), toolCalls.calls());
+                ToolExecutionOutcome outcome = executeTools(
+                        request.taskId(),
+                        state.currentContent(),
+                        toolCalls.calls(),
+                        request.allowedTools()
+                );
                 state = new ExecutionState(state.iteration() + 1, false, outcome.currentContent(), outcome.toolResults());
                 continue;
             }
@@ -59,14 +64,17 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
         throw new IllegalStateException("Execution terminated without completion");
     }
 
-    private ToolExecutionOutcome executeTools(String taskId, String currentContent, List<ToolCall> calls) {
+    private ToolExecutionOutcome executeTools(String taskId,
+                                             String currentContent,
+                                             List<ToolCall> calls,
+                                             List<String> allowedTools) {
         List<ToolResult> results = new ArrayList<>();
         String updatedContent = currentContent;
         for (ToolCall call : calls) {
             eventPublisher.publish(new ExecutionEvent(EventType.TOOL_CALLED, taskId, call.name()));
 
             ToolHandler handler = toolRegistry.get(call.name());
-            if (handler == null) {
+            if (handler == null || !toolRegistry.isAllowed(call.name(), allowedTools)) {
                 eventPublisher.publish(new ExecutionEvent(EventType.TOOL_FAILED, taskId, call.name()));
                 throw new IllegalStateException("No tool handler registered for " + call.name());
             }

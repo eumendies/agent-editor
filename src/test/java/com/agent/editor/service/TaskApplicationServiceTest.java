@@ -1,5 +1,6 @@
 package com.agent.editor.service;
 
+import com.agent.editor.agent.v2.definition.AgentType;
 import com.agent.editor.agent.v2.orchestration.TaskOrchestrator;
 import com.agent.editor.agent.v2.orchestration.TaskRequest;
 import com.agent.editor.agent.v2.orchestration.TaskResult;
@@ -36,11 +37,40 @@ class TaskApplicationServiceTest {
         assertEquals("COMPLETED", service.getTaskStatus(response.getTaskId()).getStatus());
     }
 
+    @Test
+    void shouldMapSupervisorModeToSupervisorAgentType() {
+        DocumentService documentService = new DocumentService();
+        TaskQueryService queryService = new TaskQueryService();
+        DiffService diffService = new DiffService();
+        CapturingTaskOrchestrator orchestrator = new CapturingTaskOrchestrator();
+        TaskApplicationService service = new TaskApplicationService(documentService, queryService, diffService, orchestrator);
+
+        AgentTaskRequest request = new AgentTaskRequest();
+        request.setDocumentId("doc-001");
+        request.setInstruction("coordinate workers");
+        request.setMode(AgentMode.SUPERVISOR);
+
+        service.execute(request);
+
+        assertEquals(AgentType.SUPERVISOR, orchestrator.lastRequest.agentType());
+    }
+
     private static final class StubTaskOrchestrator implements TaskOrchestrator {
 
         @Override
         public TaskResult execute(TaskRequest request) {
             return new TaskResult(TaskStatus.COMPLETED, "rewritten content");
+        }
+    }
+
+    private static final class CapturingTaskOrchestrator implements TaskOrchestrator {
+
+        private TaskRequest lastRequest;
+
+        @Override
+        public TaskResult execute(TaskRequest request) {
+            this.lastRequest = request;
+            return new TaskResult(TaskStatus.COMPLETED, "supervised content");
         }
     }
 }

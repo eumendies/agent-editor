@@ -3,13 +3,17 @@ package com.agent.editor.config;
 import com.agent.editor.agent.v2.definition.AgentType;
 import com.agent.editor.agent.v2.definition.PlanningAgentDefinition;
 import com.agent.editor.agent.v2.definition.ReactAgentDefinition;
+import com.agent.editor.agent.v2.definition.SequentialSupervisorAgentDefinition;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.LegacyEventAdapter;
 import com.agent.editor.agent.v2.event.WebSocketEventPublisher;
 import com.agent.editor.agent.v2.orchestration.PlanningThenExecutionOrchestrator;
 import com.agent.editor.agent.v2.orchestration.RoutingTaskOrchestrator;
 import com.agent.editor.agent.v2.orchestration.SingleAgentOrchestrator;
+import com.agent.editor.agent.v2.orchestration.SupervisorOrchestrator;
 import com.agent.editor.agent.v2.orchestration.TaskOrchestrator;
+import com.agent.editor.agent.v2.orchestration.WorkerDefinition;
+import com.agent.editor.agent.v2.orchestration.WorkerRegistry;
 import com.agent.editor.agent.v2.runtime.DefaultExecutionRuntime;
 import com.agent.editor.agent.v2.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
@@ -49,6 +53,33 @@ public class AgentV2Config {
     }
 
     @Bean
+    public WorkerRegistry workerRegistry(ChatModel chatModel) {
+        WorkerRegistry workerRegistry = new WorkerRegistry();
+        workerRegistry.register(new WorkerDefinition(
+                "analyzer",
+                "Analyzer",
+                "Inspect the document and identify issues before changes are made.",
+                new ReactAgentDefinition(chatModel),
+                java.util.List.of("searchContent", "analyzeDocument")
+        ));
+        workerRegistry.register(new WorkerDefinition(
+                "editor",
+                "Editor",
+                "Apply concrete edits to the document.",
+                new ReactAgentDefinition(chatModel),
+                java.util.List.of("editDocument", "searchContent")
+        ));
+        workerRegistry.register(new WorkerDefinition(
+                "reviewer",
+                "Reviewer",
+                "Review the revised document and flag any remaining issues.",
+                new ReactAgentDefinition(chatModel),
+                java.util.List.of("searchContent", "analyzeDocument")
+        ));
+        return workerRegistry;
+    }
+
+    @Bean
     public ExecutionRuntime executionRuntime(ToolRegistry toolRegistry, EventPublisher eventPublisher) {
         return new DefaultExecutionRuntime(toolRegistry, eventPublisher);
     }
@@ -56,9 +87,11 @@ public class AgentV2Config {
     @Bean
     public TaskOrchestrator taskOrchestrator(ExecutionRuntime executionRuntime,
                                              EventPublisher eventPublisher,
+                                             WorkerRegistry workerRegistry,
                                              ChatModel chatModel) {
         ReactAgentDefinition reactAgent = new ReactAgentDefinition(chatModel);
         PlanningAgentDefinition planningAgent = new PlanningAgentDefinition(chatModel);
+        SequentialSupervisorAgentDefinition supervisorAgent = new SequentialSupervisorAgentDefinition();
 
         TaskOrchestrator reactOrchestrator = new SingleAgentOrchestrator(executionRuntime, reactAgent);
         TaskOrchestrator planningOrchestrator = new PlanningThenExecutionOrchestrator(
@@ -67,10 +100,17 @@ public class AgentV2Config {
                 reactAgent,
                 eventPublisher
         );
+        TaskOrchestrator supervisorOrchestrator = new SupervisorOrchestrator(
+                supervisorAgent,
+                workerRegistry,
+                executionRuntime,
+                eventPublisher
+        );
 
         return new RoutingTaskOrchestrator(Map.of(
                 AgentType.REACT, reactOrchestrator,
-                AgentType.PLANNING, planningOrchestrator
+                AgentType.PLANNING, planningOrchestrator,
+                AgentType.SUPERVISOR, supervisorOrchestrator
         ));
     }
 }

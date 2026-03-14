@@ -75,7 +75,8 @@ public class AgentController {
     public ResponseEntity<List<String>> getSupportedModes() {
         return ResponseEntity.ok(List.of(
             AgentMode.REACT.name(),
-            AgentMode.PLANNING.name()
+            AgentMode.PLANNING.name(),
+            AgentMode.SUPERVISOR.name()
         ));
     }
 

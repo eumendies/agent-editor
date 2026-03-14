@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -57,5 +58,17 @@ class AgentControllerTest {
         assertEquals(200, result.getStatusCode().value());
         assertSame(response, result.getBody());
         verify(taskApplicationService).getTaskStatus("task-1");
+    }
+
+    @Test
+    void shouldExposeSupervisorMode() {
+        TaskApplicationService taskApplicationService = mock(TaskApplicationService.class);
+        DocumentService documentService = mock(DocumentService.class);
+        AgentController controller = new AgentController(taskApplicationService, documentService);
+
+        ResponseEntity<java.util.List<String>> result = controller.getSupportedModes();
+
+        assertEquals(200, result.getStatusCode().value());
+        assertTrue(result.getBody().contains(AgentMode.SUPERVISOR.name()));
     }
 }
