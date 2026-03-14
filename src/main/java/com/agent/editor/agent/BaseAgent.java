@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 @SuperBuilder
+@Deprecated(forRemoval = false)
 public abstract class BaseAgent implements AgentExecutor {
     
     protected final Logger logger = LoggerFactory.getLogger(getClass());

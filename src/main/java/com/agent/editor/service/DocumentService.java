@@ -1,23 +1,13 @@
 package com.agent.editor.service;
 
-import com.agent.editor.agent.AgentExecutor;
-import com.agent.editor.agent.AgentFactory;
-import com.agent.editor.agent.AgentState;
-import com.agent.editor.dto.AgentTaskRequest;
-import com.agent.editor.dto.AgentTaskResponse;
 import com.agent.editor.dto.DiffResult;
-import com.agent.editor.dto.WebSocketMessage;
-import com.agent.editor.model.*;
-import com.agent.editor.websocket.WebSocketService;
+import com.agent.editor.model.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -26,14 +16,7 @@ public class DocumentService {
     private static final Logger logger = LoggerFactory.getLogger(DocumentService.class);
     
     private final Map<String, Document> documents = new ConcurrentHashMap<>();
-    private final Map<String, AgentState> agentTasks = new ConcurrentHashMap<>();
     private final Map<String, List<DiffResult>> diffHistory = new ConcurrentHashMap<>();
-    
-    @Autowired
-    private AgentFactory agentFactory;
-    
-    @Autowired
-    private WebSocketService webSocketService;
 
     public DocumentService() {
         Document sampleDoc = new Document(
@@ -75,136 +58,15 @@ public class DocumentService {
         return documents.remove(id) != null;
     }
 
-    public AgentTaskResponse executeAgentTask(AgentTaskRequest request) {
-        Document document = getDocument(request.getDocumentId());
-        
-        if (document == null) {
-            throw new IllegalArgumentException("Document not found: " + request.getDocumentId());
-        }
-        
-        AgentMode mode = request.getMode() != null ? request.getMode() : AgentMode.REACT;
-        
-        AgentExecutor agent = agentFactory.getAgent(mode);
-        
-        if (agent == null) {
-            throw new IllegalArgumentException("Unsupported agent mode: " + mode);
-        }
-        
-        String sessionId = request.getSessionId() != null ? 
-            request.getSessionId() : UUID.randomUUID().toString();
-        
-        logger.info("Starting agent task: mode={}, document={}, instruction={}", 
-            mode, document.getId(), request.getInstruction());
-        
-        AgentState state = agent.execute(
-            document, 
-            request.getInstruction(), 
-            sessionId, 
-            mode, 
-            request.getMaxSteps()
-        );
-        
-        agentTasks.put(state.getTaskId(), state);
-        
-        if (state.getDocument().getContent() != null) {
-            String originalContent = document.getContent();
-            updateDocument(document.getId(), state.getDocument().getContent());
-            
-            DiffResult diff = generateDiff(document.getId(), originalContent, 
-                state.getDocument().getContent());
-            
-            diffHistory.computeIfAbsent(document.getId(), k -> new ArrayList<>()).add(diff);
-        }
-        
-        return buildTaskResponse(state);
-    }
-
-    public AgentTaskResponse startAgentTaskAsync(AgentTaskRequest request) {
-        Document document = getDocument(request.getDocumentId());
-        
-        if (document == null) {
-            throw new IllegalArgumentException("Document not found: " + request.getDocumentId());
-        }
-        
-        AgentMode mode = request.getMode() != null ? request.getMode() : AgentMode.REACT;
-        
-        AgentExecutor agent = agentFactory.getAgent(mode);
-        
-        if (agent == null) {
-            throw new IllegalArgumentException("Unsupported agent mode: " + mode);
-        }
-        
-        String sessionId = request.getSessionId() != null ? 
-            request.getSessionId() : UUID.randomUUID().toString();
-        
-        AgentState state = new AgentState(document, request.getInstruction(), mode);
-        state.setSessionId(sessionId);
-        state.setStatus("RUNNING");
-        
-        if (request.getMaxSteps() != null) {
-            state.setMaxSteps(request.getMaxSteps());
-        }
-        
-        state.setStartTime(System.currentTimeMillis());
-        
-        agentTasks.put(state.getTaskId(), state);
-        
-        logger.info("Created async task: taskId={}, mode={}, document={}", 
-            state.getTaskId(), mode, document.getId());
-        
-        CompletableFuture.runAsync(() -> {
-            try {
-                AgentState resultState = agent.execute(
-                    document, 
-                    request.getInstruction(), 
-                    sessionId, 
-                    mode, 
-                    request.getMaxSteps()
-                );
-                
-                agentTasks.put(resultState.getTaskId(), resultState);
-                
-                if (resultState.getDocument().getContent() != null) {
-                    String originalContent = document.getContent();
-                    updateDocument(document.getId(), resultState.getDocument().getContent());
-                    
-                    DiffResult diff = generateDiff(document.getId(), originalContent, 
-                        resultState.getDocument().getContent());
-                    
-                    diffHistory.computeIfAbsent(document.getId(), k -> new ArrayList<>()).add(diff);
-                }
-                
-                logger.info("Async task completed: taskId={}, status={}", 
-                    resultState.getTaskId(), resultState.getStatus());
-                
-            } catch (Exception e) {
-                logger.error("Async task failed: taskId={}", state.getTaskId(), e);
-                state.setStatus("ERROR");
-            }
-        });
-        
-        return buildTaskResponse(state);
-    }
-
-    public AgentTaskResponse getTaskStatus(String taskId) {
-        AgentState state = agentTasks.get(taskId);
-        if (state == null) {
-            return null;
-        }
-        return buildTaskResponse(state);
-    }
-
-    public List<AgentStep> getTaskSteps(String taskId) {
-        AgentState state = agentTasks.get(taskId);
-        if (state == null) {
-            return Collections.emptyList();
-        }
-        return state.getSteps();
-    }
-
     public DiffResult generateDiff(String documentId, String originalContent, String modifiedContent) {
         String diffHtml = computeSimpleDiff(originalContent, modifiedContent);
         return new DiffResult(originalContent, modifiedContent, diffHtml);
+    }
+
+    public DiffResult recordDiff(String documentId, String originalContent, String modifiedContent) {
+        DiffResult diff = generateDiff(documentId, originalContent, modifiedContent);
+        diffHistory.computeIfAbsent(documentId, ignored -> new ArrayList<>()).add(diff);
+        return diff;
     }
 
     public List<DiffResult> getDiffHistory(String documentId) {
@@ -249,28 +111,5 @@ public class DocumentService {
                    .replace("<", "&lt;")
                    .replace(">", "&gt;")
                    .replace("\"", "&quot;");
-    }
-
-    private AgentTaskResponse buildTaskResponse(AgentState state) {
-        AgentTaskResponse response = new AgentTaskResponse();
-        response.setTaskId(state.getTaskId());
-        response.setDocumentId(state.getDocument().getId());
-        response.setStatus(state.getStatus());
-        response.setTotalSteps(state.getCurrentStep());
-        
-        if (!state.getSteps().isEmpty()) {
-            response.setCurrentStep(state.getSteps().get(state.getSteps().size() - 1));
-        }
-        
-        response.setFinalResult(state.getDocument().getContent());
-        
-        if (state.getStartTime() > 0) {
-            response.setStartTime(LocalDateTime.now());
-        }
-        if (state.getEndTime() > 0) {
-            response.setEndTime(LocalDateTime.now());
-        }
-        
-        return response;
     }
 }

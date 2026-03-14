@@ -19,6 +19,7 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 @Builder
+@Deprecated(forRemoval = false)
 public class EditorAgentTools {
     private AgentState agentState;
     private WebSocketService webSocketService;
