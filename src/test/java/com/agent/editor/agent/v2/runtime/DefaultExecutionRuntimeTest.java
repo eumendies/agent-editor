@@ -3,10 +3,16 @@ package com.agent.editor.agent.v2.runtime;
 import com.agent.editor.agent.v2.definition.AgentDefinition;
 import com.agent.editor.agent.v2.definition.AgentType;
 import com.agent.editor.agent.v2.definition.Decision;
+import com.agent.editor.agent.v2.definition.ToolCall;
 import com.agent.editor.agent.v2.state.DocumentSnapshot;
-import com.agent.editor.agent.v2.state.ExecutionState;
+import com.agent.editor.agent.v2.tool.ToolContext;
+import com.agent.editor.agent.v2.tool.ToolHandler;
+import com.agent.editor.agent.v2.tool.ToolInvocation;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
+import com.agent.editor.agent.v2.tool.ToolResult;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -30,6 +36,26 @@ class DefaultExecutionRuntimeTest {
         assertEquals("done", result.finalMessage());
     }
 
+    @Test
+    void shouldExecuteToolCallsBeforeCompleting() {
+        ToolRegistry registry = new ToolRegistry();
+        registry.register(new AppendToolHandler());
+        ExecutionRuntime runtime = new DefaultExecutionRuntime(registry, event -> {});
+        AgentDefinition agent = new ToolUsingAgentDefinition();
+        ExecutionRequest request = new ExecutionRequest(
+                "task-2",
+                "session-2",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-2", "title", "body"),
+                "use tool",
+                3
+        );
+
+        ExecutionResult result = runtime.run(agent, request);
+
+        assertEquals("hello world", result.finalMessage());
+    }
+
     private static final class CompletingAgentDefinition implements AgentDefinition {
 
         @Override
@@ -40,6 +66,35 @@ class DefaultExecutionRuntimeTest {
         @Override
         public Decision decide(ExecutionContext context) {
             return new Decision.Complete("done", "complete immediately");
+        }
+    }
+
+    private static final class ToolUsingAgentDefinition implements AgentDefinition {
+
+        @Override
+        public AgentType type() {
+            return AgentType.REACT;
+        }
+
+        @Override
+        public Decision decide(ExecutionContext context) {
+            if (context.state().toolResults().isEmpty()) {
+                return new Decision.ToolCalls(List.of(new ToolCall("appendText", "{\"suffix\":\" world\"}")), "need tool");
+            }
+            return new Decision.Complete(context.state().toolResults().get(0).message(), "tool finished");
+        }
+    }
+
+    private static final class AppendToolHandler implements ToolHandler {
+
+        @Override
+        public String name() {
+            return "appendText";
+        }
+
+        @Override
+        public ToolResult execute(ToolInvocation invocation, ToolContext context) {
+            return new ToolResult("hello world");
         }
     }
 }
