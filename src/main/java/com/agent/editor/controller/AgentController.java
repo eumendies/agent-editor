@@ -6,13 +6,12 @@ import com.agent.editor.dto.WebSocketMessage;
 import com.agent.editor.model.AgentMode;
 import com.agent.editor.model.AgentStep;
 import com.agent.editor.service.DocumentService;
-import com.agent.editor.websocket.WebSocketService;
+import com.agent.editor.service.TaskApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,9 +24,14 @@ import java.util.UUID;
 public class AgentController {
     
     private static final Logger logger = LoggerFactory.getLogger(AgentController.class);
-    
-    @Autowired
-    private DocumentService documentService;
+
+    private final TaskApplicationService taskApplicationService;
+    private final DocumentService documentService;
+
+    public AgentController(TaskApplicationService taskApplicationService, DocumentService documentService) {
+        this.taskApplicationService = taskApplicationService;
+        this.documentService = documentService;
+    }
 
     @PostMapping("/execute")
     @Operation(summary = "Execute agent task", description = "Execute an AI agent task to edit a document")
@@ -36,7 +40,7 @@ public class AgentController {
             request.getMode(), request.getDocumentId(), request.getInstruction());
         
         try {
-            AgentTaskResponse response = documentService.startAgentTaskAsync(request);
+            AgentTaskResponse response = taskApplicationService.execute(request);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             logger.error("Agent task execution failed", e);
@@ -51,7 +55,7 @@ public class AgentController {
     @Operation(summary = "Get task status", description = "Get the status of an agent task")
     public ResponseEntity<AgentTaskResponse> getTaskStatus(
             @Parameter(description = "Task ID") @PathVariable String taskId) {
-        AgentTaskResponse response = documentService.getTaskStatus(taskId);
+        AgentTaskResponse response = taskApplicationService.getTaskStatus(taskId);
         if (response == null) {
             return ResponseEntity.notFound().build();
         }
@@ -62,7 +66,7 @@ public class AgentController {
     @Operation(summary = "Get task steps", description = "Get all execution steps of an agent task")
     public ResponseEntity<List<AgentStep>> getTaskSteps(
             @Parameter(description = "Task ID") @PathVariable String taskId) {
-        List<AgentStep> steps = documentService.getTaskSteps(taskId);
+        List<AgentStep> steps = taskApplicationService.getTaskSteps(taskId);
         return ResponseEntity.ok(steps);
     }
 
@@ -71,7 +75,8 @@ public class AgentController {
     public ResponseEntity<List<String>> getSupportedModes() {
         return ResponseEntity.ok(List.of(
             AgentMode.REACT.name(),
-            AgentMode.PLANNING.name()
+            AgentMode.PLANNING.name(),
+            AgentMode.SUPERVISOR.name()
         ));
     }
 

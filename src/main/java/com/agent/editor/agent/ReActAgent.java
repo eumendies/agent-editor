@@ -9,6 +9,7 @@ import lombok.experimental.SuperBuilder;
 import java.util.*;
 
 @SuperBuilder
+@Deprecated(forRemoval = false)
 public class ReActAgent extends BaseAgent {
     @Override
     public AgentMode getMode() {

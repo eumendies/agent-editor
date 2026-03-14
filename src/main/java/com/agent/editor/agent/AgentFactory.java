@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
+@Deprecated(forRemoval = false)
 public class AgentFactory {
     @Autowired
     private ChatModel chatModel;
