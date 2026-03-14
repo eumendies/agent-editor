@@ -66,7 +66,7 @@ public class AgentController {
     @Operation(summary = "Get task steps", description = "Get all execution steps of an agent task")
     public ResponseEntity<List<AgentStep>> getTaskSteps(
             @Parameter(description = "Task ID") @PathVariable String taskId) {
-        List<AgentStep> steps = documentService.getTaskSteps(taskId);
+        List<AgentStep> steps = taskApplicationService.getTaskSteps(taskId);
         return ResponseEntity.ok(steps);
     }
 

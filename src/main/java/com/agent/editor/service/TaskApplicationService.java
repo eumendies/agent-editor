@@ -9,11 +9,13 @@ import com.agent.editor.agent.v2.state.TaskState;
 import com.agent.editor.agent.v2.state.TaskStatus;
 import com.agent.editor.dto.AgentTaskRequest;
 import com.agent.editor.dto.AgentTaskResponse;
+import com.agent.editor.model.AgentStep;
 import com.agent.editor.model.AgentMode;
 import com.agent.editor.model.Document;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -76,6 +78,10 @@ public class TaskApplicationService {
         response.setStatus(state.status().name());
         response.setFinalResult(state.finalContent());
         return response;
+    }
+
+    public List<AgentStep> getTaskSteps(String taskId) {
+        return taskQueryService.getTaskSteps(taskId);
     }
 
     private AgentType mapAgentType(AgentMode mode) {

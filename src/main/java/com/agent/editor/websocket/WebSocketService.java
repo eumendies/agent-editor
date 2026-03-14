@@ -58,6 +58,14 @@ public class WebSocketService {
         }
     }
 
+    public void sendToTask(String taskId, WebSocketMessage message) {
+        sessionTasks.forEach((sessionId, boundTaskId) -> {
+            if (taskId.equals(boundTaskId)) {
+                sendToSession(sessionId, message);
+            }
+        });
+    }
+
     public void broadcast(WebSocketMessage message) {
         String json;
         try {
