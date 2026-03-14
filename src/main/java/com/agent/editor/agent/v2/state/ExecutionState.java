@@ -4,10 +4,14 @@ import com.agent.editor.agent.v2.tool.ToolResult;
 
 import java.util.List;
 
-public record ExecutionState(int iteration, boolean completed, List<ToolResult> toolResults) {
+public record ExecutionState(int iteration, boolean completed, String currentContent, List<ToolResult> toolResults) {
 
     public ExecutionState(int iteration, boolean completed) {
-        this(iteration, completed, List.of());
+        this(iteration, completed, null, List.of());
+    }
+
+    public ExecutionState(int iteration, boolean completed, String currentContent) {
+        this(iteration, completed, currentContent, List.of());
     }
 
     public ExecutionState {

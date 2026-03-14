@@ -1,6 +1,10 @@
 package com.agent.editor.agent.v2.runtime;
 
+import dev.langchain4j.agent.tool.ToolSpecification;
+
+import java.util.List;
+
 import com.agent.editor.agent.v2.state.ExecutionState;
 
-public record ExecutionContext(ExecutionRequest request, ExecutionState state) {
+public record ExecutionContext(ExecutionRequest request, ExecutionState state, List<ToolSpecification> toolSpecifications) {
 }

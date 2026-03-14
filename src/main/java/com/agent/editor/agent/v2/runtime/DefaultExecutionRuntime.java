@@ -30,27 +30,27 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
     public ExecutionResult run(AgentDefinition definition, ExecutionRequest request) {
         eventPublisher.publish(new ExecutionEvent(EventType.TASK_STARTED, request.taskId(), "execution started"));
 
-        ExecutionState state = new ExecutionState(0, false);
+        ExecutionState state = new ExecutionState(0, false, request.document().content());
         while (state.iteration() < request.maxIterations() && !state.completed()) {
             eventPublisher.publish(new ExecutionEvent(EventType.ITERATION_STARTED, request.taskId(), "iteration " + state.iteration()));
 
-            ExecutionContext context = new ExecutionContext(request, state);
+            ExecutionContext context = new ExecutionContext(request, state, toolRegistry.specifications());
             Decision decision = definition.decide(context);
 
             if (decision instanceof Decision.Complete complete) {
                 eventPublisher.publish(new ExecutionEvent(EventType.TASK_COMPLETED, request.taskId(), complete.result()));
-                return new ExecutionResult(complete.result());
+                return new ExecutionResult(complete.result(), state.currentContent());
             }
 
             if (decision instanceof Decision.ToolCalls toolCalls) {
-                List<ToolResult> toolResults = executeTools(request.taskId(), toolCalls.calls());
-                state = new ExecutionState(state.iteration() + 1, false, toolResults);
+                ToolExecutionOutcome outcome = executeTools(request.taskId(), state.currentContent(), toolCalls.calls());
+                state = new ExecutionState(state.iteration() + 1, false, outcome.currentContent(), outcome.toolResults());
                 continue;
             }
 
             if (decision instanceof Decision.Respond respond) {
                 eventPublisher.publish(new ExecutionEvent(EventType.TASK_COMPLETED, request.taskId(), respond.message()));
-                return new ExecutionResult(respond.message());
+                return new ExecutionResult(respond.message(), state.currentContent());
             }
 
             throw new IllegalStateException("Unsupported decision type: " + decision.getClass().getSimpleName());
@@ -59,8 +59,9 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
         throw new IllegalStateException("Execution terminated without completion");
     }
 
-    private List<ToolResult> executeTools(String taskId, List<ToolCall> calls) {
+    private ToolExecutionOutcome executeTools(String taskId, String currentContent, List<ToolCall> calls) {
         List<ToolResult> results = new ArrayList<>();
+        String updatedContent = currentContent;
         for (ToolCall call : calls) {
             eventPublisher.publish(new ExecutionEvent(EventType.TOOL_CALLED, taskId, call.name()));
 
@@ -70,10 +71,16 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
                 throw new IllegalStateException("No tool handler registered for " + call.name());
             }
 
-            ToolResult result = handler.execute(new ToolInvocation(call.name(), call.arguments()), new ToolContext(taskId));
+            ToolResult result = handler.execute(new ToolInvocation(call.name(), call.arguments()), new ToolContext(taskId, updatedContent));
             results.add(result);
+            if (result.updatedContent() != null) {
+                updatedContent = result.updatedContent();
+            }
             eventPublisher.publish(new ExecutionEvent(EventType.TOOL_SUCCEEDED, taskId, result.message()));
         }
-        return results;
+        return new ToolExecutionOutcome(results, updatedContent);
+    }
+
+    private record ToolExecutionOutcome(List<ToolResult> toolResults, String currentContent) {
     }
 }

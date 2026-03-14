@@ -34,6 +34,7 @@ class DefaultExecutionRuntimeTest {
         ExecutionResult result = runtime.run(agent, request);
 
         assertEquals("done", result.finalMessage());
+        assertEquals("body", result.finalContent());
     }
 
     @Test
@@ -53,7 +54,8 @@ class DefaultExecutionRuntimeTest {
 
         ExecutionResult result = runtime.run(agent, request);
 
-        assertEquals("hello world", result.finalMessage());
+        assertEquals("updated", result.finalMessage());
+        assertEquals("body world", result.finalContent());
     }
 
     private static final class CompletingAgentDefinition implements AgentDefinition {
@@ -81,7 +83,7 @@ class DefaultExecutionRuntimeTest {
             if (context.state().toolResults().isEmpty()) {
                 return new Decision.ToolCalls(List.of(new ToolCall("appendText", "{\"suffix\":\" world\"}")), "need tool");
             }
-            return new Decision.Complete(context.state().toolResults().get(0).message(), "tool finished");
+            return new Decision.Complete("updated", "tool finished");
         }
     }
 
@@ -94,7 +96,19 @@ class DefaultExecutionRuntimeTest {
 
         @Override
         public ToolResult execute(ToolInvocation invocation, ToolContext context) {
-            return new ToolResult("hello world");
+            return new ToolResult("hello world", context.currentContent() + " world");
+        }
+
+        @Override
+        public dev.langchain4j.agent.tool.ToolSpecification specification() {
+            return dev.langchain4j.agent.tool.ToolSpecification.builder()
+                    .name("appendText")
+                    .description("Append text to the current document content")
+                    .parameters(dev.langchain4j.model.chat.request.json.JsonObjectSchema.builder()
+                            .addStringProperty("suffix")
+                            .required("suffix")
+                            .build())
+                    .build();
         }
     }
 }

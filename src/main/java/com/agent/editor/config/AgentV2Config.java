@@ -6,6 +6,9 @@ import com.agent.editor.agent.v2.orchestration.TaskOrchestrator;
 import com.agent.editor.agent.v2.runtime.DefaultExecutionRuntime;
 import com.agent.editor.agent.v2.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
+import com.agent.editor.agent.v2.tool.document.AnalyzeDocumentTool;
+import com.agent.editor.agent.v2.tool.document.EditDocumentTool;
+import com.agent.editor.agent.v2.tool.document.SearchContentTool;
 import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,7 +18,11 @@ public class AgentV2Config {
 
     @Bean
     public ToolRegistry toolRegistry() {
-        return new ToolRegistry();
+        ToolRegistry toolRegistry = new ToolRegistry();
+        toolRegistry.register(new EditDocumentTool());
+        toolRegistry.register(new SearchContentTool());
+        toolRegistry.register(new AnalyzeDocumentTool());
+        return toolRegistry;
     }
 
     @Bean

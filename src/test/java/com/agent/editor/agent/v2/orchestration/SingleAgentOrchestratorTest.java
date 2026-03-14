@@ -34,7 +34,7 @@ class SingleAgentOrchestratorTest {
         TaskResult result = orchestrator.execute(request);
 
         assertEquals(TaskStatus.COMPLETED, result.status());
-        assertEquals("done", result.finalContent());
+        assertEquals("body", result.finalContent());
     }
 
     private static final class StubAgentDefinition implements AgentDefinition {

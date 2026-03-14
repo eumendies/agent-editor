@@ -29,6 +29,6 @@ public class SingleAgentOrchestrator implements TaskOrchestrator {
                         request.maxIterations()
                 )
         );
-        return new TaskResult(TaskStatus.COMPLETED, result.finalMessage());
+        return new TaskResult(TaskStatus.COMPLETED, result.finalContent());
     }
 }

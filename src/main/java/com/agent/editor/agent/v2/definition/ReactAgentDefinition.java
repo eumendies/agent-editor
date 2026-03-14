@@ -35,6 +35,7 @@ public class ReactAgentDefinition implements AgentDefinition {
                         SystemMessage.from(buildSystemPrompt()),
                         UserMessage.from(buildUserPrompt(context))
                 ))
+                .toolSpecifications(context.toolSpecifications())
                 .build());
 
         AiMessage aiMessage = response.aiMessage();

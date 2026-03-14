@@ -76,7 +76,8 @@ class ReactAgentDefinitionTest {
                         "rewrite this",
                         3
                 ),
-                new ExecutionState(0, false)
+                new ExecutionState(0, false, "body"),
+                java.util.List.of()
         );
     }
 
