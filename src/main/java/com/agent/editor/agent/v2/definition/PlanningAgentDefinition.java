@@ -14,6 +14,9 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Planning agent 只负责把原始任务拆成结构化步骤，不直接执行工具。
+ */
 public class PlanningAgentDefinition implements AgentDefinition {
 
     private final ChatModel chatModel;
@@ -29,6 +32,7 @@ public class PlanningAgentDefinition implements AgentDefinition {
 
     @Override
     public Decision decide(ExecutionContext context) {
+        // 兼容统一 runtime：当 planner 被当作普通 agent 运行时，返回可展示的计划文本。
         PlanResult plan = createPlan(context.request().document(), context.request().instruction());
         String result = plan.steps().stream()
                 .map(step -> step.order() + ". " + step.instruction())
@@ -38,6 +42,7 @@ public class PlanningAgentDefinition implements AgentDefinition {
     }
 
     public PlanResult createPlan(DocumentSnapshot document, String instruction) {
+        // 没有模型时退化成单步计划，保证 orchestration 仍然可跑通。
         if (chatModel == null) {
             return fallbackPlan(instruction);
         }
@@ -80,6 +85,7 @@ public class PlanningAgentDefinition implements AgentDefinition {
                 continue;
             }
 
+            // 优先解析 "1. xxx" / "1) xxx" 这类显式编号，没有编号时按出现顺序补序号。
             int separator = findSeparatorIndex(line);
             if (separator > 0 && isNumeric(line.substring(0, separator))) {
                 int order = Integer.parseInt(line.substring(0, separator));

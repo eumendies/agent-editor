@@ -14,6 +14,9 @@ import com.agent.editor.agent.v2.state.TaskStatus;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 多 agent 编排入口：supervisor 决定下一个 worker，runtime 执行 worker，最后再由 supervisor 汇总。
+ */
 public class SupervisorOrchestrator implements TaskOrchestrator {
 
     private final SupervisorAgentDefinition supervisorAgent;
@@ -35,6 +38,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
     public TaskResult execute(TaskRequest request) {
         String currentContent = request.document().content();
         List<WorkerResult> workerResults = new ArrayList<>();
+        // 调度预算至少覆盖“一轮 worker 池 + 一次最终收口”，避免 maxIterations 太小时无法完成监督流程。
         int dispatchBudget = Math.max(request.maxIterations(), workerRegistry.all().size()) + 1;
 
         for (int i = 0; i < dispatchBudget; i++) {
@@ -53,6 +57,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                     throw new IllegalArgumentException("Unknown worker: " + assignWorker.workerId());
                 }
 
+                // supervisor 只下发子任务，真正的执行仍然复用统一 runtime。
                 eventPublisher.publish(new ExecutionEvent(
                         EventType.WORKER_SELECTED,
                         request.taskId(),

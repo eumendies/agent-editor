@@ -12,6 +12,9 @@ import com.agent.editor.agent.v2.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.state.TaskStatus;
 
+/**
+ * 两阶段编排：先由 planner 拆任务，再把每个 plan step 交给执行 agent 串行落地。
+ */
 public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
 
     private final PlanningAgentDefinition planningAgent;
@@ -40,6 +43,7 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
 
         String currentContent = request.document().content();
         for (PlanStep step : plan.steps()) {
+            // 每个步骤都基于上一步的文档内容继续执行，形成显式的阶段性产物传递。
             ExecutionResult result = executionRuntime.run(
                     executionAgent,
                     new ExecutionRequest(

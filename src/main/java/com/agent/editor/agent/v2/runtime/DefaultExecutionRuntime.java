@@ -16,6 +16,10 @@ import com.agent.editor.agent.v2.tool.ToolResult;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 通用单 agent runtime。
+ * 它只负责 decision -> tool execution -> next decision 的循环，不关心上层是 ReAct、Planning 还是 Supervisor worker。
+ */
 public class DefaultExecutionRuntime implements ExecutionRuntime {
 
     private final ToolRegistry toolRegistry;
@@ -34,6 +38,7 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
         while (state.iteration() < request.maxIterations() && !state.completed()) {
             eventPublisher.publish(new ExecutionEvent(EventType.ITERATION_STARTED, request.taskId(), "iteration " + state.iteration()));
 
+            // worker 运行时只暴露被允许的工具列表，避免异构 worker 越权调用别的能力。
             ExecutionContext context = new ExecutionContext(request, state, toolRegistry.specifications(request.allowedTools()));
             Decision decision = definition.decide(context);
 
@@ -74,6 +79,7 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
             eventPublisher.publish(new ExecutionEvent(EventType.TOOL_CALLED, taskId, call.name()));
 
             ToolHandler handler = toolRegistry.get(call.name());
+            // 这里同时做“是否存在”和“是否允许”两层校验，错误统一收敛成不可用工具。
             if (handler == null || !toolRegistry.isAllowed(call.name(), allowedTools)) {
                 eventPublisher.publish(new ExecutionEvent(EventType.TOOL_FAILED, taskId, call.name()));
                 throw new IllegalStateException("No tool handler registered for " + call.name());

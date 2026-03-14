@@ -55,6 +55,7 @@ public class AgentV2Config {
     @Bean
     public WorkerRegistry workerRegistry(ChatModel chatModel) {
         WorkerRegistry workerRegistry = new WorkerRegistry();
+        // 第一版先用异构 worker 池把角色边界和工具边界立住，后面再升级为动态注册或能力发现。
         workerRegistry.register(new WorkerDefinition(
                 "analyzer",
                 "Analyzer",
@@ -93,6 +94,7 @@ public class AgentV2Config {
         PlanningAgentDefinition planningAgent = new PlanningAgentDefinition(chatModel);
         SequentialSupervisorAgentDefinition supervisorAgent = new SequentialSupervisorAgentDefinition();
 
+        // v2 当前有三条主链：直接执行、先规划后执行、supervisor 多 agent 编排。
         TaskOrchestrator reactOrchestrator = new SingleAgentOrchestrator(executionRuntime, reactAgent);
         TaskOrchestrator planningOrchestrator = new PlanningThenExecutionOrchestrator(
                 planningAgent,
