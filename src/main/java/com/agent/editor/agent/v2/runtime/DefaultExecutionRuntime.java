@@ -54,7 +54,12 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
                         toolCalls.calls(),
                         request.allowedTools()
                 );
-                state = new ExecutionState(state.iteration() + 1, false, outcome.currentContent(), outcome.toolResults());
+                state = new ExecutionState(
+                        state.iteration() + 1,
+                        false,
+                        outcome.currentContent(),
+                        mergeToolResults(state.toolResults(), outcome.toolResults())
+                );
                 continue;
             }
 
@@ -96,5 +101,11 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
     }
 
     private record ToolExecutionOutcome(List<ToolResult> toolResults, String currentContent) {
+    }
+
+    private List<ToolResult> mergeToolResults(List<ToolResult> existingResults, List<ToolResult> newResults) {
+        List<ToolResult> merged = new ArrayList<>(existingResults);
+        merged.addAll(newResults);
+        return merged;
     }
 }

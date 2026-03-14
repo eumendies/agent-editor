@@ -81,6 +81,26 @@ class DefaultExecutionRuntimeTest {
         assertEquals("No tool handler registered for appendText", error.getMessage());
     }
 
+    @Test
+    void shouldAccumulateToolResultsAcrossIterations() {
+        ToolRegistry registry = new ToolRegistry();
+        registry.register(new AppendToolHandler());
+        ExecutionRuntime runtime = new DefaultExecutionRuntime(registry, event -> {});
+        ExecutionRequest request = new ExecutionRequest(
+                "task-4",
+                "session-4",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-4", "title", "body"),
+                "use tool twice",
+                4
+        );
+
+        ExecutionResult result = runtime.run(new MultiStepToolAgentDefinition(), request);
+
+        assertEquals("used two tools", result.finalMessage());
+        assertEquals("body world world", result.finalContent());
+    }
+
     private static final class CompletingAgentDefinition implements AgentDefinition {
 
         @Override
@@ -132,6 +152,22 @@ class DefaultExecutionRuntimeTest {
                             .required("suffix")
                             .build())
                     .build();
+        }
+    }
+
+    private static final class MultiStepToolAgentDefinition implements AgentDefinition {
+
+        @Override
+        public AgentType type() {
+            return AgentType.REACT;
+        }
+
+        @Override
+        public Decision decide(ExecutionContext context) {
+            if (context.state().toolResults().size() < 2) {
+                return new Decision.ToolCalls(List.of(new ToolCall("appendText", "{\"suffix\":\" world\"}")), "need another tool run");
+            }
+            return new Decision.Complete("used two tools", "tool history available");
         }
     }
 }

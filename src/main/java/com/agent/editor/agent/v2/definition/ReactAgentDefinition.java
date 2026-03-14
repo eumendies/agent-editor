@@ -10,6 +10,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ReactAgentDefinition implements AgentDefinition {
 
@@ -60,16 +61,36 @@ public class ReactAgentDefinition implements AgentDefinition {
     }
 
     private String buildUserPrompt(ExecutionContext context) {
+        String currentContent = context.state().currentContent() != null
+                ? context.state().currentContent()
+                : context.request().document().content();
+        String toolResultBlock = context.state().toolResults().isEmpty()
+                ? ""
+                : """
+
+                Previous tool results:
+                %s
+
+                Use the updated document state and these observations before deciding whether another tool call is necessary.
+                """.formatted(renderToolResults(context));
         return """
                 Document:
                 %s
 
                 Instruction:
                 %s
+                %s
                 """.formatted(
-                context.request().document().content(),
-                context.request().instruction()
+                currentContent,
+                context.request().instruction(),
+                toolResultBlock
         );
+    }
+
+    private String renderToolResults(ExecutionContext context) {
+        return context.state().toolResults().stream()
+                .map(result -> "- " + result.message())
+                .collect(Collectors.joining("\n"));
     }
 
     private ToolCall toToolCall(ToolExecutionRequest request) {

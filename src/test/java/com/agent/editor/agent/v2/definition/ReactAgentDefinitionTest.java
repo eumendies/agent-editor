@@ -4,6 +4,7 @@ import com.agent.editor.agent.v2.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.state.ExecutionState;
+import com.agent.editor.agent.v2.tool.ToolResult;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -64,6 +65,42 @@ class ReactAgentDefinitionTest {
         assertEquals(1, toolCalls.calls().size());
         assertEquals("editDocument", toolCalls.calls().get(0).name());
         assertEquals("{\"content\":\"new body\"}", toolCalls.calls().get(0).arguments());
+    }
+
+    @Test
+    void shouldExposeUpdatedContentAndPreviousToolResultsToModel() {
+        RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
+                .aiMessage(AiMessage.from("final answer"))
+                .build());
+        ReactAgentDefinition definition = new ReactAgentDefinition(chatModel);
+
+        Decision decision = definition.decide(new ExecutionContext(
+                new ExecutionRequest(
+                        "task-2",
+                        "session-1",
+                        AgentType.REACT,
+                        new DocumentSnapshot("doc-1", "title", "original body"),
+                        "rewrite this",
+                        3
+                ),
+                new ExecutionState(
+                        1,
+                        false,
+                        "revised body",
+                        java.util.List.of(
+                                new ToolResult("Search for 'heading': Found"),
+                                new ToolResult("Document content edited successfully.", "revised body")
+                        )
+                ),
+                java.util.List.of()
+        ));
+
+        Decision.Complete complete = assertInstanceOf(Decision.Complete.class, decision);
+        assertEquals("final answer", complete.result());
+        UserMessage userMessage = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
+        assertTrue(userMessage.singleText().contains("revised body"));
+        assertTrue(userMessage.singleText().contains("Previous tool results"));
+        assertTrue(userMessage.singleText().contains("Search for 'heading': Found"));
     }
 
     private ExecutionContext context() {
