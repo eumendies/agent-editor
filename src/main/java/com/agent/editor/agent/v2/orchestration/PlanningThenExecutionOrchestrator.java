@@ -1,0 +1,63 @@
+package com.agent.editor.agent.v2.orchestration;
+
+import com.agent.editor.agent.v2.definition.AgentDefinition;
+import com.agent.editor.agent.v2.definition.AgentType;
+import com.agent.editor.agent.v2.definition.PlanningAgentDefinition;
+import com.agent.editor.agent.v2.event.EventPublisher;
+import com.agent.editor.agent.v2.event.EventType;
+import com.agent.editor.agent.v2.event.ExecutionEvent;
+import com.agent.editor.agent.v2.runtime.ExecutionRequest;
+import com.agent.editor.agent.v2.runtime.ExecutionResult;
+import com.agent.editor.agent.v2.runtime.ExecutionRuntime;
+import com.agent.editor.agent.v2.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.state.TaskStatus;
+
+public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
+
+    private final PlanningAgentDefinition planningAgent;
+    private final ExecutionRuntime executionRuntime;
+    private final AgentDefinition executionAgent;
+    private final EventPublisher eventPublisher;
+
+    public PlanningThenExecutionOrchestrator(PlanningAgentDefinition planningAgent,
+                                             ExecutionRuntime executionRuntime,
+                                             AgentDefinition executionAgent,
+                                             EventPublisher eventPublisher) {
+        this.planningAgent = planningAgent;
+        this.executionRuntime = executionRuntime;
+        this.executionAgent = executionAgent;
+        this.eventPublisher = eventPublisher;
+    }
+
+    @Override
+    public TaskResult execute(TaskRequest request) {
+        PlanResult plan = planningAgent.createPlan(request.document(), request.instruction());
+        eventPublisher.publish(new ExecutionEvent(
+                EventType.PLAN_CREATED,
+                request.taskId(),
+                "plan created with %d step(s)".formatted(plan.steps().size())
+        ));
+
+        String currentContent = request.document().content();
+        for (PlanStep step : plan.steps()) {
+            ExecutionResult result = executionRuntime.run(
+                    executionAgent,
+                    new ExecutionRequest(
+                            request.taskId(),
+                            request.sessionId(),
+                            AgentType.REACT,
+                            new DocumentSnapshot(
+                                    request.document().documentId(),
+                                    request.document().title(),
+                                    currentContent
+                            ),
+                            step.instruction(),
+                            request.maxIterations()
+                    )
+            );
+            currentContent = result.finalContent();
+        }
+
+        return new TaskResult(TaskStatus.COMPLETED, currentContent);
+    }
+}
