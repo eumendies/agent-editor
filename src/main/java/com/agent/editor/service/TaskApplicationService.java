@@ -12,6 +12,7 @@ import com.agent.editor.dto.AgentTaskResponse;
 import com.agent.editor.model.AgentStep;
 import com.agent.editor.model.AgentMode;
 import com.agent.editor.model.Document;
+import com.agent.editor.websocket.WebSocketService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -25,15 +26,18 @@ public class TaskApplicationService {
     private final TaskQueryService taskQueryService;
     private final DiffService diffService;
     private final TaskOrchestrator taskOrchestrator;
+    private final WebSocketService webSocketService;
 
     public TaskApplicationService(DocumentService documentService,
                                   TaskQueryService taskQueryService,
                                   DiffService diffService,
-                                  TaskOrchestrator taskOrchestrator) {
+                                  TaskOrchestrator taskOrchestrator,
+                                  WebSocketService webSocketService) {
         this.documentService = documentService;
         this.taskQueryService = taskQueryService;
         this.diffService = diffService;
         this.taskOrchestrator = taskOrchestrator;
+        this.webSocketService = webSocketService;
     }
 
     public AgentTaskResponse execute(AgentTaskRequest request) {
@@ -43,11 +47,15 @@ public class TaskApplicationService {
         }
 
         String taskId = UUID.randomUUID().toString();
-        String sessionId = request.getSessionId() != null ? request.getSessionId() : UUID.randomUUID().toString();
+        String sessionId = hasText(request.getSessionId()) ? request.getSessionId() : UUID.randomUUID().toString();
         AgentType agentType = mapAgentType(request.getMode());
 
         taskQueryService.save(new TaskState(taskId, TaskStatus.RUNNING, document.getContent()));
         String originalContent = document.getContent();
+        if (hasText(request.getSessionId())) {
+            // execute 是同步链路，必须在任务启动前完成绑定，否则实时事件会在 HTTP 返回前丢掉。
+            webSocketService.bindTaskToSession(request.getSessionId(), taskId);
+        }
 
         TaskResult result = taskOrchestrator.execute(new TaskRequest(
                 taskId,
@@ -103,5 +111,9 @@ public class TaskApplicationService {
         response.setStartTime(LocalDateTime.now());
         response.setEndTime(LocalDateTime.now());
         return response;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

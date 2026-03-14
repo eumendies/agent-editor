@@ -8,10 +8,16 @@ import com.agent.editor.agent.v2.state.TaskStatus;
 import com.agent.editor.dto.AgentTaskRequest;
 import com.agent.editor.dto.AgentTaskResponse;
 import com.agent.editor.model.AgentMode;
+import com.agent.editor.websocket.WebSocketService;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 class TaskApplicationServiceTest {
 
@@ -21,7 +27,13 @@ class TaskApplicationServiceTest {
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
         TaskOrchestrator orchestrator = new StubTaskOrchestrator();
-        TaskApplicationService service = new TaskApplicationService(documentService, queryService, diffService, orchestrator);
+        TaskApplicationService service = new TaskApplicationService(
+                documentService,
+                queryService,
+                diffService,
+                orchestrator,
+                mock(WebSocketService.class)
+        );
 
         AgentTaskRequest request = new AgentTaskRequest();
         request.setDocumentId("doc-001");
@@ -43,7 +55,13 @@ class TaskApplicationServiceTest {
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
         CapturingTaskOrchestrator orchestrator = new CapturingTaskOrchestrator();
-        TaskApplicationService service = new TaskApplicationService(documentService, queryService, diffService, orchestrator);
+        TaskApplicationService service = new TaskApplicationService(
+                documentService,
+                queryService,
+                diffService,
+                orchestrator,
+                mock(WebSocketService.class)
+        );
 
         AgentTaskRequest request = new AgentTaskRequest();
         request.setDocumentId("doc-001");
@@ -53,6 +71,60 @@ class TaskApplicationServiceTest {
         service.execute(request);
 
         assertEquals(AgentType.SUPERVISOR, orchestrator.lastRequest.agentType());
+    }
+
+    @Test
+    void shouldBindWebSocketSessionToTaskBeforeExecutionWhenSessionIdProvided() {
+        DocumentService documentService = new DocumentService();
+        TaskQueryService queryService = new TaskQueryService();
+        DiffService diffService = new DiffService();
+        TaskOrchestrator orchestrator = mock(TaskOrchestrator.class);
+        when(orchestrator.execute(any(TaskRequest.class))).thenReturn(new TaskResult(TaskStatus.COMPLETED, "rewritten content"));
+        WebSocketService webSocketService = mock(WebSocketService.class);
+        TaskApplicationService service = new TaskApplicationService(
+                documentService,
+                queryService,
+                diffService,
+                orchestrator,
+                webSocketService
+        );
+
+        AgentTaskRequest request = new AgentTaskRequest();
+        request.setDocumentId("doc-001");
+        request.setInstruction("rewrite");
+        request.setMode(AgentMode.REACT);
+        request.setSessionId("ws-session-1");
+
+        AgentTaskResponse response = service.execute(request);
+
+        var order = inOrder(webSocketService, orchestrator);
+        order.verify(webSocketService).bindTaskToSession("ws-session-1", response.getTaskId());
+        order.verify(orchestrator).execute(any(TaskRequest.class));
+    }
+
+    @Test
+    void shouldNotBindWebSocketWhenSessionIdMissing() {
+        DocumentService documentService = new DocumentService();
+        TaskQueryService queryService = new TaskQueryService();
+        DiffService diffService = new DiffService();
+        TaskOrchestrator orchestrator = new StubTaskOrchestrator();
+        WebSocketService webSocketService = mock(WebSocketService.class);
+        TaskApplicationService service = new TaskApplicationService(
+                documentService,
+                queryService,
+                diffService,
+                orchestrator,
+                webSocketService
+        );
+
+        AgentTaskRequest request = new AgentTaskRequest();
+        request.setDocumentId("doc-001");
+        request.setInstruction("rewrite");
+        request.setMode(AgentMode.REACT);
+
+        service.execute(request);
+
+        verifyNoInteractions(webSocketService);
     }
 
     private static final class StubTaskOrchestrator implements TaskOrchestrator {
