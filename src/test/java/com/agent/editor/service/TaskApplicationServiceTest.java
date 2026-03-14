@@ -1,0 +1,46 @@
+package com.agent.editor.service;
+
+import com.agent.editor.agent.v2.orchestration.TaskOrchestrator;
+import com.agent.editor.agent.v2.orchestration.TaskRequest;
+import com.agent.editor.agent.v2.orchestration.TaskResult;
+import com.agent.editor.agent.v2.state.TaskStatus;
+import com.agent.editor.dto.AgentTaskRequest;
+import com.agent.editor.dto.AgentTaskResponse;
+import com.agent.editor.model.AgentMode;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+class TaskApplicationServiceTest {
+
+    @Test
+    void shouldExecuteTaskThroughDedicatedApplicationService() {
+        DocumentService documentService = new DocumentService();
+        TaskQueryService queryService = new TaskQueryService();
+        DiffService diffService = new DiffService();
+        TaskOrchestrator orchestrator = new StubTaskOrchestrator();
+        TaskApplicationService service = new TaskApplicationService(documentService, queryService, diffService, orchestrator);
+
+        AgentTaskRequest request = new AgentTaskRequest();
+        request.setDocumentId("doc-001");
+        request.setInstruction("rewrite");
+        request.setMode(AgentMode.REACT);
+
+        AgentTaskResponse response = service.execute(request);
+
+        assertNotNull(response.getTaskId());
+        assertEquals("COMPLETED", response.getStatus());
+        assertEquals("rewritten content", response.getFinalResult());
+        assertEquals("rewritten content", documentService.getDocument("doc-001").getContent());
+        assertEquals("COMPLETED", service.getTaskStatus(response.getTaskId()).getStatus());
+    }
+
+    private static final class StubTaskOrchestrator implements TaskOrchestrator {
+
+        @Override
+        public TaskResult execute(TaskRequest request) {
+            return new TaskResult(TaskStatus.COMPLETED, "rewritten content");
+        }
+    }
+}
