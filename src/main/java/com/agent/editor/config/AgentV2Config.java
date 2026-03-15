@@ -115,13 +115,15 @@ public class AgentV2Config {
                 planningAgent,
                 executionRuntime,
                 reactAgent,
-                eventPublisher
+                eventPublisher,
+                traceCollector
         );
         TaskOrchestrator supervisorOrchestrator = new SupervisorOrchestrator(
                 supervisorAgent,
                 workerRegistry,
                 executionRuntime,
-                eventPublisher
+                eventPublisher,
+                traceCollector
         );
 
         return new RoutingTaskOrchestrator(Map.of(

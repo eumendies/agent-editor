@@ -13,12 +13,17 @@ import com.agent.editor.agent.v2.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.state.TaskStatus;
+import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
+import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
+import com.agent.editor.agent.v2.trace.TraceCategory;
+import com.agent.editor.agent.v2.trace.TraceStore;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PlanningThenExecutionOrchestratorTest {
 
@@ -32,11 +37,13 @@ class PlanningThenExecutionOrchestratorTest {
                 ))
         );
         RecordingEventPublisher eventPublisher = new RecordingEventPublisher();
+        TraceStore traceStore = new InMemoryTraceStore();
         PlanningThenExecutionOrchestrator orchestrator = new PlanningThenExecutionOrchestrator(
                 planner,
                 runtime,
                 new CompletingExecutionAgent(),
-                eventPublisher
+                eventPublisher,
+                new DefaultTraceCollector(traceStore)
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -54,6 +61,11 @@ class PlanningThenExecutionOrchestratorTest {
         assertEquals("body", runtime.requests().get(0).document().content());
         assertEquals("body -> Add outline", runtime.requests().get(1).document().content());
         assertEquals(EventType.PLAN_CREATED, eventPublisher.events().get(0).type());
+        assertTrue(traceStore.getByTaskId("task-1").stream().anyMatch(trace ->
+                trace.category() == TraceCategory.ORCHESTRATION_DECISION
+                        && "planning.plan.created".equals(trace.stage())
+                        && trace.payload().containsKey("plan")
+        ));
     }
 
     private static final class StaticPlanningAgentDefinition extends PlanningAgentDefinition {

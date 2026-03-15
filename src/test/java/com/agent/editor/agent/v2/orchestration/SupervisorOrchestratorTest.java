@@ -13,12 +13,17 @@ import com.agent.editor.agent.v2.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.state.TaskStatus;
+import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
+import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
+import com.agent.editor.agent.v2.trace.TraceCategory;
+import com.agent.editor.agent.v2.trace.TraceStore;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SupervisorOrchestratorTest {
 
@@ -42,11 +47,13 @@ class SupervisorOrchestratorTest {
 
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
         RecordingEventPublisher eventPublisher = new RecordingEventPublisher();
+        TraceStore traceStore = new InMemoryTraceStore();
         SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(
                 new ScriptedSupervisorAgentDefinition(),
                 workerRegistry,
                 runtime,
-                eventPublisher
+                eventPublisher,
+                new DefaultTraceCollector(traceStore)
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -67,6 +74,16 @@ class SupervisorOrchestratorTest {
         ), runtime.allowedTools());
         assertEquals(EventType.WORKER_SELECTED, eventPublisher.events().get(0).type());
         assertEquals(EventType.SUPERVISOR_COMPLETED, eventPublisher.events().get(eventPublisher.events().size() - 1).type());
+        assertTrue(traceStore.getByTaskId("task-1").stream().anyMatch(trace ->
+                trace.category() == TraceCategory.ORCHESTRATION_DECISION
+                        && "supervisor.worker.assigned".equals(trace.stage())
+                        && "analyzer".equals(trace.payload().get("workerId"))
+        ));
+        assertTrue(traceStore.getByTaskId("task-1").stream().anyMatch(trace ->
+                trace.category() == TraceCategory.ORCHESTRATION_DECISION
+                        && "supervisor.completed".equals(trace.stage())
+                        && "workers done".equals(trace.payload().get("summary"))
+        ));
     }
 
     @Test
@@ -91,7 +108,8 @@ class SupervisorOrchestratorTest {
                 new ScriptedSupervisorAgentDefinition(),
                 workerRegistry,
                 new RecordingExecutionRuntime(),
-                event -> {}
+                event -> {},
+                new DefaultTraceCollector(new InMemoryTraceStore())
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(

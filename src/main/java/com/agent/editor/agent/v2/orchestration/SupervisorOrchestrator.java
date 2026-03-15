@@ -10,9 +10,15 @@ import com.agent.editor.agent.v2.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.state.TaskStatus;
+import com.agent.editor.agent.v2.trace.TraceCategory;
+import com.agent.editor.agent.v2.trace.TraceCollector;
+import com.agent.editor.agent.v2.trace.TraceRecord;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.time.Instant;
 
 /**
  * 多 agent 编排入口：supervisor 决定下一个 worker，runtime 执行 worker，最后再由 supervisor 汇总。
@@ -23,15 +29,18 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
     private final WorkerRegistry workerRegistry;
     private final ExecutionRuntime executionRuntime;
     private final EventPublisher eventPublisher;
+    private final TraceCollector traceCollector;
 
     public SupervisorOrchestrator(SupervisorAgentDefinition supervisorAgent,
                                   WorkerRegistry workerRegistry,
                                   ExecutionRuntime executionRuntime,
-                                  EventPublisher eventPublisher) {
+                                  EventPublisher eventPublisher,
+                                  TraceCollector traceCollector) {
         this.supervisorAgent = supervisorAgent;
         this.workerRegistry = workerRegistry;
         this.executionRuntime = executionRuntime;
         this.eventPublisher = eventPublisher;
+        this.traceCollector = traceCollector;
     }
 
     @Override
@@ -62,6 +71,22 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                         EventType.WORKER_SELECTED,
                         request.taskId(),
                         worker.workerId()
+                ));
+                traceCollector.collect(new TraceRecord(
+                        UUID.randomUUID().toString(),
+                        request.taskId(),
+                        Instant.now(),
+                        TraceCategory.ORCHESTRATION_DECISION,
+                        "supervisor.worker.assigned",
+                        request.agentType(),
+                        worker.workerId(),
+                        i,
+                        Map.of(
+                                "workerId", worker.workerId(),
+                                "instruction", assignWorker.instruction(),
+                                "reasoning", assignWorker.reasoning(),
+                                "allowedTools", worker.allowedTools()
+                        )
                 ));
 
                 ExecutionResult result = executionRuntime.run(
@@ -95,6 +120,21 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                         request.taskId(),
                         worker.workerId() + ": " + result.finalMessage()
                 ));
+                traceCollector.collect(new TraceRecord(
+                        UUID.randomUUID().toString(),
+                        request.taskId(),
+                        Instant.now(),
+                        TraceCategory.ORCHESTRATION_DECISION,
+                        "supervisor.worker.completed",
+                        request.agentType(),
+                        worker.workerId(),
+                        i,
+                        Map.of(
+                                "workerId", worker.workerId(),
+                                "summary", result.finalMessage(),
+                                "content", result.finalContent()
+                        )
+                ));
                 continue;
             }
 
@@ -103,6 +143,21 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                         EventType.SUPERVISOR_COMPLETED,
                         request.taskId(),
                         complete.summary()
+                ));
+                traceCollector.collect(new TraceRecord(
+                        UUID.randomUUID().toString(),
+                        request.taskId(),
+                        Instant.now(),
+                        TraceCategory.ORCHESTRATION_DECISION,
+                        "supervisor.completed",
+                        request.agentType(),
+                        null,
+                        i,
+                        Map.of(
+                                "summary", complete.summary(),
+                                "finalContent", complete.finalContent(),
+                                "reasoning", complete.reasoning()
+                        )
                 ));
                 return new TaskResult(TaskStatus.COMPLETED, complete.finalContent());
             }
