@@ -1,4 +1,4 @@
-package com.agent.editor.agent.v2.orchestration;
+package com.agent.editor.agent.v2.supervisor;
 
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 

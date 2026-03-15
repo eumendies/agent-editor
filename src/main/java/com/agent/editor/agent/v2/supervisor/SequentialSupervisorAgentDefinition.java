@@ -1,8 +1,4 @@
-package com.agent.editor.agent.v2.definition;
-
-import com.agent.editor.agent.v2.orchestration.SupervisorContext;
-import com.agent.editor.agent.v2.orchestration.SupervisorDecision;
-import com.agent.editor.agent.v2.orchestration.WorkerDefinition;
+package com.agent.editor.agent.v2.supervisor;
 
 import java.util.Set;
 import java.util.stream.Collectors;
