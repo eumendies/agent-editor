@@ -1,4 +1,4 @@
-package com.agent.editor.agent.v2.runtime;
+package com.agent.editor.agent.v2.core.runtime;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
 

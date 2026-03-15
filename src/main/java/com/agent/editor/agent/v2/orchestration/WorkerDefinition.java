@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.orchestration;
 
-import com.agent.editor.agent.v2.definition.AgentDefinition;
+import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 
 import java.util.List;
 

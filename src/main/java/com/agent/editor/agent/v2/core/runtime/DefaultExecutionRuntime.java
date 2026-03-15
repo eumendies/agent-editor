@@ -1,6 +1,6 @@
-package com.agent.editor.agent.v2.runtime;
+package com.agent.editor.agent.v2.core.runtime;
 
-import com.agent.editor.agent.v2.definition.AgentDefinition;
+import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
 import com.agent.editor.agent.v2.event.EventPublisher;

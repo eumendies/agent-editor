@@ -1,4 +1,4 @@
-package com.agent.editor.agent.v2.runtime;
+package com.agent.editor.agent.v2.core.runtime;
 
 public record ExecutionStateSnapshot(int iteration, int maxIterations) {
 }
