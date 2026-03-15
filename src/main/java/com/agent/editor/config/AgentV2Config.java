@@ -18,6 +18,7 @@ import com.agent.editor.agent.v2.runtime.DefaultExecutionRuntime;
 import com.agent.editor.agent.v2.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
+import com.agent.editor.agent.v2.trace.TraceCollector;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
 import com.agent.editor.agent.v2.tool.document.AnalyzeDocumentTool;
 import com.agent.editor.agent.v2.tool.document.EditDocumentTool;
@@ -55,39 +56,46 @@ public class AgentV2Config {
     }
 
     @Bean
-    public WorkerRegistry workerRegistry(ChatModel chatModel) {
+    public TraceCollector traceCollector() {
+        return new DefaultTraceCollector(new InMemoryTraceStore());
+    }
+
+    @Bean
+    public WorkerRegistry workerRegistry(ChatModel chatModel, TraceCollector traceCollector) {
         WorkerRegistry workerRegistry = new WorkerRegistry();
         // 第一版先用异构 worker 池把角色边界和工具边界立住，后面再升级为动态注册或能力发现。
         workerRegistry.register(new WorkerDefinition(
                 "analyzer",
                 "Analyzer",
                 "Inspect the document and identify issues before changes are made.",
-                new ReactAgentDefinition(chatModel),
+                new ReactAgentDefinition(chatModel, traceCollector),
                 java.util.List.of("searchContent", "analyzeDocument")
         ));
         workerRegistry.register(new WorkerDefinition(
                 "editor",
                 "Editor",
                 "Apply concrete edits to the document.",
-                new ReactAgentDefinition(chatModel),
+                new ReactAgentDefinition(chatModel, traceCollector),
                 java.util.List.of("editDocument", "searchContent")
         ));
         workerRegistry.register(new WorkerDefinition(
                 "reviewer",
                 "Reviewer",
                 "Review the revised document and flag any remaining issues.",
-                new ReactAgentDefinition(chatModel),
+                new ReactAgentDefinition(chatModel, traceCollector),
                 java.util.List.of("searchContent", "analyzeDocument")
         ));
         return workerRegistry;
     }
 
     @Bean
-    public ExecutionRuntime executionRuntime(ToolRegistry toolRegistry, EventPublisher eventPublisher) {
+    public ExecutionRuntime executionRuntime(ToolRegistry toolRegistry,
+                                             EventPublisher eventPublisher,
+                                             TraceCollector traceCollector) {
         return new DefaultExecutionRuntime(
                 toolRegistry,
                 eventPublisher,
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                traceCollector
         );
     }
 
@@ -95,8 +103,9 @@ public class AgentV2Config {
     public TaskOrchestrator taskOrchestrator(ExecutionRuntime executionRuntime,
                                              EventPublisher eventPublisher,
                                              WorkerRegistry workerRegistry,
-                                             ChatModel chatModel) {
-        ReactAgentDefinition reactAgent = new ReactAgentDefinition(chatModel);
+                                             ChatModel chatModel,
+                                             TraceCollector traceCollector) {
+        ReactAgentDefinition reactAgent = new ReactAgentDefinition(chatModel, traceCollector);
         PlanningAgentDefinition planningAgent = new PlanningAgentDefinition(chatModel);
         SequentialSupervisorAgentDefinition supervisorAgent = new SequentialSupervisorAgentDefinition();
 

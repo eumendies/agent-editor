@@ -4,6 +4,10 @@ import com.agent.editor.agent.v2.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.state.ExecutionState;
+import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
+import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
+import com.agent.editor.agent.v2.trace.TraceCategory;
+import com.agent.editor.agent.v2.trace.TraceStore;
 import com.agent.editor.agent.v2.tool.ToolResult;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
@@ -23,7 +27,10 @@ class ReactAgentDefinitionTest {
 
     @Test
     void shouldReportReactType() {
-        ReactAgentDefinition definition = new ReactAgentDefinition(null);
+        ReactAgentDefinition definition = new ReactAgentDefinition(
+                null,
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
 
         assertEquals(AgentType.REACT, definition.type());
     }
@@ -33,7 +40,10 @@ class ReactAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("final answer"))
                 .build());
-        ReactAgentDefinition definition = new ReactAgentDefinition(chatModel);
+        ReactAgentDefinition definition = new ReactAgentDefinition(
+                chatModel,
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
 
         Decision decision = definition.decide(context());
 
@@ -57,7 +67,10 @@ class ReactAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("need tool", java.util.List.of(toolRequest)))
                 .build());
-        ReactAgentDefinition definition = new ReactAgentDefinition(chatModel);
+        ReactAgentDefinition definition = new ReactAgentDefinition(
+                chatModel,
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
 
         Decision decision = definition.decide(context());
 
@@ -72,7 +85,10 @@ class ReactAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("final answer"))
                 .build());
-        ReactAgentDefinition definition = new ReactAgentDefinition(chatModel);
+        ReactAgentDefinition definition = new ReactAgentDefinition(
+                chatModel,
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
 
         Decision decision = definition.decide(new ExecutionContext(
                 new ExecutionRequest(
@@ -101,6 +117,33 @@ class ReactAgentDefinitionTest {
         assertTrue(userMessage.singleText().contains("revised body"));
         assertTrue(userMessage.singleText().contains("Previous tool results"));
         assertTrue(userMessage.singleText().contains("Search for 'heading': Found"));
+    }
+
+    @Test
+    void shouldCaptureModelRequestAndResponseTrace() {
+        RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
+                .aiMessage(AiMessage.from("final answer"))
+                .build());
+        TraceStore traceStore = new InMemoryTraceStore();
+        ReactAgentDefinition definition = new ReactAgentDefinition(
+                chatModel,
+                new DefaultTraceCollector(traceStore)
+        );
+
+        definition.decide(context());
+
+        var traces = traceStore.getByTaskId("task-1");
+        assertTrue(traces.stream().anyMatch(trace ->
+                trace.category() == TraceCategory.MODEL_REQUEST
+                        && "react.model.request".equals(trace.stage())
+                        && trace.payload().containsKey("systemPrompt")
+                        && trace.payload().containsKey("userPrompt")
+        ));
+        assertTrue(traces.stream().anyMatch(trace ->
+                trace.category() == TraceCategory.MODEL_RESPONSE
+                        && "react.model.response".equals(trace.stage())
+                        && "final answer".equals(trace.payload().get("rawText"))
+        ));
     }
 
     private ExecutionContext context() {

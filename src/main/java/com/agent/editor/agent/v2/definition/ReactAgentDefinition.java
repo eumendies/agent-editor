@@ -1,6 +1,9 @@
 package com.agent.editor.agent.v2.definition;
 
 import com.agent.editor.agent.v2.runtime.ExecutionContext;
+import com.agent.editor.agent.v2.trace.TraceCategory;
+import com.agent.editor.agent.v2.trace.TraceCollector;
+import com.agent.editor.agent.v2.trace.TraceRecord;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -9,15 +12,20 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class ReactAgentDefinition implements AgentDefinition {
 
     private final ChatModel chatModel;
+    private final TraceCollector traceCollector;
 
-    public ReactAgentDefinition(ChatModel chatModel) {
+    public ReactAgentDefinition(ChatModel chatModel, TraceCollector traceCollector) {
         this.chatModel = chatModel;
+        this.traceCollector = traceCollector;
     }
 
     @Override
@@ -31,15 +39,42 @@ public class ReactAgentDefinition implements AgentDefinition {
             return new Decision.Complete("placeholder", "react stub");
         }
 
+        String systemPrompt = buildSystemPrompt();
+        String userPrompt = buildUserPrompt(context);
+        traceCollector.collect(traceRecord(
+                context,
+                TraceCategory.MODEL_REQUEST,
+                "react.model.request",
+                Map.of(
+                        "systemPrompt", systemPrompt,
+                        "userPrompt", userPrompt,
+                        "toolSpecifications", context.toolSpecifications().stream().map(spec -> spec.name()).toList()
+                )
+        ));
+
         ChatResponse response = chatModel.chat(ChatRequest.builder()
                 .messages(List.of(
-                        SystemMessage.from(buildSystemPrompt()),
-                        UserMessage.from(buildUserPrompt(context))
+                        SystemMessage.from(systemPrompt),
+                        UserMessage.from(userPrompt)
                 ))
                 .toolSpecifications(context.toolSpecifications())
                 .build());
 
         AiMessage aiMessage = response.aiMessage();
+        traceCollector.collect(traceRecord(
+                context,
+                TraceCategory.MODEL_RESPONSE,
+                "react.model.response",
+                Map.of(
+                        "rawText", aiMessage.text(),
+                        "toolCalls", aiMessage.toolExecutionRequests().stream()
+                                .map(request -> Map.of(
+                                        "name", request.name(),
+                                        "arguments", request.arguments()
+                                ))
+                                .toList()
+                )
+        ));
         if (aiMessage.hasToolExecutionRequests()) {
             return new Decision.ToolCalls(
                     aiMessage.toolExecutionRequests().stream()
@@ -95,5 +130,22 @@ public class ReactAgentDefinition implements AgentDefinition {
 
     private ToolCall toToolCall(ToolExecutionRequest request) {
         return new ToolCall(request.name(), request.arguments());
+    }
+
+    private TraceRecord traceRecord(ExecutionContext context,
+                                    TraceCategory category,
+                                    String stage,
+                                    Map<String, Object> payload) {
+        return new TraceRecord(
+                UUID.randomUUID().toString(),
+                context.request().taskId(),
+                Instant.now(),
+                category,
+                stage,
+                type(),
+                context.request().workerId(),
+                context.state().iteration(),
+                payload
+        );
     }
 }
