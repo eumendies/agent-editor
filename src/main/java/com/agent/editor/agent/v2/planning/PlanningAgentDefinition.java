@@ -1,10 +1,8 @@
-package com.agent.editor.agent.v2.definition;
+package com.agent.editor.agent.v2.planning;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
-import com.agent.editor.agent.v2.orchestration.PlanResult;
-import com.agent.editor.agent.v2.orchestration.PlanStep;
 import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import dev.langchain4j.data.message.AiMessage;

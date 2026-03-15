@@ -1,13 +1,13 @@
 package com.agent.editor.config;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
-import com.agent.editor.agent.v2.definition.PlanningAgentDefinition;
+import com.agent.editor.agent.v2.planning.PlanningAgentDefinition;
 import com.agent.editor.agent.v2.definition.ReactAgentDefinition;
 import com.agent.editor.agent.v2.definition.SequentialSupervisorAgentDefinition;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.LegacyEventAdapter;
 import com.agent.editor.agent.v2.event.WebSocketEventPublisher;
-import com.agent.editor.agent.v2.orchestration.PlanningThenExecutionOrchestrator;
+import com.agent.editor.agent.v2.planning.PlanningThenExecutionOrchestrator;
 import com.agent.editor.agent.v2.orchestration.RoutingTaskOrchestrator;
 import com.agent.editor.agent.v2.orchestration.SingleAgentOrchestrator;
 import com.agent.editor.agent.v2.orchestration.SupervisorOrchestrator;
