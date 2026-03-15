@@ -19,6 +19,7 @@ import com.agent.editor.agent.v2.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.trace.TraceCollector;
+import com.agent.editor.agent.v2.trace.TraceStore;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
 import com.agent.editor.agent.v2.tool.document.AnalyzeDocumentTool;
 import com.agent.editor.agent.v2.tool.document.EditDocumentTool;
@@ -56,8 +57,13 @@ public class AgentV2Config {
     }
 
     @Bean
-    public TraceCollector traceCollector() {
-        return new DefaultTraceCollector(new InMemoryTraceStore());
+    public TraceStore traceStore() {
+        return new InMemoryTraceStore();
+    }
+
+    @Bean
+    public TraceCollector traceCollector(TraceStore traceStore) {
+        return new DefaultTraceCollector(traceStore);
     }
 
     @Bean
