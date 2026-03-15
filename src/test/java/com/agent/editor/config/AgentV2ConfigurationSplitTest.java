@@ -59,7 +59,8 @@ class AgentV2ConfigurationSplitTest {
                     .extracting(WorkerDefinition::capabilities)
                     .allSatisfy(capabilities -> assertThat(capabilities).isNotEmpty());
             assertThat(workerRegistry.get("analyzer").capabilities()).containsExactly("analyze");
-            assertThat(workerRegistry.get("editor").capabilities()).containsExactly("edit");
+            assertThat(workerRegistry.get("editor").capabilities()).containsExactly("edit", "draft");
+            assertThat(workerRegistry.get("editor").description()).contains("writing from scratch");
             assertThat(workerRegistry.get("reviewer").capabilities()).containsExactly("review");
         });
     }

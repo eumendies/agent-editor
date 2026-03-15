@@ -34,10 +34,10 @@ public class SupervisorAgentConfig {
         workerRegistry.register(new WorkerDefinition(
                 "editor",
                 "Editor",
-                "Apply concrete edits to the document.",
+                "Draft, rewrite, and apply concrete edits to the document, including writing from scratch when needed.",
                 reactAgentDefinition,
                 List.of("editDocument", "searchContent"),
-                List.of("edit")
+                List.of("edit", "draft")
         ));
         workerRegistry.register(new WorkerDefinition(
                 "reviewer",

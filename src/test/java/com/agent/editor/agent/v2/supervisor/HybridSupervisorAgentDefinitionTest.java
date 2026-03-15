@@ -9,6 +9,7 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.service.AiServices;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -19,32 +20,37 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 class HybridSupervisorAgentDefinitionTest {
 
     @Test
-    void shouldPreferAnalyzerOnFirstPassWhenInstructionNeedsInspection() {
-        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
-                new RecordingChatModel("""
-                        {"action":"assign_worker","worker_id":"editor","instruction":"Start editing","reasoning":"guess"}
-                        """)
-        );
+    void shouldMapStructuredResponseThroughAiService() {
+        RecordingChatModel chatModel = new RecordingChatModel("""
+                {"action":"ASSIGN_WORKER","workerId":"editor","instruction":"Start editing","reasoning":"guess"}
+                """);
+        SupervisorRoutingAiService routingAiService = AiServices.builder(SupervisorRoutingAiService.class)
+                .chatModel(chatModel)
+                .build();
 
-        SupervisorDecision decision = definition.decide(new SupervisorContext(
-                "task-1",
-                "session-1",
+        SupervisorRoutingResponse response = routingAiService.route(
                 "Inspect the document before making changes",
                 "Draft body",
-                workers(),
-                List.of()
-        ));
+                "editor | role=Editor | description=Apply document edits | capabilities=edit",
+                "No worker steps executed"
+        );
 
-        SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
-        assertEquals("analyzer", assignWorker.workerId());
+        assertEquals(SupervisorAction.ASSIGN_WORKER, response.action());
+        assertEquals("editor", response.workerId());
+        assertInstanceOf(dev.langchain4j.model.chat.request.ChatRequestParameters.class, chatModel.lastRequest.parameters());
     }
 
     @Test
-    void shouldReturnAssignedWorkerSelectedByModelWithinCandidates() {
+    void shouldReturnAssignedWorkerSelectedByServiceWithinCandidates() {
         HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
-                new RecordingChatModel("""
-                        {"action":"assign_worker","worker_id":"editor","instruction":"Apply the approved revision","reasoning":"editing is next"}
-                        """)
+                new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
+                        SupervisorAction.ASSIGN_WORKER,
+                        "editor",
+                        "Apply the approved revision",
+                        null,
+                        null,
+                        "editing is next"
+                ))
         );
 
         SupervisorDecision decision = definition.decide(new SupervisorContext(
@@ -63,11 +69,16 @@ class HybridSupervisorAgentDefinitionTest {
     }
 
     @Test
-    void shouldFallbackToRuleBasedWorkerWhenModelReturnsUnknownWorker() {
+    void shouldFallbackToFirstLegalWorkerWhenServiceReturnsUnknownWorker() {
         HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
-                new RecordingChatModel("""
-                        {"action":"assign_worker","worker_id":"translator","instruction":"Do something else","reasoning":"bad output"}
-                        """)
+                new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
+                        SupervisorAction.ASSIGN_WORKER,
+                        "translator",
+                        "Do something else",
+                        null,
+                        null,
+                        "bad output"
+                ))
         );
 
         SupervisorDecision decision = definition.decide(new SupervisorContext(
@@ -80,15 +91,20 @@ class HybridSupervisorAgentDefinitionTest {
         ));
 
         SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
-        assertEquals("editor", assignWorker.workerId());
+        assertEquals("analyzer", assignWorker.workerId());
     }
 
     @Test
-    void shouldCompleteWhenModelRequestsCompletion() {
+    void shouldCompleteWhenServiceRequestsCompletion() {
         HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
-                new RecordingChatModel("""
-                        {"action":"complete","final_content":"Final body","summary":"work complete","reasoning":"done"}
-                        """)
+                new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
+                        SupervisorAction.COMPLETE,
+                        null,
+                        null,
+                        "work complete",
+                        "Final body",
+                        "done"
+                ))
         );
 
         SupervisorDecision decision = definition.decide(new SupervisorContext(
@@ -112,9 +128,14 @@ class HybridSupervisorAgentDefinitionTest {
     @Test
     void shouldCompleteWhenNoCandidateWorkersRemain() {
         HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
-                new RecordingChatModel("""
-                        {"action":"assign_worker","worker_id":"analyzer","instruction":"Inspect again","reasoning":"keep trying"}
-                        """)
+                new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
+                        SupervisorAction.ASSIGN_WORKER,
+                        "analyzer",
+                        "Inspect again",
+                        null,
+                        null,
+                        "keep trying"
+                ))
         );
 
         SupervisorDecision decision = definition.decide(new SupervisorContext(
@@ -136,9 +157,14 @@ class HybridSupervisorAgentDefinitionTest {
     @Test
     void shouldStopAfterRepeatedNoProgress() {
         HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
-                new RecordingChatModel("""
-                        {"action":"assign_worker","worker_id":"editor","instruction":"Try editing again","reasoning":"continue"}
-                        """)
+                new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
+                        SupervisorAction.ASSIGN_WORKER,
+                        "editor",
+                        "Try editing again",
+                        null,
+                        null,
+                        "continue"
+                ))
         );
 
         SupervisorDecision decision = definition.decide(new SupervisorContext(
@@ -160,9 +186,14 @@ class HybridSupervisorAgentDefinitionTest {
     @Test
     void shouldDemoteSameWorkerAfterConsecutiveSelections() {
         HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
-                new RecordingChatModel("""
-                        {"action":"assign_worker","worker_id":"analyzer","instruction":"Inspect again","reasoning":"one more pass"}
-                        """)
+                new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
+                        SupervisorAction.ASSIGN_WORKER,
+                        "analyzer",
+                        "Inspect again",
+                        null,
+                        null,
+                        "one more pass"
+                ))
         );
 
         SupervisorDecision decision = definition.decide(new SupervisorContext(
@@ -226,6 +257,20 @@ class HybridSupervisorAgentDefinitionTest {
             return ChatResponse.builder()
                     .aiMessage(AiMessage.from(response))
                     .build();
+        }
+    }
+
+    private static final class StubSupervisorRoutingAiService implements SupervisorRoutingAiService {
+
+        private final SupervisorRoutingResponse response;
+
+        private StubSupervisorRoutingAiService(SupervisorRoutingResponse response) {
+            this.response = response;
+        }
+
+        @Override
+        public SupervisorRoutingResponse route(String instruction, String currentContent, String candidates, String previousWorkerResults) {
+            return response;
         }
     }
 
