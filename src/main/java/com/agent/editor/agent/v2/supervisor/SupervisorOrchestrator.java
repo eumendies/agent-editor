@@ -49,8 +49,8 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
     public TaskResult execute(TaskRequest request) {
         String currentContent = request.document().content();
         List<WorkerResult> workerResults = new ArrayList<>();
-        // 调度预算至少覆盖“一轮 worker 池 + 一次最终收口”，避免 maxIterations 太小时无法完成监督流程。
-        int dispatchBudget = Math.max(request.maxIterations(), workerRegistry.all().size()) + 1;
+        // 混合 supervisor 允许 worker 重复调度，因此预算至少覆盖“一轮 worker 池 + 一次额外重试 + 最终收口”。
+        int dispatchBudget = Math.max(request.maxIterations() + 1, workerRegistry.all().size() + 2);
 
         for (int i = 0; i < dispatchBudget; i++) {
             SupervisorDecision decision = supervisorAgent.decide(new SupervisorContext(

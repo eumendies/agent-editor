@@ -10,4 +10,8 @@ public record SupervisorContext(
         List<WorkerDefinition> availableWorkers,
         List<WorkerResult> workerResults
 ) {
+    public SupervisorContext {
+        availableWorkers = List.copyOf(availableWorkers);
+        workerResults = List.copyOf(workerResults);
+    }
 }

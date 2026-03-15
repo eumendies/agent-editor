@@ -126,6 +126,46 @@ class SupervisorOrchestratorTest {
         assertEquals("body -> analyzer -> editor", result.finalContent());
     }
 
+    @Test
+    void shouldAllowRepeatedWorkerAssignmentsAndFeedBackResultsToLaterSupervisorTurns() {
+        WorkerRegistry workerRegistry = new WorkerRegistry();
+        workerRegistry.register(new WorkerDefinition(
+                "analyzer",
+                "Analyzer",
+                "Inspect the document",
+                new StubWorkerAgent("analysis complete"),
+                List.of("searchContent")
+        ));
+
+        RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
+        RepeatingWorkerSupervisorAgentDefinition supervisor = new RepeatingWorkerSupervisorAgentDefinition();
+        SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(
+                supervisor,
+                workerRegistry,
+                runtime,
+                event -> {},
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
+
+        TaskResult result = orchestrator.execute(new TaskRequest(
+                "task-3",
+                "session-3",
+                AgentType.SUPERVISOR,
+                new DocumentSnapshot("doc-3", "Title", "body"),
+                "Inspect until the issue is clear",
+                1
+        ));
+
+        assertEquals(TaskStatus.COMPLETED, result.status());
+        assertEquals("body -> analyzer -> analyzer", result.finalContent());
+        assertEquals(List.of("analyzer", "analyzer"), runtime.workerIds());
+        assertEquals(3, supervisor.contexts().size());
+        assertEquals("body", supervisor.contexts().get(0).currentContent());
+        assertEquals("body -> analyzer", supervisor.contexts().get(1).currentContent());
+        assertEquals(1, supervisor.contexts().get(1).workerResults().size());
+        assertEquals("analyzer result", supervisor.contexts().get(1).workerResults().get(0).summary());
+    }
+
     private static final class ScriptedSupervisorAgentDefinition implements SupervisorAgentDefinition {
 
         @Override
@@ -137,6 +177,24 @@ class SupervisorOrchestratorTest {
                 return new SupervisorDecision.AssignWorker("editor", "Apply the recommended edits", "move to editing");
             }
             return new SupervisorDecision.Complete(context.currentContent(), "workers done", "finalized by supervisor");
+        }
+    }
+
+    private static final class RepeatingWorkerSupervisorAgentDefinition implements SupervisorAgentDefinition {
+
+        private final List<SupervisorContext> contexts = new ArrayList<>();
+
+        @Override
+        public SupervisorDecision decide(SupervisorContext context) {
+            contexts.add(context);
+            if (context.workerResults().size() < 2) {
+                return new SupervisorDecision.AssignWorker("analyzer", "Inspect the document again", "continue analysis");
+            }
+            return new SupervisorDecision.Complete(context.currentContent(), "repeated worker done", "enough context collected");
+        }
+
+        private List<SupervisorContext> contexts() {
+            return contexts;
         }
     }
 
