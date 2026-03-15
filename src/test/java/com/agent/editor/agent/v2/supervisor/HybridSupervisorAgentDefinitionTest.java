@@ -109,6 +109,78 @@ class HybridSupervisorAgentDefinitionTest {
         assertEquals("done", complete.reasoning());
     }
 
+    @Test
+    void shouldCompleteWhenNoCandidateWorkersRemain() {
+        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
+                new RecordingChatModel("""
+                        {"action":"assign_worker","worker_id":"analyzer","instruction":"Inspect again","reasoning":"keep trying"}
+                        """)
+        );
+
+        SupervisorDecision decision = definition.decide(new SupervisorContext(
+                "task-5",
+                "session-1",
+                "Inspect the document before making changes",
+                "Draft body",
+                List.of(workers().get(0)),
+                List.of(
+                        new WorkerResult("analyzer", TaskStatus.COMPLETED, "analysis complete", "Draft body"),
+                        new WorkerResult("analyzer", TaskStatus.COMPLETED, "analysis complete", "Draft body")
+                )
+        ));
+
+        SupervisorDecision.Complete complete = assertInstanceOf(SupervisorDecision.Complete.class, decision);
+        assertEquals("Draft body", complete.finalContent());
+    }
+
+    @Test
+    void shouldStopAfterRepeatedNoProgress() {
+        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
+                new RecordingChatModel("""
+                        {"action":"assign_worker","worker_id":"editor","instruction":"Try editing again","reasoning":"continue"}
+                        """)
+        );
+
+        SupervisorDecision decision = definition.decide(new SupervisorContext(
+                "task-6",
+                "session-1",
+                "Revise the introduction for clarity",
+                "Draft body",
+                workers(),
+                List.of(
+                        new WorkerResult("editor", TaskStatus.COMPLETED, "no changes needed", "Draft body"),
+                        new WorkerResult("editor", TaskStatus.COMPLETED, "no changes needed", "Draft body")
+                )
+        ));
+
+        SupervisorDecision.Complete complete = assertInstanceOf(SupervisorDecision.Complete.class, decision);
+        assertEquals("Draft body", complete.finalContent());
+    }
+
+    @Test
+    void shouldDemoteSameWorkerAfterConsecutiveSelections() {
+        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
+                new RecordingChatModel("""
+                        {"action":"assign_worker","worker_id":"analyzer","instruction":"Inspect again","reasoning":"one more pass"}
+                        """)
+        );
+
+        SupervisorDecision decision = definition.decide(new SupervisorContext(
+                "task-7",
+                "session-1",
+                "Coordinate the next step for this document",
+                "Draft body",
+                workers(),
+                List.of(
+                        new WorkerResult("analyzer", TaskStatus.COMPLETED, "first pass", "Draft body"),
+                        new WorkerResult("analyzer", TaskStatus.COMPLETED, "second pass", "Draft body with notes")
+                )
+        ));
+
+        SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
+        assertEquals("editor", assignWorker.workerId());
+    }
+
     private static List<WorkerDefinition> workers() {
         AgentDefinition workerAgent = new NoOpWorkerAgent();
         return List.of(

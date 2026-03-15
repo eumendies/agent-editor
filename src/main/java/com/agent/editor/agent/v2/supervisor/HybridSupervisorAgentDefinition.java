@@ -25,6 +25,15 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
 
     @Override
     public SupervisorDecision decide(SupervisorContext context) {
+        if (shouldStopForNoProgress(context)) {
+            return new SupervisorDecision.Complete(
+                    context.currentContent(),
+                    summarize(context),
+                    "no progress detected"
+            );
+        }
+
+        // 先用稳定规则缩小候选，再让模型只在有限集合里做选择。
         List<WorkerDefinition> candidates = selectCandidates(context);
         if (candidates.isEmpty()) {
             return new SupervisorDecision.Complete(
@@ -45,6 +54,7 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
             }
 
             if ("assign_worker".equals(modelDecision.action())) {
+                // 模型只能选择候选集合内的 worker，越界结果直接视为无效输出。
                 WorkerDefinition selectedWorker = candidates.stream()
                         .filter(worker -> worker.workerId().equals(modelDecision.workerId()))
                         .findFirst()
@@ -68,17 +78,16 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
     }
 
     private List<WorkerDefinition> selectCandidates(SupervisorContext context) {
-        List<String> completedWorkers = context.workerResults().stream()
-                .map(WorkerResult::workerId)
-                .toList();
+        String demotedWorkerId = consecutiveWorkerId(context);
         List<WorkerDefinition> remainingWorkers = context.availableWorkers().stream()
-                .filter(worker -> !completedWorkers.contains(worker.workerId()))
+                .filter(worker -> !worker.workerId().equals(demotedWorkerId))
                 .toList();
         if (remainingWorkers.isEmpty()) {
             return List.of();
         }
 
         if (context.workerResults().isEmpty()) {
+            // 首轮优先把“先检查再动手”的请求导向 analyzer，避免直接进入 edit。
             List<WorkerDefinition> analyzers = byCapability(remainingWorkers, "analyze");
             if (needsInspection(context.originalInstruction()) && !analyzers.isEmpty()) {
                 return analyzers;
@@ -142,6 +151,32 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
         return value == null ? "" : value.toLowerCase(Locale.ROOT);
     }
 
+    private boolean shouldStopForNoProgress(SupervisorContext context) {
+        if (context.workerResults().size() < 2) {
+            return false;
+        }
+
+        WorkerResult latest = context.workerResults().get(context.workerResults().size() - 1);
+        WorkerResult previous = context.workerResults().get(context.workerResults().size() - 2);
+        return Objects.equals(latest.updatedContent(), context.currentContent())
+                && Objects.equals(previous.updatedContent(), context.currentContent())
+                && Objects.equals(latest.updatedContent(), previous.updatedContent())
+                && Objects.equals(latest.summary(), previous.summary());
+    }
+
+    private String consecutiveWorkerId(SupervisorContext context) {
+        if (context.workerResults().size() < 2) {
+            return null;
+        }
+
+        WorkerResult latest = context.workerResults().get(context.workerResults().size() - 1);
+        WorkerResult previous = context.workerResults().get(context.workerResults().size() - 2);
+        if (latest.workerId().equals(previous.workerId())) {
+            return latest.workerId();
+        }
+        return null;
+    }
+
     private ModelDecision requestModelDecision(SupervisorContext context, List<WorkerDefinition> candidates) {
         if (chatModel == null) {
             return null;
@@ -176,6 +211,7 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
                             .toList()
             );
 
+            // supervisor 只消费结构化 JSON，解析失败时由上层统一走规则兜底。
             ChatResponse response = chatModel.chat(ChatRequest.builder()
                     .messages(List.of(
                             SystemMessage.from(systemPrompt),
