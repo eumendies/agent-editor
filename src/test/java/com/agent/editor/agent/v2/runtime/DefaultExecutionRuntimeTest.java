@@ -5,6 +5,10 @@ import com.agent.editor.agent.v2.definition.AgentType;
 import com.agent.editor.agent.v2.definition.Decision;
 import com.agent.editor.agent.v2.definition.ToolCall;
 import com.agent.editor.agent.v2.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
+import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
+import com.agent.editor.agent.v2.trace.TraceCategory;
+import com.agent.editor.agent.v2.trace.TraceStore;
 import com.agent.editor.agent.v2.tool.ToolContext;
 import com.agent.editor.agent.v2.tool.ToolHandler;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
@@ -16,13 +20,18 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DefaultExecutionRuntimeTest {
 
     @Test
     void shouldCompleteWhenAgentReturnsCompleteDecision() {
         AgentDefinition agent = new CompletingAgentDefinition();
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(new ToolRegistry(), event -> {});
+        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+                new ToolRegistry(),
+                event -> {},
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
         ExecutionRequest request = new ExecutionRequest(
                 "task-1",
                 "session-1",
@@ -42,7 +51,11 @@ class DefaultExecutionRuntimeTest {
     void shouldExecuteToolCallsBeforeCompleting() {
         ToolRegistry registry = new ToolRegistry();
         registry.register(new AppendToolHandler());
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(registry, event -> {});
+        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+                registry,
+                event -> {},
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
         AgentDefinition agent = new ToolUsingAgentDefinition();
         ExecutionRequest request = new ExecutionRequest(
                 "task-2",
@@ -63,7 +76,11 @@ class DefaultExecutionRuntimeTest {
     void shouldRejectToolCallsOutsideAllowedWorkerTools() {
         ToolRegistry registry = new ToolRegistry();
         registry.register(new AppendToolHandler());
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(registry, event -> {});
+        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+                registry,
+                event -> {},
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
         ExecutionRequest request = new ExecutionRequest(
                 "task-3",
                 "session-3",
@@ -85,7 +102,11 @@ class DefaultExecutionRuntimeTest {
     void shouldAccumulateToolResultsAcrossIterations() {
         ToolRegistry registry = new ToolRegistry();
         registry.register(new AppendToolHandler());
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(registry, event -> {});
+        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+                registry,
+                event -> {},
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
         ExecutionRequest request = new ExecutionRequest(
                 "task-4",
                 "session-4",
@@ -99,6 +120,42 @@ class DefaultExecutionRuntimeTest {
 
         assertEquals("used two tools", result.finalMessage());
         assertEquals("body world world", result.finalContent());
+    }
+
+    @Test
+    void shouldCaptureRuntimeTraceForStateAndToolExecution() {
+        ToolRegistry registry = new ToolRegistry();
+        registry.register(new AppendToolHandler());
+        TraceStore traceStore = new InMemoryTraceStore();
+        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+                registry,
+                event -> {},
+                new DefaultTraceCollector(traceStore)
+        );
+        ExecutionRequest request = new ExecutionRequest(
+                "task-5",
+                "session-5",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-5", "title", "body"),
+                "use tool",
+                3
+        );
+
+        runtime.run(new ToolUsingAgentDefinition(), request);
+
+        var traces = traceStore.getByTaskId("task-5");
+        assertTrue(traces.stream().anyMatch(trace -> trace.category() == TraceCategory.STATE_SNAPSHOT));
+        assertTrue(traces.stream().anyMatch(trace ->
+                trace.category() == TraceCategory.TOOL_INVOCATION
+                        && "appendText".equals(trace.payload().get("toolName"))
+                        && "{\"suffix\":\" world\"}".equals(trace.payload().get("arguments"))
+        ));
+        assertTrue(traces.stream().anyMatch(trace ->
+                trace.category() == TraceCategory.TOOL_RESULT
+                        && "appendText".equals(trace.payload().get("toolName"))
+                        && "hello world".equals(trace.payload().get("message"))
+                        && "body world".equals(trace.payload().get("updatedContent"))
+        ));
     }
 
     private static final class CompletingAgentDefinition implements AgentDefinition {

@@ -16,6 +16,8 @@ import com.agent.editor.agent.v2.orchestration.WorkerDefinition;
 import com.agent.editor.agent.v2.orchestration.WorkerRegistry;
 import com.agent.editor.agent.v2.runtime.DefaultExecutionRuntime;
 import com.agent.editor.agent.v2.runtime.ExecutionRuntime;
+import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
+import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
 import com.agent.editor.agent.v2.tool.document.AnalyzeDocumentTool;
 import com.agent.editor.agent.v2.tool.document.EditDocumentTool;
@@ -82,7 +84,11 @@ public class AgentV2Config {
 
     @Bean
     public ExecutionRuntime executionRuntime(ToolRegistry toolRegistry, EventPublisher eventPublisher) {
-        return new DefaultExecutionRuntime(toolRegistry, eventPublisher);
+        return new DefaultExecutionRuntime(
+                toolRegistry,
+                eventPublisher,
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
     }
 
     @Bean

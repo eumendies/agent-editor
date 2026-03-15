@@ -8,6 +8,8 @@ import com.agent.editor.agent.v2.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
+import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.state.TaskStatus;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
 import org.junit.jupiter.api.Test;
@@ -18,7 +20,11 @@ class SingleAgentOrchestratorTest {
 
     @Test
     void shouldReturnTaskResultForSingleAgentExecution() {
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(new ToolRegistry(), event -> {});
+        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+                new ToolRegistry(),
+                event -> {},
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
         AgentDefinition agent = new StubAgentDefinition();
         SingleAgentOrchestrator orchestrator = new SingleAgentOrchestrator(runtime, agent);
 
