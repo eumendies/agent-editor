@@ -24,6 +24,7 @@ public record WorkerDefinition(
 
     public WorkerDefinition {
         allowedTools = List.copyOf(allowedTools);
+        // capability 标签会被 supervisor 用来做候选筛选，因此这里固定成不可变快照。
         capabilities = List.copyOf(capabilities);
     }
 }
