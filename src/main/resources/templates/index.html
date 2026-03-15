@@ -555,6 +555,62 @@
             gap: 12px;
         }
 
+        .trace-panel {
+            display: grid;
+            gap: 12px;
+            padding: 16px;
+            border-radius: 20px;
+            background: rgba(5, 10, 20, 0.68);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .trace-summary {
+            display: grid;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .trace-records {
+            display: grid;
+            gap: 10px;
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .trace-record {
+            border-radius: 16px;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .trace-record-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .trace-record-stage {
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .trace-record-body {
+            font-size: 13px;
+            line-height: 1.7;
+            color: var(--text);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
         .step-item {
             border-radius: 18px;
             padding: 14px 16px;
@@ -851,6 +907,17 @@
             <div id="stepsContainer" class="timeline">
                 <div class="empty-state">选择一种模式并运行任务，事件流会从这里开始展开。</div>
             </div>
+
+            <div id="tracePanel" class="trace-panel">
+                <div>
+                    <div class="panel-subtitle">Trace Inspector</div>
+                    <div class="panel-title">Prompt / Tool / Result</div>
+                </div>
+                <div id="traceSummary" class="trace-summary">
+                    <div class="empty-state">运行任务后，这里会展示完整 trace 摘要。</div>
+                </div>
+                <div id="traceRecords" class="trace-records"></div>
+            </div>
         </aside>
     </section>
 </div>
@@ -1067,6 +1134,7 @@
 
             await refreshDocument();
             await loadDiffHistory(documentId);
+            await loadTrace(result.taskId);
             setRunningState(false);
             showProgress(100);
         } catch (error) {
@@ -1115,10 +1183,68 @@
         document.getElementById("diffView").innerHTML = `<div class="empty-state">当前还没有 diff 结果，请先运行一次任务。</div>`;
     }
 
+    async function loadTrace(taskId) {
+        if (!taskId) {
+            return;
+        }
+
+        try {
+            const [traceResponse, summaryResponse] = await Promise.all([
+                fetch(`/api/v1/agent/task/${taskId}/trace`),
+                fetch(`/api/v1/agent/task/${taskId}/trace/summary`)
+            ]);
+
+            if (!traceResponse.ok || !summaryResponse.ok) {
+                throw new Error("Trace request failed");
+            }
+
+            const traces = await traceResponse.json();
+            const summary = await summaryResponse.json();
+            renderTraceSummary(summary);
+            renderTraceRecords(traces);
+        } catch (error) {
+            document.getElementById("traceSummary").innerHTML =
+                `<div class="empty-state">Trace unavailable: ${escapeHtml(error.message)}</div>`;
+            document.getElementById("traceRecords").innerHTML = "";
+        }
+    }
+
+    function renderTraceSummary(summary) {
+        const categories = Object.entries(summary.categoryCounts || {})
+            .map(([name, count]) => `${name}: ${count}`)
+            .join(" · ");
+        document.getElementById("traceSummary").innerHTML = `
+            <div>Task: ${escapeHtml(summary.taskId || "-")}</div>
+            <div>Records: ${summary.totalRecords || 0}</div>
+            <div>Categories: ${escapeHtml(categories || "No trace records yet")}</div>
+        `;
+    }
+
+    function renderTraceRecords(traces) {
+        const container = document.getElementById("traceRecords");
+        if (!traces.length) {
+            container.innerHTML = `<div class="empty-state">当前没有 trace 记录。</div>`;
+            return;
+        }
+
+        container.innerHTML = traces.map((trace, index) => `
+            <div class="trace-record">
+                <div class="trace-record-head">
+                    <span>Trace ${index + 1}</span>
+                    <span class="trace-record-stage">${escapeHtml(trace.stage || trace.category || "TRACE")}</span>
+                </div>
+                <div class="trace-record-body">${escapeHtml(JSON.stringify(trace.payload || {}, null, 2))}</div>
+            </div>
+        `).join("");
+    }
+
     function clearTimeline(resetDiff = true) {
         document.getElementById("stepsContainer").innerHTML =
             `<div class="empty-state">选择一种模式并运行任务，事件流会从这里开始展开。</div>`;
         document.getElementById("stepCount").textContent = "0 steps";
+        document.getElementById("traceSummary").innerHTML =
+            `<div class="empty-state">运行任务后，这里会展示完整 trace 摘要。</div>`;
+        document.getElementById("traceRecords").innerHTML = "";
         if (resetDiff) {
             document.getElementById("diffView").innerHTML =
                 `<div class="empty-state">运行任意模式后，这里会展示文档变更对比。</div>`;
