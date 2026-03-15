@@ -1,4 +1,4 @@
-package com.agent.editor.agent.v2.orchestration;
+package com.agent.editor.agent.v2.task;
 
 public interface TaskOrchestrator {
     TaskResult execute(TaskRequest request);

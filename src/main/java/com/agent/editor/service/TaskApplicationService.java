@@ -1,9 +1,9 @@
 package com.agent.editor.service;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
-import com.agent.editor.agent.v2.orchestration.TaskOrchestrator;
-import com.agent.editor.agent.v2.orchestration.TaskRequest;
-import com.agent.editor.agent.v2.orchestration.TaskResult;
+import com.agent.editor.agent.v2.task.TaskOrchestrator;
+import com.agent.editor.agent.v2.task.TaskRequest;
+import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.TaskState;
 import com.agent.editor.agent.v2.core.state.TaskStatus;

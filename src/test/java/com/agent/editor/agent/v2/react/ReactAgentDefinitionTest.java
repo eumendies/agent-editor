@@ -1,4 +1,4 @@
-package com.agent.editor.agent.v2.definition;
+package com.agent.editor.agent.v2.react;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
