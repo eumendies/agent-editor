@@ -13,6 +13,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -61,19 +62,19 @@ public class ReactAgentDefinition implements AgentDefinition {
                 .build());
 
         AiMessage aiMessage = response.aiMessage();
+        Map<String, Object> responsePayload = new LinkedHashMap<>();
+        responsePayload.put("rawText", aiMessage.text());
+        responsePayload.put("toolCalls", aiMessage.toolExecutionRequests().stream()
+                .map(request -> Map.of(
+                        "name", request.name(),
+                        "arguments", request.arguments()
+                ))
+                .toList());
         traceCollector.collect(traceRecord(
                 context,
                 TraceCategory.MODEL_RESPONSE,
                 "react.model.response",
-                Map.of(
-                        "rawText", aiMessage.text(),
-                        "toolCalls", aiMessage.toolExecutionRequests().stream()
-                                .map(request -> Map.of(
-                                        "name", request.name(),
-                                        "arguments", request.arguments()
-                                ))
-                                .toList()
-                )
+                responsePayload
         ));
         if (aiMessage.hasToolExecutionRequests()) {
             return new Decision.ToolCalls(

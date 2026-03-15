@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ReactAgentDefinitionTest {
@@ -143,6 +144,31 @@ class ReactAgentDefinitionTest {
                 trace.category() == TraceCategory.MODEL_RESPONSE
                         && "react.model.response".equals(trace.stage())
                         && "final answer".equals(trace.payload().get("rawText"))
+        ));
+    }
+
+    @Test
+    void shouldHandleToolCallResponsesWithoutRawTextWhenTracing() {
+        ToolExecutionRequest toolRequest = ToolExecutionRequest.builder()
+                .id("tool-2")
+                .name("editDocument")
+                .arguments("{\"content\":\"new body\"}")
+                .build();
+        RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
+                .aiMessage(AiMessage.from(null, java.util.List.of(toolRequest)))
+                .build());
+        TraceStore traceStore = new InMemoryTraceStore();
+        ReactAgentDefinition definition = new ReactAgentDefinition(
+                chatModel,
+                new DefaultTraceCollector(traceStore)
+        );
+
+        Decision decision = assertDoesNotThrow(() -> definition.decide(context()));
+
+        assertInstanceOf(Decision.ToolCalls.class, decision);
+        assertTrue(traceStore.getByTaskId("task-1").stream().anyMatch(trace ->
+                trace.category() == TraceCategory.MODEL_RESPONSE
+                        && trace.payload().containsKey("rawText")
         ));
     }
 

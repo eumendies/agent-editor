@@ -3,6 +3,8 @@ package com.agent.editor.agent.v2.trace;
 import com.agent.editor.agent.v2.definition.AgentType;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public record TraceRecord(String traceId,
@@ -16,6 +18,8 @@ public record TraceRecord(String traceId,
                           Map<String, Object> payload) {
 
     public TraceRecord {
-        payload = payload == null ? Map.of() : Map.copyOf(payload);
+        payload = payload == null
+                ? Map.of()
+                : Collections.unmodifiableMap(new LinkedHashMap<>(payload));
     }
 }
