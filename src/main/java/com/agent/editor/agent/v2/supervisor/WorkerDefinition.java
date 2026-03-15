@@ -9,9 +9,21 @@ public record WorkerDefinition(
         String role,
         String description,
         AgentDefinition agentDefinition,
-        List<String> allowedTools
+        List<String> allowedTools,
+        List<String> capabilities
 ) {
+    public WorkerDefinition(
+            String workerId,
+            String role,
+            String description,
+            AgentDefinition agentDefinition,
+            List<String> allowedTools
+    ) {
+        this(workerId, role, description, agentDefinition, allowedTools, List.of());
+    }
+
     public WorkerDefinition {
         allowedTools = List.copyOf(allowedTools);
+        capabilities = List.copyOf(capabilities);
     }
 }

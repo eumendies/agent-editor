@@ -26,21 +26,24 @@ public class SupervisorAgentConfig {
                 "Analyzer",
                 "Inspect the document and identify issues before changes are made.",
                 reactAgentDefinition,
-                List.of("searchContent", "analyzeDocument")
+                List.of("searchContent", "analyzeDocument"),
+                List.of("analyze")
         ));
         workerRegistry.register(new WorkerDefinition(
                 "editor",
                 "Editor",
                 "Apply concrete edits to the document.",
                 reactAgentDefinition,
-                List.of("editDocument", "searchContent")
+                List.of("editDocument", "searchContent"),
+                List.of("edit")
         ));
         workerRegistry.register(new WorkerDefinition(
                 "reviewer",
                 "Reviewer",
                 "Review the revised document and flag any remaining issues.",
                 reactAgentDefinition,
-                List.of("searchContent", "analyzeDocument")
+                List.of("searchContent", "analyzeDocument"),
+                List.of("review")
         ));
         return workerRegistry;
     }

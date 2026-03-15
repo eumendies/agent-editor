@@ -1,6 +1,7 @@
 package com.agent.editor.config;
 
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
+import com.agent.editor.agent.v2.supervisor.WorkerDefinition;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.supervisor.WorkerRegistry;
 import com.agent.editor.agent.v2.trace.TraceCollector;
@@ -41,6 +42,23 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(ExecutionRuntime.class);
             assertThat(context).hasSingleBean(TaskOrchestrator.class);
             assertThat(context.containsBean("agentV2Config")).isFalse();
+        });
+    }
+
+    @Test
+    void shouldRegisterWorkersWithExpectedCapabilities() {
+        contextRunner.run(context -> {
+            WorkerRegistry workerRegistry = context.getBean(WorkerRegistry.class);
+
+            assertThat(workerRegistry.all())
+                    .extracting(WorkerDefinition::workerId)
+                    .containsExactly("analyzer", "editor", "reviewer");
+            assertThat(workerRegistry.all())
+                    .extracting(WorkerDefinition::capabilities)
+                    .allSatisfy(capabilities -> assertThat(capabilities).isNotEmpty());
+            assertThat(workerRegistry.get("analyzer").capabilities()).containsExactly("analyze");
+            assertThat(workerRegistry.get("editor").capabilities()).containsExactly("edit");
+            assertThat(workerRegistry.get("reviewer").capabilities()).containsExactly("review");
         });
     }
 
