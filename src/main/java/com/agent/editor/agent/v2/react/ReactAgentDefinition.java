@@ -44,6 +44,7 @@ public class ReactAgentDefinition implements AgentDefinition {
             return new Decision.Complete("placeholder", "react stub");
         }
 
+        // ReAct 在 v2 里仍然是“单轮决策器”，真正的循环由 runtime 负责。
         String systemPrompt = buildSystemPrompt();
         String userPrompt = buildUserPrompt(context);
         traceCollector.collect(traceRecord(
@@ -81,6 +82,7 @@ public class ReactAgentDefinition implements AgentDefinition {
                 responsePayload
         ));
         if (aiMessage.hasToolExecutionRequests()) {
+            // 这里不直接执行工具，只把调用意图翻译成统一 Decision，由 runtime 接管后续步骤。
             return new Decision.ToolCalls(
                     aiMessage.toolExecutionRequests().stream()
                             .map(this::toToolCall)
@@ -101,9 +103,11 @@ public class ReactAgentDefinition implements AgentDefinition {
     }
 
     private String buildUserPrompt(ExecutionContext context) {
+        // prompt 总是优先使用当前执行态里的文档内容，而不是请求初始快照。
         String currentContent = context.state().currentContent() != null
                 ? context.state().currentContent()
                 : context.request().document().content();
+        // 工具结果历史会显式回灌给模型，避免重复调用已经执行过的动作。
         String toolResultBlock = context.state().toolResults().isEmpty()
                 ? ""
                 : """

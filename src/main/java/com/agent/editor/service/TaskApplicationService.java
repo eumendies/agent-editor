@@ -46,6 +46,7 @@ public class TaskApplicationService {
             throw new IllegalArgumentException("Document not found: " + request.getDocumentId());
         }
 
+        // 应用层职责是把 HTTP 请求翻译成 v2 任务请求，并在执行前后处理文档与查询态。
         String taskId = UUID.randomUUID().toString();
         String sessionId = hasText(request.getSessionId()) ? request.getSessionId() : UUID.randomUUID().toString();
         AgentType agentType = mapAgentType(request.getMode());
@@ -66,6 +67,7 @@ public class TaskApplicationService {
                 request.getMaxSteps() != null ? request.getMaxSteps() : 10
         ));
 
+        // orchestrator 只返回最终产物，真正的文档持久化和 diff 记录仍然在应用层统一处理。
         if (result.finalContent() != null) {
             documentService.updateDocument(document.getId(), result.finalContent());
             diffService.recordDiff(document.getId(), originalContent, result.finalContent());
@@ -93,6 +95,7 @@ public class TaskApplicationService {
     }
 
     private AgentType mapAgentType(AgentMode mode) {
+        // controller 仍然面对旧的 AgentMode，应用层负责映射到 v2 的统一 agent type。
         if (mode == AgentMode.PLANNING) {
             return AgentType.PLANNING;
         }

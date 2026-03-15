@@ -10,6 +10,7 @@ public class SequentialSupervisorAgentDefinition implements SupervisorAgentDefin
 
     @Override
     public SupervisorDecision decide(SupervisorContext context) {
+        // 当前实现是确定性的顺序调度器：先找还没执行过的 worker，最后再统一收口。
         Set<String> completedWorkers = context.workerResults().stream()
                 .map(result -> result.workerId())
                 .collect(Collectors.toSet());

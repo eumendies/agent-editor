@@ -46,6 +46,7 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
 
     @Override
     public TaskResult execute(TaskRequest request) {
+        // planning 阶段只生成计划，不直接落文档；真正写文档仍然走统一 execution runtime。
         PlanResult plan = planningAgent.createPlan(request.document(), request.instruction());
         eventPublisher.publish(new ExecutionEvent(
                 EventType.PLAN_CREATED,
@@ -100,6 +101,7 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
                             request.maxIterations()
                     )
             );
+            // 每一步都把上一步的产物作为新的文档输入，形成显式串行阶段链。
             currentContent = result.finalContent();
         }
 

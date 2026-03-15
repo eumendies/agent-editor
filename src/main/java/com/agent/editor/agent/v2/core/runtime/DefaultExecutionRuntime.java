@@ -42,6 +42,7 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
     public ExecutionResult run(AgentDefinition definition, ExecutionRequest request) {
         eventPublisher.publish(new ExecutionEvent(EventType.TASK_STARTED, request.taskId(), "execution started"));
 
+        // runtime 维护“本轮文档内容 + 工具结果历史”，每次决策都基于最新状态继续推进。
         ExecutionState state = new ExecutionState(0, false, request.document().content());
         while (state.iteration() < request.maxIterations() && !state.completed()) {
             eventPublisher.publish(new ExecutionEvent(EventType.ITERATION_STARTED, request.taskId(), "iteration " + state.iteration()));
@@ -62,11 +63,13 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
             Decision decision = definition.decide(context);
 
             if (decision instanceof Decision.Complete complete) {
+                // Complete 表示 agent 明确结束，本轮状态里的 currentContent 就是最终文档内容。
                 eventPublisher.publish(new ExecutionEvent(EventType.TASK_COMPLETED, request.taskId(), complete.result()));
                 return new ExecutionResult(complete.result(), state.currentContent());
             }
 
             if (decision instanceof Decision.ToolCalls toolCalls) {
+                // ToolCalls 不会直接结束任务，runtime 会先执行工具，再把结果折回下一轮上下文。
                 ToolExecutionOutcome outcome = executeTools(
                         request,
                         state.iteration(),
@@ -85,6 +88,7 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
             }
 
             if (decision instanceof Decision.Respond respond) {
+                // Respond 用在“不再调用工具，但也不需要额外完成语义”的轻量收口场景。
                 eventPublisher.publish(new ExecutionEvent(EventType.TASK_COMPLETED, request.taskId(), respond.message()));
                 return new ExecutionResult(respond.message(), state.currentContent());
             }
@@ -124,6 +128,7 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
                 throw new IllegalStateException("No tool handler registered for " + call.name());
             }
 
+            // 工具拿到的是“当前阶段文档内容”，多个 tool call 会在同一轮里顺序叠加修改结果。
             ToolResult result = handler.execute(new ToolInvocation(call.name(), call.arguments()), new ToolContext(taskId, updatedContent));
             results.add(result);
             if (result.updatedContent() != null) {
@@ -149,6 +154,7 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
     }
 
     private List<ToolResult> mergeToolResults(List<ToolResult> existingResults, List<ToolResult> newResults) {
+        // 这里保留完整工具历史，供下一轮 prompt 和 trace 一起回看之前发生过什么。
         List<ToolResult> merged = new ArrayList<>(existingResults);
         merged.addAll(newResults);
         return merged;

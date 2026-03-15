@@ -63,6 +63,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
             ));
 
             if (decision instanceof SupervisorDecision.AssignWorker assignWorker) {
+                // supervisor 只决定“谁来做、做什么”，具体执行仍然完全复用单 agent runtime。
                 WorkerDefinition worker = workerRegistry.get(assignWorker.workerId());
                 if (worker == null) {
                     throw new IllegalArgumentException("Unknown worker: " + assignWorker.workerId());
@@ -109,6 +110,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                         )
                 );
 
+                // worker 执行完后，最新文档内容会回灌给 supervisor，供下一轮继续分派。
                 currentContent = result.finalContent();
                 workerResults.add(new WorkerResult(
                         worker.workerId(),
@@ -141,6 +143,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
             }
 
             if (decision instanceof SupervisorDecision.Complete complete) {
+                // 最终内容以 supervisor 的收口结果为准，而不是某个 worker 的局部输出。
                 eventPublisher.publish(new ExecutionEvent(
                         EventType.SUPERVISOR_COMPLETED,
                         request.taskId(),
