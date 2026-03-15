@@ -1,6 +1,8 @@
 package com.agent.editor.config;
 
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
+import com.agent.editor.agent.v2.supervisor.HybridSupervisorAgentDefinition;
+import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
 import com.agent.editor.agent.v2.supervisor.WorkerDefinition;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.supervisor.WorkerRegistry;
@@ -59,6 +61,16 @@ class AgentV2ConfigurationSplitTest {
             assertThat(workerRegistry.get("analyzer").capabilities()).containsExactly("analyze");
             assertThat(workerRegistry.get("editor").capabilities()).containsExactly("edit");
             assertThat(workerRegistry.get("reviewer").capabilities()).containsExactly("review");
+        });
+    }
+
+    @Test
+    void shouldWireHybridSupervisorAsDefaultSupervisorBean() {
+        contextRunner.run(context -> {
+            assertThat(context).hasSingleBean(SupervisorAgentDefinition.class);
+            assertThat(context.getBean(SupervisorAgentDefinition.class))
+                    .isInstanceOf(HybridSupervisorAgentDefinition.class);
+            assertThat(context).hasSingleBean(TaskOrchestrator.class);
         });
     }
 

@@ -9,7 +9,7 @@ import com.agent.editor.agent.v2.event.WebSocketEventPublisher;
 import com.agent.editor.agent.v2.planning.PlanningAgentDefinition;
 import com.agent.editor.agent.v2.planning.PlanningThenExecutionOrchestrator;
 import com.agent.editor.agent.v2.react.ReactAgentDefinition;
-import com.agent.editor.agent.v2.supervisor.SequentialSupervisorAgentDefinition;
+import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
 import com.agent.editor.agent.v2.supervisor.SupervisorOrchestrator;
 import com.agent.editor.agent.v2.supervisor.WorkerRegistry;
 import com.agent.editor.agent.v2.task.RoutingTaskOrchestrator;
@@ -52,7 +52,7 @@ public class TaskOrchestratorConfig {
                                              WorkerRegistry workerRegistry,
                                              PlanningAgentDefinition planningAgentDefinition,
                                              ReactAgentDefinition reactAgentDefinition,
-                                             SequentialSupervisorAgentDefinition sequentialSupervisorAgentDefinition,
+                                             SupervisorAgentDefinition supervisorAgentDefinition,
                                              TraceCollector traceCollector) {
         TaskOrchestrator reactOrchestrator = new SingleAgentOrchestrator(executionRuntime, reactAgentDefinition);
         TaskOrchestrator planningOrchestrator = new PlanningThenExecutionOrchestrator(
@@ -63,7 +63,7 @@ public class TaskOrchestratorConfig {
                 traceCollector
         );
         TaskOrchestrator supervisorOrchestrator = new SupervisorOrchestrator(
-                sequentialSupervisorAgentDefinition,
+                supervisorAgentDefinition,
                 workerRegistry,
                 executionRuntime,
                 eventPublisher,

@@ -1,9 +1,11 @@
 package com.agent.editor.config;
 
 import com.agent.editor.agent.v2.react.ReactAgentDefinition;
-import com.agent.editor.agent.v2.supervisor.SequentialSupervisorAgentDefinition;
+import com.agent.editor.agent.v2.supervisor.HybridSupervisorAgentDefinition;
+import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
 import com.agent.editor.agent.v2.supervisor.WorkerDefinition;
 import com.agent.editor.agent.v2.supervisor.WorkerRegistry;
+import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -13,8 +15,8 @@ import java.util.List;
 public class SupervisorAgentConfig {
 
     @Bean
-    public SequentialSupervisorAgentDefinition sequentialSupervisorAgentDefinition() {
-        return new SequentialSupervisorAgentDefinition();
+    public SupervisorAgentDefinition supervisorAgentDefinition(ChatModel chatModel) {
+        return new HybridSupervisorAgentDefinition(chatModel);
     }
 
     @Bean
