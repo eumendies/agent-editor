@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.trace;
 
-import com.agent.editor.agent.v2.definition.AgentType;
+import com.agent.editor.agent.v2.core.agent.AgentType;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;

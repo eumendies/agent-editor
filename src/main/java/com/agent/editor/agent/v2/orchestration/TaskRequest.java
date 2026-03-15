@@ -1,7 +1,7 @@
 package com.agent.editor.agent.v2.orchestration;
 
-import com.agent.editor.agent.v2.definition.AgentType;
-import com.agent.editor.agent.v2.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 
 public record TaskRequest(
         String taskId,

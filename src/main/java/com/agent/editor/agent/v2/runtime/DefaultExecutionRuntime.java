@@ -1,12 +1,12 @@
 package com.agent.editor.agent.v2.runtime;
 
 import com.agent.editor.agent.v2.definition.AgentDefinition;
-import com.agent.editor.agent.v2.definition.Decision;
-import com.agent.editor.agent.v2.definition.ToolCall;
+import com.agent.editor.agent.v2.core.agent.Decision;
+import com.agent.editor.agent.v2.core.agent.ToolCall;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
-import com.agent.editor.agent.v2.state.ExecutionState;
+import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.trace.TraceCategory;
 import com.agent.editor.agent.v2.trace.TraceCollector;
 import com.agent.editor.agent.v2.trace.TraceRecord;

@@ -1,8 +1,9 @@
 package com.agent.editor.agent.v2.definition;
 
+import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.orchestration.PlanResult;
 import com.agent.editor.agent.v2.orchestration.PlanStep;
-import com.agent.editor.agent.v2.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;

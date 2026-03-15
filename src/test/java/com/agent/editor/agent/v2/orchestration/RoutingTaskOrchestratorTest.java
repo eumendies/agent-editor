@@ -1,8 +1,8 @@
 package com.agent.editor.agent.v2.orchestration;
 
-import com.agent.editor.agent.v2.definition.AgentType;
-import com.agent.editor.agent.v2.state.DocumentSnapshot;
-import com.agent.editor.agent.v2.state.TaskStatus;
+import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.core.state.TaskStatus;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;

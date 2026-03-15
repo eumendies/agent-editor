@@ -1,7 +1,7 @@
 package com.agent.editor.service;
 
-import com.agent.editor.agent.v2.state.TaskState;
-import com.agent.editor.agent.v2.state.TaskStatus;
+import com.agent.editor.agent.v2.core.state.TaskState;
+import com.agent.editor.agent.v2.core.state.TaskStatus;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

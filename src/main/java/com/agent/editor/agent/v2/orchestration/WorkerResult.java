@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.orchestration;
 
-import com.agent.editor.agent.v2.state.TaskStatus;
+import com.agent.editor.agent.v2.core.state.TaskStatus;
 
 public record WorkerResult(
         String workerId,

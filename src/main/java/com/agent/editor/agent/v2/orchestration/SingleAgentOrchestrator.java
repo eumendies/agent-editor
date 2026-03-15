@@ -4,7 +4,7 @@ import com.agent.editor.agent.v2.definition.AgentDefinition;
 import com.agent.editor.agent.v2.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.runtime.ExecutionRuntime;
-import com.agent.editor.agent.v2.state.TaskStatus;
+import com.agent.editor.agent.v2.core.state.TaskStatus;
 
 public class SingleAgentOrchestrator implements TaskOrchestrator {
 

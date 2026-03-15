@@ -1,8 +1,8 @@
 package com.agent.editor.agent.v2.orchestration;
 
 import com.agent.editor.agent.v2.definition.AgentDefinition;
-import com.agent.editor.agent.v2.definition.AgentType;
-import com.agent.editor.agent.v2.definition.Decision;
+import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.definition.SupervisorAgentDefinition;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
@@ -11,8 +11,8 @@ import com.agent.editor.agent.v2.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.runtime.ExecutionRuntime;
-import com.agent.editor.agent.v2.state.DocumentSnapshot;
-import com.agent.editor.agent.v2.state.TaskStatus;
+import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.trace.TraceCategory;

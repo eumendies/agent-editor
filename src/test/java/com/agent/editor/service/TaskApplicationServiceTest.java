@@ -1,10 +1,10 @@
 package com.agent.editor.service;
 
-import com.agent.editor.agent.v2.definition.AgentType;
+import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.orchestration.TaskOrchestrator;
 import com.agent.editor.agent.v2.orchestration.TaskRequest;
 import com.agent.editor.agent.v2.orchestration.TaskResult;
-import com.agent.editor.agent.v2.state.TaskStatus;
+import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.dto.AgentTaskRequest;
 import com.agent.editor.dto.AgentTaskResponse;
 import com.agent.editor.model.AgentMode;

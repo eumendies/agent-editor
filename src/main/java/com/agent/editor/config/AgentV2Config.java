@@ -1,6 +1,6 @@
 package com.agent.editor.config;
 
-import com.agent.editor.agent.v2.definition.AgentType;
+import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.definition.PlanningAgentDefinition;
 import com.agent.editor.agent.v2.definition.ReactAgentDefinition;
 import com.agent.editor.agent.v2.definition.SequentialSupervisorAgentDefinition;

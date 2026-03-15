@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.orchestration;
 
-import com.agent.editor.agent.v2.definition.AgentType;
+import com.agent.editor.agent.v2.core.agent.AgentType;
 
 import java.util.Map;
 

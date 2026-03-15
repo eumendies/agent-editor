@@ -1,10 +1,10 @@
 package com.agent.editor.agent.v2.runtime;
 
 import com.agent.editor.agent.v2.definition.AgentDefinition;
-import com.agent.editor.agent.v2.definition.AgentType;
-import com.agent.editor.agent.v2.definition.Decision;
-import com.agent.editor.agent.v2.definition.ToolCall;
-import com.agent.editor.agent.v2.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.agent.Decision;
+import com.agent.editor.agent.v2.core.agent.ToolCall;
+import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.trace.TraceCategory;
