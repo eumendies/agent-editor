@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.UUID;
 
 @Data
-@AllArgsConstructor
 @Builder
 @Deprecated(forRemoval = false)
 public class EditorAgentTools {

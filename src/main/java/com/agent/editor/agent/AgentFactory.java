@@ -16,11 +16,17 @@ public class AgentFactory {
     private WebSocketService websocketService;
 
     public AgentExecutor getAgent(AgentMode mode) {
-        return new ReActAgent(chatModel, websocketService);
+        return ReActAgent.builder()
+                .chatLanguageModel(chatModel)
+                .websocketService(websocketService)
+                .build();
     }
 
     public AgentExecutor getDefaultAgent() {
-        return new ReActAgent(chatModel, websocketService);
+        return ReActAgent.builder()
+                .chatLanguageModel(chatModel)
+                .websocketService(websocketService)
+                .build();
     }
 
     public boolean isModeSupported(AgentMode mode) {

@@ -13,14 +13,14 @@ import java.util.*;
 @SuperBuilder
 @Deprecated(forRemoval = false)
 public class ReActAgent extends BaseAgent {
-
-    public ReActAgent() {
-    }
-
-    public ReActAgent(ChatModel chatLanguageModel, WebSocketService websocketService) {
-        this.chatLanguageModel = chatLanguageModel;
-        this.websocketService = websocketService;
-    }
+//
+//    public ReActAgent() {
+//    }
+//
+//    public ReActAgent(ChatModel chatLanguageModel, WebSocketService websocketService) {
+//        this.chatLanguageModel = chatLanguageModel;
+//        this.websocketService = websocketService;
+//    }
 
     @Override
     public AgentMode getMode() {
