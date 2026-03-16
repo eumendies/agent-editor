@@ -272,21 +272,6 @@ public record ExecutionResult(
 - `ExecutionState` 保存本地 transcript 抽象
 - `ReactAgentDefinition` 负责桥接到 LangChain4j message
 
-## Relationship With ToolExecutionMemoryBridge
-
-当前工作区里存在一个未提交草稿：
-
-- `[ToolExecutionMemoryBridge.java](/Users/eumendies/code/java/learn/agent-editor/src/main/java/com/agent/editor/agent/v2/core/runtime/ToolExecutionMemoryBridge.java)`
-
-它表达的方向与本设计一致：runtime 执行完工具后，需要把工具交互同步到 memory。
-
-但在本设计下，不建议让 bridge 成为长期核心抽象。更自然的做法是：
-
-- runtime 直接更新 `ExecutionState.memory`
-- 如果后续确实需要让不同 agent 定制“如何把 tool execution 写入 memory”，再把该 bridge 收敛成内部协作者
-
-换句话说，`ToolExecutionMemoryBridge` 可以作为过渡性实现草稿，但不应主导最终 API。
-
 ## Error Handling
 
 第一版需要明确以下行为：

@@ -133,8 +133,6 @@ Implement:
 - React-side conversion from transcript memory to LangChain4j messages
 - removal of `toolResults` access from React
 
-If `src/main/java/com/agent/editor/agent/v2/core/runtime/ToolExecutionMemoryBridge.java` is still needed after the refactor, reduce it to an internal helper; otherwise delete it in the same change.
-
 **Step 4: Run test to verify it passes**
 
 Run: `mvn -Dtest=DefaultExecutionRuntimeTest,ReactAgentDefinitionTest test`
