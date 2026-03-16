@@ -8,7 +8,11 @@ import com.agent.editor.agent.v2.event.ExecutionEvent;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
+import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.core.state.ExecutionMessage;
+import com.agent.editor.agent.v2.core.state.ExecutionStage;
+import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
@@ -18,6 +22,7 @@ import com.agent.editor.agent.v2.trace.TraceCollector;
 import com.agent.editor.agent.v2.trace.TraceRecord;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
 
@@ -68,6 +73,7 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
                 )
         ));
 
+        ExecutionState currentState = new ExecutionState(0, request.document().content());
         String currentContent = request.document().content();
         for (PlanStep step : plan.steps()) {
             traceCollector.collect(new TraceRecord(
@@ -85,6 +91,7 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
                             "currentContent", currentContent
                     )
             ));
+            ExecutionState stepState = prepareStepState(currentState, step);
             // 每个步骤都基于上一步的文档内容继续执行，形成显式的阶段性产物传递。
             ExecutionResult result = executionRuntime.run(
                     executionAgent,
@@ -99,12 +106,36 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
                             ),
                             step.instruction(),
                             request.maxIterations()
-                    )
+                    ),
+                    stepState
             );
             // 每一步都把上一步的产物作为新的文档输入，形成显式串行阶段链。
             currentContent = result.finalContent();
+            currentState = result.finalState();
         }
 
         return new TaskResult(TaskStatus.COMPLETED, currentContent);
+    }
+
+    private ExecutionState prepareStepState(ExecutionState state, PlanStep step) {
+        if (!(state.memory() instanceof ChatTranscriptMemory transcriptMemory)) {
+            return new ExecutionState(
+                    state.iteration(),
+                    state.currentContent(),
+                    state.memory(),
+                    ExecutionStage.RUNNING,
+                    state.pendingReason()
+            );
+        }
+
+        ArrayList<ExecutionMessage> messages = new ArrayList<>(transcriptMemory.messages());
+        messages.add(new ExecutionMessage.UserExecutionMessage("Plan step %d: %s".formatted(step.order(), step.instruction())));
+        return new ExecutionState(
+                state.iteration(),
+                state.currentContent(),
+                new ChatTranscriptMemory(messages),
+                ExecutionStage.RUNNING,
+                state.pendingReason()
+        );
     }
 }

@@ -5,11 +5,15 @@ import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
 import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
+import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
+import com.agent.editor.agent.v2.core.state.ExecutionMemory;
+import com.agent.editor.agent.v2.core.state.ExecutionMessage;
 import com.agent.editor.agent.v2.trace.TraceCategory;
 import com.agent.editor.agent.v2.trace.TraceCollector;
 import com.agent.editor.agent.v2.trace.TraceRecord;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -17,11 +21,11 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class ReactAgentDefinition implements AgentDefinition {
 
@@ -54,15 +58,13 @@ public class ReactAgentDefinition implements AgentDefinition {
                 Map.of(
                         "systemPrompt", systemPrompt,
                         "userPrompt", userPrompt,
+                        "memoryMessages", context.state().memory(),
                         "toolSpecifications", context.toolSpecifications().stream().map(spec -> spec.name()).toList()
                 )
         ));
 
         ChatResponse response = chatModel.chat(ChatRequest.builder()
-                .messages(List.of(
-                        SystemMessage.from(systemPrompt),
-                        UserMessage.from(userPrompt)
-                ))
+                .messages(buildMessages(context, systemPrompt, userPrompt))
                 .toolSpecifications(context.toolSpecifications())
                 .build());
 
@@ -107,34 +109,50 @@ public class ReactAgentDefinition implements AgentDefinition {
         String currentContent = context.state().currentContent() != null
                 ? context.state().currentContent()
                 : context.request().document().content();
-        // 工具结果历史会显式回灌给模型，避免重复调用已经执行过的动作。
-        String toolResultBlock = context.state().toolResults().isEmpty()
-                ? ""
-                : """
-
-                Previous tool results:
-                %s
-
-                Use the updated document state and these observations before deciding whether another tool call is necessary.
-                """.formatted(renderToolResults(context));
         return """
                 Document:
                 %s
 
                 Instruction:
                 %s
-                %s
                 """.formatted(
                 currentContent,
-                context.request().instruction(),
-                toolResultBlock
+                context.request().instruction()
         );
     }
 
-    private String renderToolResults(ExecutionContext context) {
-        return context.state().toolResults().stream()
-                .map(result -> "- " + result.message())
-                .collect(Collectors.joining("\n"));
+    private List<ChatMessage> buildMessages(ExecutionContext context, String systemPrompt, String userPrompt) {
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(SystemMessage.from(systemPrompt));
+        messages.addAll(toChatMessages(context.state().memory()));
+        messages.add(UserMessage.from(userPrompt));
+        return messages;
+    }
+
+    private List<ChatMessage> toChatMessages(ExecutionMemory memory) {
+        if (!(memory instanceof ChatTranscriptMemory transcriptMemory)) {
+            return List.of();
+        }
+
+        return transcriptMemory.messages().stream()
+                .map(this::toChatMessage)
+                .toList();
+    }
+
+    private ChatMessage toChatMessage(ExecutionMessage message) {
+        if (message instanceof ExecutionMessage.SystemExecutionMessage systemMessage) {
+            return SystemMessage.from(systemMessage.text());
+        }
+        if (message instanceof ExecutionMessage.UserExecutionMessage userMessage) {
+            return UserMessage.from(userMessage.text());
+        }
+        if (message instanceof ExecutionMessage.AiExecutionMessage aiMessage) {
+            return AiMessage.from(aiMessage.text());
+        }
+        if (message instanceof ExecutionMessage.ToolExecutionResultExecutionMessage toolMessage) {
+            return UserMessage.from(toolMessage.text());
+        }
+        throw new IllegalStateException("Unsupported execution message type: " + message.getClass().getSimpleName());
     }
 
     private ToolCall toToolCall(ToolExecutionRequest request) {

@@ -10,7 +10,11 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
+import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.core.state.ExecutionMessage;
+import com.agent.editor.agent.v2.core.state.ExecutionStage;
+import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
@@ -69,6 +73,43 @@ class PlanningThenExecutionOrchestratorTest {
         ));
     }
 
+    @Test
+    void shouldReuseExecutionStateAcrossPlanSteps() {
+        RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
+        StaticPlanningAgentDefinition planner = new StaticPlanningAgentDefinition(
+                new PlanResult(List.of(
+                        new PlanStep(1, "Add outline"),
+                        new PlanStep(2, "Refine tone")
+                ))
+        );
+        PlanningThenExecutionOrchestrator orchestrator = new PlanningThenExecutionOrchestrator(
+                planner,
+                runtime,
+                new CompletingExecutionAgent(),
+                event -> {},
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
+
+        TaskResult result = orchestrator.execute(new TaskRequest(
+                "task-2",
+                "session-2",
+                AgentType.PLANNING,
+                new DocumentSnapshot("doc-2", "Title", "body"),
+                "Improve document",
+                5
+        ));
+
+        assertEquals(TaskStatus.COMPLETED, result.status());
+        assertEquals(2, runtime.states().size());
+        assertEquals("body", runtime.states().get(0).currentContent());
+        assertEquals("body -> Add outline", runtime.states().get(1).currentContent());
+        ChatTranscriptMemory secondStepMemory = (ChatTranscriptMemory) runtime.states().get(1).memory();
+        assertTrue(secondStepMemory.messages().stream().anyMatch(message ->
+                message instanceof ExecutionMessage.UserExecutionMessage userMessage
+                        && userMessage.text().contains("completed Add outline")
+        ));
+    }
+
     private static final class StaticPlanningAgentDefinition extends PlanningAgentDefinition {
 
         private final PlanResult planResult;
@@ -100,11 +141,32 @@ class PlanningThenExecutionOrchestratorTest {
     private static final class RecordingExecutionRuntime implements ExecutionRuntime {
 
         private final List<ExecutionRequest> requests = new ArrayList<>();
+        private final List<ExecutionState> states = new ArrayList<>();
 
         @Override
         public ExecutionResult run(AgentDefinition definition, ExecutionRequest request) {
             requests.add(request);
             return new ExecutionResult(request.instruction(), request.document().content() + " -> " + request.instruction());
+        }
+
+        @Override
+        public ExecutionResult run(AgentDefinition definition, ExecutionRequest request, ExecutionState initialState) {
+            requests.add(request);
+            states.add(initialState);
+            String updatedContent = initialState.currentContent() + " -> " + request.instruction();
+            return new ExecutionResult(
+                    request.instruction(),
+                    updatedContent,
+                    new ExecutionState(
+                            initialState.iteration() + 1,
+                            updatedContent,
+                            new ChatTranscriptMemory(List.of(
+                                    new ExecutionMessage.UserExecutionMessage("completed " + request.instruction())
+                            )),
+                            ExecutionStage.COMPLETED,
+                            null
+                    )
+            );
         }
 
         private List<String> instructions() {
@@ -113,6 +175,10 @@ class PlanningThenExecutionOrchestratorTest {
 
         private List<ExecutionRequest> requests() {
             return requests;
+        }
+
+        private List<ExecutionState> states() {
+            return states;
         }
     }
 

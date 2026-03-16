@@ -8,6 +8,7 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
@@ -107,7 +108,8 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                                 request.maxIterations(),
                                 worker.workerId(),
                                 worker.allowedTools()
-                        )
+                        ),
+                        new ExecutionState(0, currentContent)
                 );
 
                 // worker 执行完后，最新文档内容会回灌给 supervisor，供下一轮继续分派。

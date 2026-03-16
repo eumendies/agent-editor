@@ -5,6 +5,8 @@ import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.core.state.ExecutionStage;
+import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.trace.TraceCategory;
@@ -45,6 +47,8 @@ class DefaultExecutionRuntimeTest {
 
         assertEquals("done", result.finalMessage());
         assertEquals("body", result.finalContent());
+        assertEquals(ExecutionStage.COMPLETED, result.finalState().stage());
+        assertEquals("body", result.finalState().currentContent());
     }
 
     @Test
@@ -158,6 +162,34 @@ class DefaultExecutionRuntimeTest {
         ));
     }
 
+    @Test
+    void shouldResumeFromProvidedExecutionState() {
+        ToolRegistry registry = new ToolRegistry();
+        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+                registry,
+                event -> {},
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
+        RecordingStateAgentDefinition agent = new RecordingStateAgentDefinition();
+        ExecutionRequest request = new ExecutionRequest(
+                "task-6",
+                "session-6",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-6", "title", "original body"),
+                "finish",
+                3
+        );
+        ExecutionState initialState = new ExecutionState(2, "resumed body");
+
+        ExecutionResult result = runtime.run(agent, request, initialState);
+
+        assertEquals(2, agent.seenIteration);
+        assertEquals("resumed body", agent.seenContent);
+        assertEquals("resumed", result.finalMessage());
+        assertEquals("resumed body", result.finalContent());
+        assertEquals(ExecutionStage.COMPLETED, result.finalState().stage());
+    }
+
     private static final class CompletingAgentDefinition implements AgentDefinition {
 
         @Override
@@ -225,6 +257,24 @@ class DefaultExecutionRuntimeTest {
                 return new Decision.ToolCalls(List.of(new ToolCall("appendText", "{\"suffix\":\" world\"}")), "need another tool run");
             }
             return new Decision.Complete("used two tools", "tool history available");
+        }
+    }
+
+    private static final class RecordingStateAgentDefinition implements AgentDefinition {
+
+        private int seenIteration;
+        private String seenContent;
+
+        @Override
+        public AgentType type() {
+            return AgentType.REACT;
+        }
+
+        @Override
+        public Decision decide(ExecutionContext context) {
+            seenIteration = context.state().iteration();
+            seenContent = context.state().currentContent();
+            return new Decision.Complete("resumed", "resumed execution");
         }
     }
 }

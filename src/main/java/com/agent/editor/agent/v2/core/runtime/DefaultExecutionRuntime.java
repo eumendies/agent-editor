@@ -7,6 +7,7 @@ import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
 import com.agent.editor.agent.v2.core.state.ExecutionState;
+import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.trace.TraceCategory;
 import com.agent.editor.agent.v2.trace.TraceCollector;
 import com.agent.editor.agent.v2.trace.TraceRecord;
@@ -40,10 +41,15 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
 
     @Override
     public ExecutionResult run(AgentDefinition definition, ExecutionRequest request) {
+        return run(definition, request, new ExecutionState(0, request.document().content()));
+    }
+
+    @Override
+    public ExecutionResult run(AgentDefinition definition, ExecutionRequest request, ExecutionState initialState) {
         eventPublisher.publish(new ExecutionEvent(EventType.TASK_STARTED, request.taskId(), "execution started"));
 
         // runtime 维护“本轮文档内容 + 工具结果历史”，每次决策都基于最新状态继续推进。
-        ExecutionState state = new ExecutionState(0, false, request.document().content());
+        ExecutionState state = initialState;
         while (state.iteration() < request.maxIterations() && !state.completed()) {
             eventPublisher.publish(new ExecutionEvent(EventType.ITERATION_STARTED, request.taskId(), "iteration " + state.iteration()));
             traceCollector.collect(traceRecord(
@@ -65,7 +71,14 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
             if (decision instanceof Decision.Complete complete) {
                 // Complete 表示 agent 明确结束，本轮状态里的 currentContent 就是最终文档内容。
                 eventPublisher.publish(new ExecutionEvent(EventType.TASK_COMPLETED, request.taskId(), complete.result()));
-                return new ExecutionResult(complete.result(), state.currentContent());
+                ExecutionState completedState = new ExecutionState(
+                        state.iteration(),
+                        state.currentContent(),
+                        state.memory(),
+                        ExecutionStage.COMPLETED,
+                        state.pendingReason()
+                );
+                return new ExecutionResult(complete.result(), state.currentContent(), completedState);
             }
 
             if (decision instanceof Decision.ToolCalls toolCalls) {
@@ -90,7 +103,14 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
             if (decision instanceof Decision.Respond respond) {
                 // Respond 用在“不再调用工具，但也不需要额外完成语义”的轻量收口场景。
                 eventPublisher.publish(new ExecutionEvent(EventType.TASK_COMPLETED, request.taskId(), respond.message()));
-                return new ExecutionResult(respond.message(), state.currentContent());
+                ExecutionState completedState = new ExecutionState(
+                        state.iteration(),
+                        state.currentContent(),
+                        state.memory(),
+                        ExecutionStage.COMPLETED,
+                        state.pendingReason()
+                );
+                return new ExecutionResult(respond.message(), state.currentContent(), completedState);
             }
 
             throw new IllegalStateException("Unsupported decision type: " + decision.getClass().getSimpleName());
@@ -154,7 +174,7 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
     }
 
     private List<ToolResult> mergeToolResults(List<ToolResult> existingResults, List<ToolResult> newResults) {
-        // 这里保留完整工具历史，供下一轮 prompt 和 trace 一起回看之前发生过什么。
+        // 兼容当前 runtime/reagent 流程，下一阶段再统一切到 transcript-only memory 读写。
         List<ToolResult> merged = new ArrayList<>(existingResults);
         merged.addAll(newResults);
         return merged;

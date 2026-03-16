@@ -4,13 +4,15 @@ import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
+import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.core.state.ExecutionMessage;
+import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.trace.TraceCategory;
 import com.agent.editor.agent.v2.trace.TraceStore;
-import com.agent.editor.agent.v2.tool.ToolResult;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -84,7 +86,7 @@ class ReactAgentDefinitionTest {
     }
 
     @Test
-    void shouldExposeUpdatedContentAndPreviousToolResultsToModel() {
+    void shouldAppendTranscriptMemoryMessagesToModelRequest() {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("final answer"))
                 .build());
@@ -104,22 +106,29 @@ class ReactAgentDefinitionTest {
                 ),
                 new ExecutionState(
                         1,
-                        false,
                         "revised body",
-                        java.util.List.of(
-                                new ToolResult("Search for 'heading': Found"),
-                                new ToolResult("Document content edited successfully.", "revised body")
-                        )
+                        new ChatTranscriptMemory(java.util.List.of(
+                                new ExecutionMessage.UserExecutionMessage("Plan step 1: inspect headings"),
+                                new ExecutionMessage.ToolExecutionResultExecutionMessage("Search for 'heading': Found"),
+                                new ExecutionMessage.AiExecutionMessage("I found the heading block.")
+                        )),
+                        ExecutionStage.RUNNING,
+                        null
                 ),
                 java.util.List.of()
         ));
 
         Decision.Complete complete = assertInstanceOf(Decision.Complete.class, decision);
         assertEquals("final answer", complete.result());
-        UserMessage userMessage = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
-        assertTrue(userMessage.singleText().contains("revised body"));
-        assertTrue(userMessage.singleText().contains("Previous tool results"));
-        assertTrue(userMessage.singleText().contains("Search for 'heading': Found"));
+        assertEquals(5, chatModel.lastRequest.messages().size());
+        UserMessage transcriptStep = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
+        assertTrue(transcriptStep.singleText().contains("inspect headings"));
+        UserMessage transcriptToolResult = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(2));
+        assertTrue(transcriptToolResult.singleText().contains("Search for 'heading': Found"));
+        assertInstanceOf(AiMessage.class, chatModel.lastRequest.messages().get(3));
+        UserMessage currentTurn = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(4));
+        assertTrue(currentTurn.singleText().contains("revised body"));
+        assertTrue(currentTurn.singleText().contains("rewrite this"));
     }
 
     @Test
@@ -184,7 +193,7 @@ class ReactAgentDefinitionTest {
                         "rewrite this",
                         3
                 ),
-                new ExecutionState(0, false, "body"),
+                new ExecutionState(0, "body"),
                 java.util.List.of()
         );
     }

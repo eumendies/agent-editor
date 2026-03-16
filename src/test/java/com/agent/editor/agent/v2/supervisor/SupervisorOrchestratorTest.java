@@ -10,7 +10,11 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
+import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.core.state.ExecutionMessage;
+import com.agent.editor.agent.v2.core.state.ExecutionStage;
+import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
@@ -166,6 +170,50 @@ class SupervisorOrchestratorTest {
         assertEquals("analyzer result", supervisor.contexts().get(1).workerResults().get(0).summary());
     }
 
+    @Test
+    void shouldStartEachWorkerWithFreshExecutionStateByDefault() {
+        WorkerRegistry workerRegistry = new WorkerRegistry();
+        workerRegistry.register(new WorkerDefinition(
+                "analyzer",
+                "Analyzer",
+                "Inspect the document",
+                new StubWorkerAgent("analysis complete"),
+                List.of("searchContent")
+        ));
+        workerRegistry.register(new WorkerDefinition(
+                "editor",
+                "Editor",
+                "Apply document edits",
+                new StubWorkerAgent("edited content"),
+                List.of("editDocument")
+        ));
+
+        RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
+        SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(
+                new ScriptedSupervisorAgentDefinition(),
+                workerRegistry,
+                runtime,
+                event -> {},
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
+
+        TaskResult result = orchestrator.execute(new TaskRequest(
+                "task-4",
+                "session-4",
+                AgentType.SUPERVISOR,
+                new DocumentSnapshot("doc-4", "Title", "body"),
+                "Improve this document",
+                5
+        ));
+
+        assertEquals(TaskStatus.COMPLETED, result.status());
+        assertEquals(2, runtime.states().size());
+        assertEquals("body", runtime.states().get(0).currentContent());
+        assertEquals("body -> analyzer", runtime.states().get(1).currentContent());
+        assertTrue(((ChatTranscriptMemory) runtime.states().get(0).memory()).messages().isEmpty());
+        assertTrue(((ChatTranscriptMemory) runtime.states().get(1).memory()).messages().isEmpty());
+    }
+
     private static final class ScriptedSupervisorAgentDefinition implements SupervisorAgentDefinition {
 
         @Override
@@ -220,6 +268,7 @@ class SupervisorOrchestratorTest {
     private static final class RecordingExecutionRuntime implements ExecutionRuntime {
 
         private final List<ExecutionRequest> requests = new ArrayList<>();
+        private final List<ExecutionState> states = new ArrayList<>();
 
         @Override
         public ExecutionResult run(AgentDefinition definition, ExecutionRequest request) {
@@ -228,12 +277,37 @@ class SupervisorOrchestratorTest {
             return new ExecutionResult(marker + " result", request.document().content() + " -> " + marker);
         }
 
+        @Override
+        public ExecutionResult run(AgentDefinition definition, ExecutionRequest request, ExecutionState initialState) {
+            requests.add(request);
+            states.add(initialState);
+            String marker = request.allowedTools().contains("editDocument") ? "editor" : "analyzer";
+            String updatedContent = initialState.currentContent() + " -> " + marker;
+            return new ExecutionResult(
+                    marker + " result",
+                    updatedContent,
+                    new ExecutionState(
+                            initialState.iteration() + 1,
+                            updatedContent,
+                            new ChatTranscriptMemory(List.of(
+                                    new ExecutionMessage.ToolExecutionResultExecutionMessage(marker + " finished")
+                            )),
+                            ExecutionStage.COMPLETED,
+                            null
+                    )
+            );
+        }
+
         private List<String> workerIds() {
             return requests.stream().map(ExecutionRequest::workerId).toList();
         }
 
         private List<List<String>> allowedTools() {
             return requests.stream().map(ExecutionRequest::allowedTools).toList();
+        }
+
+        private List<ExecutionState> states() {
+            return states;
         }
     }
 
