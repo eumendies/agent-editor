@@ -25,6 +25,11 @@ public class EditorAgentTools {
     private WebSocketService webSocketService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    public EditorAgentTools(AgentState agentState, WebSocketService webSocketService) {
+        this.agentState = agentState;
+        this.webSocketService = webSocketService;
+    }
+
     @Tool("Edit the document content with specified changes")
     public String editDocument(String content) {
         if (content != null && !content.isEmpty()) {

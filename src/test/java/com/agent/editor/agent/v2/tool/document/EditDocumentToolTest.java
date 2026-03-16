@@ -6,6 +6,7 @@ import com.agent.editor.agent.v2.tool.ToolResult;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class EditDocumentToolTest {
 
@@ -21,5 +22,30 @@ class EditDocumentToolTest {
         assertEquals("Document content edited successfully.", result.message());
         assertEquals("rewritten", result.updatedContent());
         assertEquals("editDocument", tool.specification().name());
+    }
+
+    @Test
+    void shouldReturnMessageWhenTypedArgumentsDoNotContainContent() {
+        EditDocumentTool tool = new EditDocumentTool();
+
+        ToolResult result = tool.execute(
+                new ToolInvocation("editDocument", "{}"),
+                new ToolContext("task-1", "original")
+        );
+
+        assertEquals("No content provided to edit the document.", result.message());
+        assertEquals(null, result.updatedContent());
+    }
+
+    @Test
+    void shouldFailWhenArgumentsAreNotValidJson() {
+        EditDocumentTool tool = new EditDocumentTool();
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> tool.execute(
+                new ToolInvocation("editDocument", "{not-json}"),
+                new ToolContext("task-1", "original")
+        ));
+
+        assertEquals("Failed to parse tool arguments for editDocument", exception.getMessage());
     }
 }

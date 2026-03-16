@@ -41,6 +41,26 @@ class HybridSupervisorAgentDefinitionTest {
     }
 
     @Test
+    void shouldMapSnakeCaseActionThroughAiService() {
+        RecordingChatModel chatModel = new RecordingChatModel("""
+                {"action":"assign_worker","workerId":"editor","instruction":"Start editing","reasoning":"guess"}
+                """);
+        SupervisorRoutingAiService routingAiService = AiServices.builder(SupervisorRoutingAiService.class)
+                .chatModel(chatModel)
+                .build();
+
+        SupervisorRoutingResponse response = routingAiService.route(
+                "Inspect the document before making changes",
+                "Draft body",
+                "editor | role=Editor | description=Apply document edits | capabilities=edit",
+                "No worker steps executed"
+        );
+
+        assertEquals(SupervisorAction.ASSIGN_WORKER, response.action());
+        assertEquals("editor", response.workerId());
+    }
+
+    @Test
     void shouldReturnAssignedWorkerSelectedByServiceWithinCandidates() {
         HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
                 new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(

@@ -9,14 +9,13 @@ interface SupervisorRoutingAiService {
     @SystemMessage("""
             You are a supervisor for a document editing workflow.
             Choose one of the candidate workers or complete the task.
-
-            Return a JSON object matching this schema:
-            - action: ASSIGN_WORKER or COMPLETE
-            - workerId: one of the candidate worker ids when action is ASSIGN_WORKER, otherwise null
-            - instruction: required when action is ASSIGN_WORKER
-            - summary: optional when action is ASSIGN_WORKER, required when action is COMPLETE
-            - finalContent: optional when action is ASSIGN_WORKER, required when action is COMPLETE
-            - reasoning: concise explanation of the choice
+            Return a structured response using:
+            - action: assign_worker or complete
+            - workerId: candidate worker id when assigning
+            - instruction: required when assigning
+            - summary: required when completing
+            - finalContent: required when completing
+            - reasoning: concise explanation
             """)
     @UserMessage("""
             Original instruction:

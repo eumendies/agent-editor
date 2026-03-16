@@ -5,14 +5,7 @@ import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -20,10 +13,10 @@ import java.util.List;
  */
 public class PlanningAgentDefinition implements AgentDefinition {
 
-    private final ChatModel chatModel;
+    private final PlanningAiService planningAiService;
 
-    public PlanningAgentDefinition(ChatModel chatModel) {
-        this.chatModel = chatModel;
+    public PlanningAgentDefinition(PlanningAiService planningAiService) {
+        this.planningAiService = planningAiService;
     }
 
     @Override
@@ -44,92 +37,36 @@ public class PlanningAgentDefinition implements AgentDefinition {
 
     public PlanResult createPlan(DocumentSnapshot document, String instruction) {
         // 没有模型时退化成单步计划，保证 orchestration 仍然可跑通。
-        if (chatModel == null) {
+        if (planningAiService == null) {
             return fallbackPlan(instruction);
         }
 
-        ChatResponse response = chatModel.chat(ChatRequest.builder()
-                .messages(List.of(
-                        SystemMessage.from(buildSystemPrompt()),
-                        UserMessage.from(buildUserPrompt(document, instruction))
-                ))
-                .build());
-
-        return parsePlan(response.aiMessage(), instruction);
+        try {
+            PlanningResponse response = planningAiService.plan(document.content(), instruction);
+            return toPlanResult(response, instruction);
+        } catch (RuntimeException exception) {
+            return fallbackPlan(instruction);
+        }
     }
 
-    private String buildSystemPrompt() {
-        return """
-                You are a planning agent for a document editor.
-                Break the user request into a short numbered list of execution steps.
-                Return one step per line.
-                """;
-    }
+    private PlanResult toPlanResult(PlanningResponse response, String fallbackInstruction) {
+        if (response == null || response.steps() == null || response.steps().isEmpty()) {
+            return fallbackPlan(fallbackInstruction);
+        }
 
-    private String buildUserPrompt(DocumentSnapshot document, String instruction) {
-        return """
-                Document:
-                %s
-
-                Instruction:
-                %s
-                """.formatted(document.content(), instruction);
-    }
-
-    private PlanResult parsePlan(AiMessage aiMessage, String fallbackInstruction) {
-        List<PlanStep> steps = new ArrayList<>();
-        String[] lines = aiMessage.text().split("\\R");
+        List<PlanStep> steps = new java.util.ArrayList<>();
         int nextOrder = 1;
-        for (String rawLine : lines) {
-            String line = rawLine.trim();
-            if (line.isEmpty()) {
+        for (PlanningResponse.Step step : response.steps()) {
+            if (step == null || step.instruction() == null || step.instruction().isBlank()) {
                 continue;
             }
-
-            // 优先解析 "1. xxx" / "1) xxx" 这类显式编号，没有编号时按出现顺序补序号。
-            int separator = findSeparatorIndex(line);
-            if (separator > 0 && isNumeric(line.substring(0, separator))) {
-                int order = Integer.parseInt(line.substring(0, separator));
-                String instruction = line.substring(separator + 1).trim();
-                if (!instruction.isEmpty()) {
-                    steps.add(new PlanStep(order, instruction));
-                    nextOrder = Math.max(nextOrder, order + 1);
-                }
-                continue;
-            }
-
-            steps.add(new PlanStep(nextOrder++, line));
+            steps.add(new PlanStep(nextOrder++, step.instruction().trim()));
         }
 
         if (steps.isEmpty()) {
             return fallbackPlan(fallbackInstruction);
         }
         return new PlanResult(steps);
-    }
-
-    private int findSeparatorIndex(String line) {
-        for (int i = 0; i < line.length(); i++) {
-            char current = line.charAt(i);
-            if (current == '.' || current == ')' || current == '-') {
-                return i;
-            }
-            if (!Character.isDigit(current)) {
-                return -1;
-            }
-        }
-        return -1;
-    }
-
-    private boolean isNumeric(String value) {
-        if (value == null || value.isEmpty()) {
-            return false;
-        }
-        for (int i = 0; i < value.length(); i++) {
-            if (!Character.isDigit(value.charAt(i))) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private PlanResult fallbackPlan(String instruction) {

@@ -6,6 +6,7 @@ import com.agent.editor.agent.v2.tool.ToolResult;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class SearchContentToolTest {
 
@@ -20,5 +21,30 @@ class SearchContentToolTest {
 
         assertEquals("Search for 'agent': Found", result.message());
         assertEquals(null, result.updatedContent());
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenTypedArgumentsDoNotContainPattern() {
+        SearchContentTool tool = new SearchContentTool();
+
+        ToolResult result = tool.execute(
+                new ToolInvocation("searchContent", "{}"),
+                new ToolContext("task-1", "hello agent")
+        );
+
+        assertEquals("Search for '': Not found", result.message());
+        assertEquals(null, result.updatedContent());
+    }
+
+    @Test
+    void shouldFailWhenArgumentsAreNotValidJson() {
+        SearchContentTool tool = new SearchContentTool();
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> tool.execute(
+                new ToolInvocation("searchContent", "{not-json}"),
+                new ToolContext("task-1", "hello agent")
+        ));
+
+        assertEquals("Failed to parse tool arguments for searchContent", exception.getMessage());
     }
 }

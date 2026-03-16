@@ -2,8 +2,10 @@ package com.agent.editor.agent;
 
 import com.agent.editor.dto.WebSocketMessage;
 import com.agent.editor.model.*;
+import com.agent.editor.websocket.WebSocketService;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.model.chat.ChatModel;
 import lombok.experimental.SuperBuilder;
 
 import java.util.*;
@@ -11,6 +13,15 @@ import java.util.*;
 @SuperBuilder
 @Deprecated(forRemoval = false)
 public class ReActAgent extends BaseAgent {
+
+    public ReActAgent() {
+    }
+
+    public ReActAgent(ChatModel chatLanguageModel, WebSocketService websocketService) {
+        this.chatLanguageModel = chatLanguageModel;
+        this.websocketService = websocketService;
+    }
+
     @Override
     public AgentMode getMode() {
         return AgentMode.REACT;
