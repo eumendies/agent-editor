@@ -6,8 +6,8 @@ import com.agent.editor.agent.v2.core.agent.ToolCall;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
+import com.agent.editor.agent.v2.core.state.ExecutionMessage;
 import com.agent.editor.agent.v2.core.state.ExecutionState;
-import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.trace.TraceCategory;
 import com.agent.editor.agent.v2.trace.TraceCollector;
 import com.agent.editor.agent.v2.trace.TraceRecord;
@@ -71,13 +71,7 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
             if (decision instanceof Decision.Complete complete) {
                 // Complete 表示 agent 明确结束，本轮状态里的 currentContent 就是最终文档内容。
                 eventPublisher.publish(new ExecutionEvent(EventType.TASK_COMPLETED, request.taskId(), complete.result()));
-                ExecutionState completedState = new ExecutionState(
-                        state.iteration(),
-                        state.currentContent(),
-                        state.memory(),
-                        ExecutionStage.COMPLETED,
-                        state.pendingReason()
-                );
+                ExecutionState completedState = state.markCompleted();
                 return new ExecutionResult(complete.result(), state.currentContent(), completedState);
             }
 
@@ -91,25 +85,19 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
                         toolCalls.calls(),
                         request.allowedTools()
                 );
-                state = new ExecutionState(
-                        state.iteration() + 1,
-                        false,
-                        outcome.currentContent(),
-                        mergeToolResults(state.toolResults(), outcome.toolResults())
-                );
+                state = state
+                        .appendMemory(outcome.toolResults().stream()
+                                .map(result -> new ExecutionMessage.ToolExecutionResultExecutionMessage(result.message()))
+                                .map(ExecutionMessage.class::cast)
+                                .toList())
+                        .advance(outcome.currentContent());
                 continue;
             }
 
             if (decision instanceof Decision.Respond respond) {
                 // Respond 用在“不再调用工具，但也不需要额外完成语义”的轻量收口场景。
                 eventPublisher.publish(new ExecutionEvent(EventType.TASK_COMPLETED, request.taskId(), respond.message()));
-                ExecutionState completedState = new ExecutionState(
-                        state.iteration(),
-                        state.currentContent(),
-                        state.memory(),
-                        ExecutionStage.COMPLETED,
-                        state.pendingReason()
-                );
+                ExecutionState completedState = state.markCompleted();
                 return new ExecutionResult(respond.message(), state.currentContent(), completedState);
             }
 
@@ -171,13 +159,6 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
     }
 
     private record ToolExecutionOutcome(List<ToolResult> toolResults, String currentContent) {
-    }
-
-    private List<ToolResult> mergeToolResults(List<ToolResult> existingResults, List<ToolResult> newResults) {
-        // 兼容当前 runtime/reagent 流程，下一阶段再统一切到 transcript-only memory 读写。
-        List<ToolResult> merged = new ArrayList<>(existingResults);
-        merged.addAll(newResults);
-        return merged;
     }
 
     private TraceRecord traceRecord(ExecutionRequest request,

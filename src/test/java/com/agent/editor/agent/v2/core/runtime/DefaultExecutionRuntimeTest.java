@@ -4,7 +4,9 @@ import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
+import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.core.state.ExecutionMessage;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
@@ -188,6 +190,51 @@ class DefaultExecutionRuntimeTest {
         assertEquals("resumed", result.finalMessage());
         assertEquals("resumed body", result.finalContent());
         assertEquals(ExecutionStage.COMPLETED, result.finalState().stage());
+    }
+
+    @Test
+    void shouldPreserveExistingMemoryWhenToolResultsAreAppended() {
+        ToolRegistry registry = new ToolRegistry();
+        registry.register(new AppendToolHandler());
+        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+                registry,
+                event -> {},
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
+        ExecutionRequest request = new ExecutionRequest(
+                "task-7",
+                "session-7",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-7", "title", "body"),
+                "use tool",
+                3
+        );
+        ExecutionState initialState = new ExecutionState(
+                0,
+                "body",
+                new ChatTranscriptMemory(List.of(
+                        new ExecutionMessage.UserExecutionMessage("plan step 1"),
+                        new ExecutionMessage.AiExecutionMessage("thinking")
+                )),
+                ExecutionStage.RUNNING,
+                null
+        );
+
+        ExecutionResult result = runtime.run(new ToolUsingAgentDefinition(), request, initialState);
+
+        ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) result.finalState().memory();
+        assertTrue(transcriptMemory.messages().stream().anyMatch(message ->
+                message instanceof ExecutionMessage.UserExecutionMessage userMessage
+                        && userMessage.text().contains("plan step 1")
+        ));
+        assertTrue(transcriptMemory.messages().stream().anyMatch(message ->
+                message instanceof ExecutionMessage.AiExecutionMessage aiMessage
+                        && aiMessage.text().contains("thinking")
+        ));
+        assertTrue(transcriptMemory.messages().stream().anyMatch(message ->
+                message instanceof ExecutionMessage.ToolExecutionResultExecutionMessage toolMessage
+                        && toolMessage.text().contains("hello world")
+        ));
     }
 
     private static final class CompletingAgentDefinition implements AgentDefinition {

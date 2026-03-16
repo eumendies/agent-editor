@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ExecutionRequestTest {
 
@@ -63,5 +64,25 @@ class ExecutionRequestTest {
                 ),
                 Arrays.asList(ExecutionStage.values())
         );
+    }
+
+    @Test
+    void shouldAdvanceStateImmutably() {
+        ExecutionState state = new ExecutionState(1, "body");
+
+        ExecutionState next = state
+                .appendMemory(new com.agent.editor.agent.v2.core.state.ExecutionMessage.UserExecutionMessage("step 1"))
+                .advance("updated body");
+
+        assertEquals(1, state.iteration());
+        assertEquals("body", state.currentContent());
+        assertEquals(2, next.iteration());
+        assertEquals("updated body", next.currentContent());
+        assertEquals(ExecutionStage.RUNNING, next.stage());
+        ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) next.memory();
+        assertTrue(transcriptMemory.messages().stream().anyMatch(message ->
+                message instanceof com.agent.editor.agent.v2.core.state.ExecutionMessage.UserExecutionMessage userMessage
+                        && userMessage.text().contains("step 1")
+        ));
     }
 }

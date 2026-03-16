@@ -39,6 +39,43 @@ public record ExecutionState(
         Objects.requireNonNull(stage, "stage must not be null");
     }
 
+    public ExecutionState withStage(ExecutionStage nextStage) {
+        return new ExecutionState(iteration, currentContent, memory, nextStage, pendingReason);
+    }
+
+    public ExecutionState withCurrentContent(String nextContent) {
+        return new ExecutionState(iteration, nextContent, memory, stage, pendingReason);
+    }
+
+    public ExecutionState advance(String nextContent) {
+        return new ExecutionState(iteration + 1, nextContent, memory, ExecutionStage.RUNNING, pendingReason);
+    }
+
+    public ExecutionState advance(String nextContent, ExecutionMemory nextMemory) {
+        return new ExecutionState(iteration + 1, nextContent, nextMemory, ExecutionStage.RUNNING, pendingReason);
+    }
+
+    public ExecutionState markCompleted() {
+        return new ExecutionState(iteration, currentContent, memory, ExecutionStage.COMPLETED, pendingReason);
+    }
+
+    public ExecutionState appendMemory(ExecutionMessage message) {
+        return appendMemory(List.of(message));
+    }
+
+    public ExecutionState appendMemory(List<ExecutionMessage> messages) {
+        if (messages.isEmpty()) {
+            return this;
+        }
+        if (!(memory instanceof ChatTranscriptMemory transcriptMemory)) {
+            throw new IllegalStateException("Execution memory does not support transcript append: "
+                    + memory.getClass().getSimpleName());
+        }
+        List<ExecutionMessage> merged = new java.util.ArrayList<>(transcriptMemory.messages());
+        merged.addAll(messages);
+        return new ExecutionState(iteration, currentContent, new ChatTranscriptMemory(merged), stage, pendingReason);
+    }
+
     public boolean completed() {
         return stage == ExecutionStage.COMPLETED;
     }

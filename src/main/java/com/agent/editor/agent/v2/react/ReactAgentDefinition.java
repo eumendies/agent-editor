@@ -5,9 +5,7 @@ import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
 import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
-import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
-import com.agent.editor.agent.v2.core.state.ExecutionMemory;
-import com.agent.editor.agent.v2.core.state.ExecutionMessage;
+import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.v2.trace.TraceCategory;
 import com.agent.editor.agent.v2.trace.TraceCollector;
 import com.agent.editor.agent.v2.trace.TraceRecord;
@@ -31,10 +29,18 @@ public class ReactAgentDefinition implements AgentDefinition {
 
     private final ChatModel chatModel;
     private final TraceCollector traceCollector;
+    private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
 
     public ReactAgentDefinition(ChatModel chatModel, TraceCollector traceCollector) {
+        this(chatModel, traceCollector, new ExecutionMemoryChatMessageMapper());
+    }
+
+    ReactAgentDefinition(ChatModel chatModel,
+                         TraceCollector traceCollector,
+                         ExecutionMemoryChatMessageMapper memoryChatMessageMapper) {
         this.chatModel = chatModel;
         this.traceCollector = traceCollector;
+        this.memoryChatMessageMapper = memoryChatMessageMapper;
     }
 
     @Override
@@ -124,35 +130,9 @@ public class ReactAgentDefinition implements AgentDefinition {
     private List<ChatMessage> buildMessages(ExecutionContext context, String systemPrompt, String userPrompt) {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt));
-        messages.addAll(toChatMessages(context.state().memory()));
+        messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().memory()));
         messages.add(UserMessage.from(userPrompt));
         return messages;
-    }
-
-    private List<ChatMessage> toChatMessages(ExecutionMemory memory) {
-        if (!(memory instanceof ChatTranscriptMemory transcriptMemory)) {
-            return List.of();
-        }
-
-        return transcriptMemory.messages().stream()
-                .map(this::toChatMessage)
-                .toList();
-    }
-
-    private ChatMessage toChatMessage(ExecutionMessage message) {
-        if (message instanceof ExecutionMessage.SystemExecutionMessage systemMessage) {
-            return SystemMessage.from(systemMessage.text());
-        }
-        if (message instanceof ExecutionMessage.UserExecutionMessage userMessage) {
-            return UserMessage.from(userMessage.text());
-        }
-        if (message instanceof ExecutionMessage.AiExecutionMessage aiMessage) {
-            return AiMessage.from(aiMessage.text());
-        }
-        if (message instanceof ExecutionMessage.ToolExecutionResultExecutionMessage toolMessage) {
-            return UserMessage.from(toolMessage.text());
-        }
-        throw new IllegalStateException("Unsupported execution message type: " + message.getClass().getSimpleName());
     }
 
     private ToolCall toToolCall(ToolExecutionRequest request) {
