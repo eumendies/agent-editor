@@ -18,3 +18,4 @@ logs/
 *.tar.gz
 *.7z
 .worktrees/
+AGENTS.md
