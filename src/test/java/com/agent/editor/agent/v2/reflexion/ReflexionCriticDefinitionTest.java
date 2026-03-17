@@ -4,19 +4,30 @@ import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
+import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.core.state.ExecutionMessage;
+import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
+import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ResponseFormatType;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ReflexionCriticDefinitionTest {
 
@@ -70,6 +81,70 @@ class ReflexionCriticDefinitionTest {
         assertThrows(IllegalArgumentException.class, () -> definition.parseCritique(rawCritique));
     }
 
+    @Test
+    void shouldIncludeExecutionMemoryMessagesWhenCallingCriticModel() {
+        RecordingChatModel chatModel = new RecordingChatModel("""
+                {"verdict":"PASS","feedback":"Looks good","reasoning":"All key requirements are satisfied"}
+                """);
+        ReflexionCriticDefinition definition = new ReflexionCriticDefinition(
+                chatModel,
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
+
+        definition.decide(new ExecutionContext(
+                new ExecutionRequest(
+                        "task-critic-2",
+                        "session-critic-2",
+                        AgentType.REFLEXION,
+                        new DocumentSnapshot("doc-1", "title", "Draft body"),
+                        "Review this draft and decide pass or revise",
+                        3
+                ),
+                new ExecutionState(
+                        1,
+                        "Draft body",
+                        new ChatTranscriptMemory(List.of(
+                                new ExecutionMessage.AiExecutionMessage("I'll inspect the evidence first."),
+                                new ExecutionMessage.ToolExecutionResultExecutionMessage("analyzeDocument => intro is too long")
+                        )),
+                        ExecutionStage.RUNNING,
+                        null
+                ),
+                java.util.List.of()
+        ));
+
+        assertTrue(chatModel.lastRequest.messages().stream()
+                .map(this::messageText)
+                .anyMatch(text -> text.contains("analyzeDocument => intro is too long")));
+    }
+
+    @Test
+    void shouldSendJsonSchemaResponseFormatToCriticModel() {
+        RecordingChatModel chatModel = new RecordingChatModel("""
+                {"verdict":"PASS","feedback":"Looks good","reasoning":"All key requirements are satisfied"}
+                """);
+        ReflexionCriticDefinition definition = new ReflexionCriticDefinition(
+                chatModel,
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
+
+        definition.decide(context());
+
+        assertNotNull(chatModel.lastRequest.responseFormat());
+        assertEquals(ResponseFormatType.JSON, chatModel.lastRequest.responseFormat().type());
+        assertNotNull(chatModel.lastRequest.responseFormat().jsonSchema());
+        assertEquals("reflexion_critique", chatModel.lastRequest.responseFormat().jsonSchema().name());
+        JsonObjectSchema rootSchema = assertInstanceOf(
+                JsonObjectSchema.class,
+                chatModel.lastRequest.responseFormat().jsonSchema().rootElement()
+        );
+        assertEquals(List.of("verdict", "feedback", "reasoning"), rootSchema.required());
+        assertTrue(rootSchema.properties().containsKey("verdict"));
+        assertTrue(rootSchema.properties().containsKey("feedback"));
+        assertTrue(rootSchema.properties().containsKey("reasoning"));
+        assertEquals(Boolean.FALSE, rootSchema.additionalProperties());
+    }
+
     private ExecutionContext context() {
         return new ExecutionContext(
                 new ExecutionRequest(
@@ -85,9 +160,20 @@ class ReflexionCriticDefinitionTest {
         );
     }
 
+    private String messageText(ChatMessage message) {
+        if (message instanceof UserMessage userMessage) {
+            return userMessage.singleText();
+        }
+        if (message instanceof AiMessage aiMessage) {
+            return aiMessage.text();
+        }
+        return message.toString();
+    }
+
     private static final class RecordingChatModel implements ChatModel {
 
         private final ChatResponse response;
+        private ChatRequest lastRequest;
 
         private RecordingChatModel(String responseText) {
             this.response = ChatResponse.builder()
@@ -97,6 +183,7 @@ class ReflexionCriticDefinitionTest {
 
         @Override
         public ChatResponse chat(ChatRequest request) {
+            this.lastRequest = request;
             return response;
         }
     }

@@ -17,6 +17,7 @@ import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.trace.TraceCategory;
 import com.agent.editor.agent.v2.trace.TraceCollector;
 import com.agent.editor.agent.v2.trace.TraceRecord;
+import dev.langchain4j.service.AiServices;
 
 import java.time.Instant;
 import java.util.List;
@@ -48,6 +49,7 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
 
     @Override
     public TaskResult execute(TaskRequest request) {
+        // actor state 跨轮复用，保存上一轮真正沉淀下来的编辑上下文与 critique 历史。
         ExecutionState actorState = new ExecutionState(0, request.document().content());
         String currentContent = request.document().content();
 
@@ -87,6 +89,7 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
             ExecutionResult criticResult = runtime.run(
                     criticDefinition,
                     criticRequest(request, currentContent, actorResult.finalMessage()),
+                    // critic 每轮 fresh，避免把上轮批评过程本身继续带进下一轮判定。
                     new ExecutionState(0, currentContent)
             );
             ReflexionCritique critique = criticDefinition.parseCritique(criticResult.finalMessage());
@@ -115,6 +118,7 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
             }
 
             actorState = actorState
+                    // critique 作为新的 user message 回灌给 actor，下一轮由 actor 自己决定如何修正。
                     .appendMemory(new ExecutionMessage.UserExecutionMessage(formatCritique(round, critique)))
                     .withStage(ExecutionStage.RUNNING);
             traceCollector.collect(traceRecord(
@@ -155,6 +159,7 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
                 request.sessionId(),
                 AgentType.REFLEXION,
                 new DocumentSnapshot(request.document().documentId(), request.document().title(), currentContent),
+                // critic 看的是“原始目标 + actor 本轮摘要”，而不是直接继承 actor 的完整指令链。
                 """
                 Original instruction:
                 %s

@@ -12,6 +12,7 @@ public class ReflexionAgentConfig {
 
     @Bean
     public ReflexionActorDefinition reflexionActorDefinition(ChatModel chatModel, TraceCollector traceCollector) {
+        // actor 与 critic 独立装配，避免复用 supervisor reviewer 这类语义上不同的角色定义。
         return new ReflexionActorDefinition(chatModel, traceCollector);
     }
 

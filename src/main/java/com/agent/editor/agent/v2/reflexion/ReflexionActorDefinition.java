@@ -8,6 +8,7 @@ import dev.langchain4j.model.chat.ChatModel;
 public class ReflexionActorDefinition extends ReactAgentDefinition {
 
     public ReflexionActorDefinition(ChatModel chatModel, TraceCollector traceCollector) {
+        // actor 直接复用 ReAct 的工具调用与执行能力，只把对外 agent type 切到 REFLEXION。
         super(chatModel, traceCollector);
     }
 
