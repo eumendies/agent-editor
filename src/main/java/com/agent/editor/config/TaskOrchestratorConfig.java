@@ -9,6 +9,9 @@ import com.agent.editor.agent.v2.event.WebSocketEventPublisher;
 import com.agent.editor.agent.v2.planning.PlanningAgentDefinition;
 import com.agent.editor.agent.v2.planning.PlanningThenExecutionOrchestrator;
 import com.agent.editor.agent.v2.react.ReactAgentDefinition;
+import com.agent.editor.agent.v2.reflexion.ReflexionActorDefinition;
+import com.agent.editor.agent.v2.reflexion.ReflexionCriticDefinition;
+import com.agent.editor.agent.v2.reflexion.ReflexionOrchestrator;
 import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
 import com.agent.editor.agent.v2.supervisor.SupervisorOrchestrator;
 import com.agent.editor.agent.v2.supervisor.WorkerRegistry;
@@ -52,6 +55,8 @@ public class TaskOrchestratorConfig {
                                              WorkerRegistry workerRegistry,
                                              PlanningAgentDefinition planningAgentDefinition,
                                              ReactAgentDefinition reactAgentDefinition,
+                                             ReflexionActorDefinition reflexionActorDefinition,
+                                             ReflexionCriticDefinition reflexionCriticDefinition,
                                              SupervisorAgentDefinition supervisorAgentDefinition,
                                              TraceCollector traceCollector) {
         TaskOrchestrator reactOrchestrator = new SingleAgentOrchestrator(executionRuntime, reactAgentDefinition);
@@ -69,11 +74,19 @@ public class TaskOrchestratorConfig {
                 eventPublisher,
                 traceCollector
         );
+        TaskOrchestrator reflexionOrchestrator = new ReflexionOrchestrator(
+                executionRuntime,
+                reflexionActorDefinition,
+                reflexionCriticDefinition,
+                eventPublisher,
+                traceCollector
+        );
 
         return new RoutingTaskOrchestrator(Map.of(
                 AgentType.REACT, reactOrchestrator,
                 AgentType.PLANNING, planningOrchestrator,
-                AgentType.SUPERVISOR, supervisorOrchestrator
+                AgentType.SUPERVISOR, supervisorOrchestrator,
+                AgentType.REFLEXION, reflexionOrchestrator
         ));
     }
 }

@@ -70,5 +70,6 @@ class AgentControllerTest {
 
         assertEquals(200, result.getStatusCode().value());
         assertTrue(result.getBody().contains(AgentMode.SUPERVISOR.name()));
+        assertTrue(result.getBody().contains(AgentMode.REFLEXION.name()));
     }
 }

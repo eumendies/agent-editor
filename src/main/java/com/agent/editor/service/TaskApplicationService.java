@@ -102,6 +102,9 @@ public class TaskApplicationService {
         if (mode == AgentMode.SUPERVISOR) {
             return AgentType.SUPERVISOR;
         }
+        if (mode == AgentMode.REFLEXION) {
+            return AgentType.REFLEXION;
+        }
         return AgentType.REACT;
     }
 

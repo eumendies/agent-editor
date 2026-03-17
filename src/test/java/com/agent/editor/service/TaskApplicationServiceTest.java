@@ -74,6 +74,30 @@ class TaskApplicationServiceTest {
     }
 
     @Test
+    void shouldMapReflexionModeToReflexionAgentType() {
+        DocumentService documentService = new DocumentService();
+        TaskQueryService queryService = new TaskQueryService();
+        DiffService diffService = new DiffService();
+        CapturingTaskOrchestrator orchestrator = new CapturingTaskOrchestrator();
+        TaskApplicationService service = new TaskApplicationService(
+                documentService,
+                queryService,
+                diffService,
+                orchestrator,
+                mock(WebSocketService.class)
+        );
+
+        AgentTaskRequest request = new AgentTaskRequest();
+        request.setDocumentId("doc-001");
+        request.setInstruction("revise with critique");
+        request.setMode(AgentMode.REFLEXION);
+
+        service.execute(request);
+
+        assertEquals(AgentType.REFLEXION, orchestrator.lastRequest.agentType());
+    }
+
+    @Test
     void shouldBindWebSocketSessionToTaskBeforeExecutionWhenSessionIdProvided() {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();

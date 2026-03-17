@@ -18,6 +18,7 @@ class DemoPageTemplateTest {
         assertTrue(template.contains("Run ReAct"));
         assertTrue(template.contains("Run Planning"));
         assertTrue(template.contains("Run Supervisor"));
+        assertTrue(template.contains("Run Reflexion"));
         assertTrue(template.contains("Trace Inspector"));
         assertTrue(template.contains("tracePanel"));
     }

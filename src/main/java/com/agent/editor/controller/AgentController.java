@@ -73,11 +73,9 @@ public class AgentController {
     @GetMapping("/modes")
     @Operation(summary = "Get supported agent modes", description = "Get list of supported agent modes")
     public ResponseEntity<List<String>> getSupportedModes() {
-        return ResponseEntity.ok(List.of(
-            AgentMode.REACT.name(),
-            AgentMode.PLANNING.name(),
-            AgentMode.SUPERVISOR.name()
-        ));
+        return ResponseEntity.ok(List.of(AgentMode.values()).stream()
+                .map(Enum::name)
+                .toList());
     }
 
     @PostMapping("/connect")

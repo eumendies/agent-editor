@@ -1,6 +1,8 @@
 package com.agent.editor.config;
 
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
+import com.agent.editor.agent.v2.reflexion.ReflexionActorDefinition;
+import com.agent.editor.agent.v2.reflexion.ReflexionCriticDefinition;
 import com.agent.editor.agent.v2.supervisor.HybridSupervisorAgentDefinition;
 import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
 import com.agent.editor.agent.v2.supervisor.WorkerDefinition;
@@ -30,6 +32,7 @@ class AgentV2ConfigurationSplitTest {
                     ReactAgentConfig.class,
                     PlanningAgentConfig.class,
                     SupervisorAgentConfig.class,
+                    ReflexionAgentConfig.class,
                     TaskOrchestratorConfig.class,
                     StubDependencyConfig.class
             );
@@ -43,6 +46,8 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(WorkerRegistry.class);
             assertThat(context).hasSingleBean(ExecutionRuntime.class);
             assertThat(context).hasSingleBean(TaskOrchestrator.class);
+            assertThat(context).hasSingleBean(ReflexionActorDefinition.class);
+            assertThat(context).hasSingleBean(ReflexionCriticDefinition.class);
             assertThat(context.containsBean("agentV2Config")).isFalse();
         });
     }
@@ -72,6 +77,17 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context.getBean(SupervisorAgentDefinition.class))
                     .isInstanceOf(HybridSupervisorAgentDefinition.class);
             assertThat(context).hasSingleBean(TaskOrchestrator.class);
+        });
+    }
+
+    @Test
+    void shouldWireReflexionBeansWithoutReusingSupervisorReviewer() {
+        contextRunner.run(context -> {
+            assertThat(context).hasSingleBean(ReflexionActorDefinition.class);
+            assertThat(context).hasSingleBean(ReflexionCriticDefinition.class);
+            assertThat(context.getBean(WorkerRegistry.class).all())
+                    .extracting(WorkerDefinition::workerId)
+                    .doesNotContain("reflexion-critic");
         });
     }
 

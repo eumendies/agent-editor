@@ -15,6 +15,7 @@
             --react: #ff9f1c;
             --planning: #2ec4b6;
             --supervisor: #e71d36;
+            --reflexion: #8b5cf6;
             --accent: #7cc6fe;
             --success: #4ade80;
             --danger: #ff6b6b;
@@ -189,6 +190,10 @@
             border-color: rgba(231, 29, 54, 0.65);
         }
 
+        .mode-card.reflexion.active {
+            border-color: rgba(139, 92, 246, 0.65);
+        }
+
         .mode-card-header {
             display: flex;
             justify-content: space-between;
@@ -222,6 +227,11 @@
         .mode-card.supervisor .mode-tag {
             background: rgba(231, 29, 54, 0.16);
             color: #ff92a1;
+        }
+
+        .mode-card.reflexion .mode-tag {
+            background: rgba(139, 92, 246, 0.16);
+            color: #d6bcfa;
         }
 
         .mode-copy {
@@ -308,7 +318,7 @@
 
         .run-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 10px;
         }
 
@@ -345,6 +355,11 @@
         .run-btn.supervisor {
             background: linear-gradient(135deg, #ff96a5, #e71d36);
             color: #2f0610;
+        }
+
+        .run-btn.reflexion {
+            background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
+            color: #1f1238;
         }
 
         .secondary-btn {
@@ -731,6 +746,7 @@
                 <div class="hero-chip">Single Agent: 即时决策与工具调用</div>
                 <div class="hero-chip">Planning: 先拆计划，再逐步执行</div>
                 <div class="hero-chip">Supervisor: 串行调度异构 worker 并最终汇总</div>
+                <div class="hero-chip">Reflexion: actor 与 critic 交替迭代直到通过</div>
             </div>
         </div>
 
@@ -765,6 +781,13 @@
                     </div>
                     <div class="mode-copy">由 supervisor 串行调度 analyzer、editor、reviewer，并统一收口最终结果。</div>
                 </div>
+                <div class="mode-card reflexion" data-mode-card="REFLEXION">
+                    <div class="mode-card-header">
+                        <span class="mode-name">Reflexion</span>
+                        <span class="mode-tag">Actor Critic</span>
+                    </div>
+                    <div class="mode-copy">actor 负责编辑，critic 负责审视并给出 revise/pass 反馈，直到达到通过条件。</div>
+                </div>
             </div>
         </aside>
     </section>
@@ -795,6 +818,7 @@
                         <option value="REACT">REACT</option>
                         <option value="PLANNING">PLANNING</option>
                         <option value="SUPERVISOR">SUPERVISOR</option>
+                        <option value="REFLEXION">REFLEXION</option>
                     </select>
                 </div>
 
@@ -806,6 +830,7 @@
                     <button class="run-btn react" id="reactBtn" onclick="runMode('REACT')">Run ReAct</button>
                     <button class="run-btn planning" id="planningBtn" onclick="runMode('PLANNING')">Run Planning</button>
                     <button class="run-btn supervisor" id="supervisorBtn" onclick="runMode('SUPERVISOR')">Run Supervisor</button>
+                    <button class="run-btn reflexion" id="reflexionBtn" onclick="runMode('REFLEXION')">Run Reflexion</button>
                 </div>
 
                 <button class="secondary-btn" onclick="clearTimeline()">Clear Timeline</button>
@@ -950,6 +975,13 @@
             signal: "重点观察 worker dispatch、worker complete 和最终 supervisor 收口。",
             prompt: "适合演示多 agent 编排，而不是只看单一工具链。",
             headline: "Supervisor 时间线最适合讲解角色分工和汇总过程，而不是单一步骤的快慢。"
+        },
+        REFLEXION: {
+            summary: "Reflexion 会让 actor 先编辑，再让 critic 判断 pass 或 revise，把反馈回灌给下一轮 actor。",
+            execution: "actor 编辑，critic 审视，直到 pass 或达到轮数上限。",
+            signal: "重点观察 revise 与 pass 两个分叉，以及 critic 的反馈如何进入下一轮。",
+            prompt: "适合演示自反馈迭代，而不是纯粹的工具链或 worker 调度。",
+            headline: "Reflexion 时间线强调 actor 与 critic 的交替闭环，适合展示逐轮修正。"
         }
     };
 
@@ -969,7 +1001,7 @@
     }
 
     function setRunningState(running) {
-        ["reactBtn", "planningBtn", "supervisorBtn"].forEach(id => {
+        ["reactBtn", "planningBtn", "supervisorBtn", "reflexionBtn"].forEach(id => {
             document.getElementById(id).disabled = running;
         });
     }
