@@ -31,6 +31,7 @@ public class OpenApiConfig {
                             ## Features
                             - **ReAct Agent**: Reasoning + Acting pattern for document editing
                             - **Planning Agent**: Structured planning pattern for complex editing tasks
+                            - **Knowledge Base**: Personal knowledge upload endpoints for RAG workflows
                             - **Real-time Updates**: WebSocket support for live progress updates
                             - **Diff Comparison**: Visual diff between original and modified content
                             
