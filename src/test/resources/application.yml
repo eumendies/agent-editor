@@ -1,0 +1,13 @@
+milvus:
+  enabled: false
+
+langchain4j:
+  open-ai:
+    chat-model:
+      api-key: test-chat-key
+      model-name: test-chat-model
+      base-url: http://localhost
+    embedding-model:
+      api-key: test-embedding-key
+      model-name: test-embedding-model
+      base-url: http://localhost

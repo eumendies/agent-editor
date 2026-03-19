@@ -21,14 +21,16 @@ import static org.mockito.Mockito.when;
 
 class MilvusConfigTest {
 
-    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+    private final ApplicationContextRunner baseContextRunner = new ApplicationContextRunner()
             .withPropertyValues(
                     "milvus.host=localhost",
                     "milvus.port=19530",
                     "milvus.collection-name=knowledge_chunks",
                     "milvus.embedding-dimension=1024"
             )
-            .withUserConfiguration(MilvusConfig.class, TestConfig.class)
+            .withUserConfiguration(MilvusConfig.class, TestConfig.class);
+
+    private final ApplicationContextRunner enabledContextRunner = baseContextRunner
             .withBean(MilvusClientV2.class, () -> {
                 MilvusClientV2 milvusClient = mock(MilvusClientV2.class);
                 when(milvusClient.hasCollection(any())).thenReturn(true);
@@ -37,10 +39,18 @@ class MilvusConfigTest {
 
     @Test
     void shouldRegisterMilvusRepositoryAsPrimaryKnowledgeChunkRepository() {
-        contextRunner.run(context -> {
+        enabledContextRunner.run(context -> {
             assertThat(context).hasSingleBean(KnowledgeChunkRepository.class);
             assertThat(context.getBean(KnowledgeChunkRepository.class))
                     .isInstanceOf(MilvusKnowledgeChunkRepository.class);
+        });
+    }
+
+    @Test
+    void shouldNotCreateMilvusBeansWhenDisabled() {
+        baseContextRunner.withPropertyValues("milvus.enabled=false").run(context -> {
+            assertThat(context).doesNotHaveBean(MilvusClientV2.class);
+            assertThat(context).doesNotHaveBean(MilvusKnowledgeChunkRepository.class);
         });
     }
 
