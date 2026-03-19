@@ -136,7 +136,7 @@ public class ReactAgentDefinition implements AgentDefinition {
     }
 
     private ToolCall toToolCall(ToolExecutionRequest request) {
-        return new ToolCall(request.name(), request.arguments());
+        return new ToolCall(request.id(), request.name(), request.arguments());
     }
 
     private TraceRecord traceRecord(ExecutionContext context,

@@ -6,7 +6,7 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
-import com.agent.editor.agent.v2.core.state.ExecutionMessage;
+import com.agent.editor.agent.v2.core.state.ChatMessage;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
@@ -16,6 +16,7 @@ import com.agent.editor.agent.v2.trace.TraceStore;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -108,9 +109,14 @@ class ReactAgentDefinitionTest {
                         1,
                         "revised body",
                         new ChatTranscriptMemory(java.util.List.of(
-                                new ExecutionMessage.UserExecutionMessage("Plan step 1: inspect headings"),
-                                new ExecutionMessage.ToolExecutionResultExecutionMessage("Search for 'heading': Found"),
-                                new ExecutionMessage.AiExecutionMessage("I found the heading block.")
+                                new ChatMessage.UserChatMessage("Plan step 1: inspect headings"),
+                                new ChatMessage.ToolExecutionResultChatMessage(
+                                        "tool-call-1",
+                                        "searchContent",
+                                        "{\"query\":\"heading\"}",
+                                        "Search for 'heading': Found"
+                                ),
+                                new ChatMessage.AiChatMessage("I found the heading block.")
                         )),
                         ExecutionStage.RUNNING,
                         null
@@ -123,8 +129,13 @@ class ReactAgentDefinitionTest {
         assertEquals(5, chatModel.lastRequest.messages().size());
         UserMessage transcriptStep = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
         assertTrue(transcriptStep.singleText().contains("inspect headings"));
-        UserMessage transcriptToolResult = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(2));
-        assertTrue(transcriptToolResult.singleText().contains("Search for 'heading': Found"));
+        ToolExecutionResultMessage transcriptToolResult = assertInstanceOf(
+                ToolExecutionResultMessage.class,
+                chatModel.lastRequest.messages().get(2)
+        );
+        assertEquals("tool-call-1", transcriptToolResult.id());
+        assertEquals("searchContent", transcriptToolResult.toolName());
+        assertTrue(transcriptToolResult.text().contains("Search for 'heading': Found"));
         assertInstanceOf(AiMessage.class, chatModel.lastRequest.messages().get(3));
         UserMessage currentTurn = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(4));
         assertTrue(currentTurn.singleText().contains("revised body"));

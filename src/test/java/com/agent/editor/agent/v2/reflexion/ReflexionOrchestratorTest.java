@@ -9,8 +9,7 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
-import com.agent.editor.agent.v2.core.state.ExecutionMessage;
-import com.agent.editor.agent.v2.core.state.ExecutionStage;
+import com.agent.editor.agent.v2.core.state.ChatMessage;
 import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
@@ -98,7 +97,7 @@ class ReflexionOrchestratorTest {
         assertEquals(2, runtime.criticStates.size());
         ChatTranscriptMemory secondActorMemory = (ChatTranscriptMemory) runtime.actorStates.get(1).memory();
         assertTrue(secondActorMemory.messages().stream().anyMatch(message ->
-                message instanceof ExecutionMessage.UserExecutionMessage userMessage
+                message instanceof ChatMessage.UserChatMessage userMessage
                         && userMessage.text().contains("Tighten the introduction")
         ));
         assertEquals(0, runtime.criticStates.get(0).iteration());
@@ -203,8 +202,8 @@ class ReflexionOrchestratorTest {
         public Decision decide(ExecutionContext context) {
             ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) context.state().memory();
             long critiqueCount = transcriptMemory.messages().stream()
-                    .filter(ExecutionMessage.UserExecutionMessage.class::isInstance)
-                    .map(ExecutionMessage.UserExecutionMessage.class::cast)
+                    .filter(ChatMessage.UserChatMessage.class::isInstance)
+                    .map(ChatMessage.UserChatMessage.class::cast)
                     .filter(message -> message.text().startsWith("Critique round"))
                     .count();
             long round = critiqueCount + 1;

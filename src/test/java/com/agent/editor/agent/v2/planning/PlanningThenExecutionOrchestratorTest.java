@@ -3,6 +3,7 @@ package com.agent.editor.agent.v2.planning;
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
+import com.agent.editor.agent.v2.core.state.*;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
@@ -10,12 +11,7 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
-import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
-import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
-import com.agent.editor.agent.v2.core.state.ExecutionMessage;
-import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.core.state.ExecutionState;
-import com.agent.editor.agent.v2.core.state.TaskStatus;
+import com.agent.editor.agent.v2.core.state.ChatMessage;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
@@ -105,7 +101,7 @@ class PlanningThenExecutionOrchestratorTest {
         assertEquals("body -> Add outline", runtime.states().get(1).currentContent());
         ChatTranscriptMemory secondStepMemory = (ChatTranscriptMemory) runtime.states().get(1).memory();
         assertTrue(secondStepMemory.messages().stream().anyMatch(message ->
-                message instanceof ExecutionMessage.UserExecutionMessage userMessage
+                message instanceof ChatMessage.UserChatMessage userMessage
                         && userMessage.text().contains("completed Add outline")
         ));
     }
@@ -161,7 +157,7 @@ class PlanningThenExecutionOrchestratorTest {
                             initialState.iteration() + 1,
                             updatedContent,
                             new ChatTranscriptMemory(List.of(
-                                    new ExecutionMessage.UserExecutionMessage("completed " + request.instruction())
+                                    new ChatMessage.UserChatMessage("completed " + request.instruction())
                             )),
                             ExecutionStage.COMPLETED,
                             null

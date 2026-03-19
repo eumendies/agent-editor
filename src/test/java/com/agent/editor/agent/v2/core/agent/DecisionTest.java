@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DecisionTest {
 
@@ -16,6 +17,7 @@ class DecisionTest {
         Decision.ToolCalls decision = new Decision.ToolCalls(List.of(call), "need to edit");
 
         assertEquals(1, decision.calls().size());
+        assertNotNull(decision.calls().get(0).id());
         assertEquals("editDocument", decision.calls().get(0).name());
         assertEquals("need to edit", decision.reasoning());
     }

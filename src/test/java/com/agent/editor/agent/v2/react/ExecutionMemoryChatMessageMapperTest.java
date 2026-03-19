@@ -1,11 +1,13 @@
 package com.agent.editor.agent.v2.react;
 
+import com.agent.editor.agent.v2.core.state.ChatMessage;
 import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.ExecutionMemory;
-import com.agent.editor.agent.v2.core.state.ExecutionMessage;
+import com.agent.editor.agent.v2.core.agent.ToolCall;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import org.junit.jupiter.api.Test;
 
@@ -22,18 +24,45 @@ class ExecutionMemoryChatMessageMapperTest {
         ExecutionMemoryChatMessageMapper mapper = new ExecutionMemoryChatMessageMapper();
 
         var messages = mapper.toChatMessages(new ChatTranscriptMemory(List.of(
-                new ExecutionMessage.SystemExecutionMessage("system"),
-                new ExecutionMessage.UserExecutionMessage("user"),
-                new ExecutionMessage.ToolExecutionResultExecutionMessage("tool"),
-                new ExecutionMessage.AiExecutionMessage("assistant")
+                new ChatMessage.SystemChatMessage("system"),
+                new ChatMessage.UserChatMessage("user"),
+                new ChatMessage.ToolExecutionResultChatMessage(
+                        "tool-call-1",
+                        "searchContent",
+                        "{\"query\":\"tool\"}",
+                        "tool"
+                ),
+                new ChatMessage.AiChatMessage("assistant")
         )));
 
         assertEquals(4, messages.size());
         assertInstanceOf(SystemMessage.class, messages.get(0));
         assertInstanceOf(UserMessage.class, messages.get(1));
-        assertInstanceOf(UserMessage.class, messages.get(2));
+        ToolExecutionResultMessage toolMessage = assertInstanceOf(ToolExecutionResultMessage.class, messages.get(2));
         assertInstanceOf(AiMessage.class, messages.get(3));
-        assertTrue(((UserMessage) messages.get(2)).singleText().contains("tool"));
+        assertEquals("tool-call-1", toolMessage.id());
+        assertEquals("searchContent", toolMessage.toolName());
+        assertEquals("tool", toolMessage.text());
+    }
+
+    @Test
+    void shouldConvertAiToolCallExecutionMessageToAiMessageWithToolRequests() {
+        ExecutionMemoryChatMessageMapper mapper = new ExecutionMemoryChatMessageMapper();
+
+        var messages = mapper.toChatMessages(new ChatTranscriptMemory(List.of(
+                new ChatMessage.AiToolCallChatMessage(
+                        "need tool",
+                        List.of(new ToolCall("tool-call-1", "searchContent", "{\"query\":\"heading\"}"))
+                )
+        )));
+
+        AiMessage aiMessage = assertInstanceOf(AiMessage.class, messages.get(0));
+        assertTrue(aiMessage.hasToolExecutionRequests());
+        assertEquals("need tool", aiMessage.text());
+        assertEquals(1, aiMessage.toolExecutionRequests().size());
+        assertEquals("tool-call-1", aiMessage.toolExecutionRequests().get(0).id());
+        assertEquals("searchContent", aiMessage.toolExecutionRequests().get(0).name());
+        assertEquals("{\"query\":\"heading\"}", aiMessage.toolExecutionRequests().get(0).arguments());
     }
 
     @Test

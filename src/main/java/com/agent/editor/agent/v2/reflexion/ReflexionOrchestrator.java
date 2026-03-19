@@ -5,11 +5,8 @@ import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
-import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
-import com.agent.editor.agent.v2.core.state.ExecutionMessage;
-import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.core.state.ExecutionState;
-import com.agent.editor.agent.v2.core.state.TaskStatus;
+import com.agent.editor.agent.v2.core.state.*;
+import com.agent.editor.agent.v2.core.state.ChatMessage;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
@@ -17,7 +14,6 @@ import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.trace.TraceCategory;
 import com.agent.editor.agent.v2.trace.TraceCollector;
 import com.agent.editor.agent.v2.trace.TraceRecord;
-import dev.langchain4j.service.AiServices;
 
 import java.time.Instant;
 import java.util.List;
@@ -119,7 +115,7 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
 
             actorState = actorState
                     // critique 作为新的 user message 回灌给 actor，下一轮由 actor 自己决定如何修正。
-                    .appendMemory(new ExecutionMessage.UserExecutionMessage(formatCritique(round, critique)))
+                    .appendMemory(new ChatMessage.UserChatMessage(formatCritique(round, critique)))
                     .withStage(ExecutionStage.RUNNING);
             traceCollector.collect(traceRecord(
                     request,

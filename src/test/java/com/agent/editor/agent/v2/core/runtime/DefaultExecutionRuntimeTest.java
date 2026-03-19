@@ -4,11 +4,8 @@ import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
-import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
-import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
-import com.agent.editor.agent.v2.core.state.ExecutionMessage;
-import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.core.state.ExecutionState;
+import com.agent.editor.agent.v2.core.state.*;
+import com.agent.editor.agent.v2.core.state.ChatMessage;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.trace.TraceCategory;
@@ -213,8 +210,8 @@ class DefaultExecutionRuntimeTest {
                 0,
                 "body",
                 new ChatTranscriptMemory(List.of(
-                        new ExecutionMessage.UserExecutionMessage("plan step 1"),
-                        new ExecutionMessage.AiExecutionMessage("thinking")
+                        new ChatMessage.UserChatMessage("plan step 1"),
+                        new ChatMessage.AiChatMessage("thinking")
                 )),
                 ExecutionStage.RUNNING,
                 null
@@ -224,15 +221,26 @@ class DefaultExecutionRuntimeTest {
 
         ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) result.finalState().memory();
         assertTrue(transcriptMemory.messages().stream().anyMatch(message ->
-                message instanceof ExecutionMessage.UserExecutionMessage userMessage
+                message instanceof ChatMessage.UserChatMessage userMessage
                         && userMessage.text().contains("plan step 1")
         ));
         assertTrue(transcriptMemory.messages().stream().anyMatch(message ->
-                message instanceof ExecutionMessage.AiExecutionMessage aiMessage
+                message instanceof ChatMessage.AiChatMessage aiMessage
                         && aiMessage.text().contains("thinking")
         ));
+        ChatMessage toolInteractionMessage = transcriptMemory.messages().get(2);
+        assertTrue(toolInteractionMessage instanceof ChatMessage.AiToolCallChatMessage);
+        ChatMessage.AiToolCallChatMessage toolCallMessage =
+                (ChatMessage.AiToolCallChatMessage) toolInteractionMessage;
+        assertEquals("need tool", toolCallMessage.text());
+        assertEquals(1, toolCallMessage.toolCalls().size());
+        assertEquals("appendText", toolCallMessage.toolCalls().get(0).name());
+        assertEquals("{\"suffix\":\" world\"}", toolCallMessage.toolCalls().get(0).arguments());
         assertTrue(transcriptMemory.messages().stream().anyMatch(message ->
-                message instanceof ExecutionMessage.ToolExecutionResultExecutionMessage toolMessage
+                message instanceof ChatMessage.ToolExecutionResultChatMessage toolMessage
+                        && toolMessage.id() != null
+                        && "appendText".equals(toolMessage.name())
+                        && "{\"suffix\":\" world\"}".equals(toolMessage.argument())
                         && toolMessage.text().contains("hello world")
         ));
     }

@@ -3,6 +3,7 @@ package com.agent.editor.agent.v2.supervisor;
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
+import com.agent.editor.agent.v2.core.state.*;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
@@ -10,12 +11,7 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
-import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
-import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
-import com.agent.editor.agent.v2.core.state.ExecutionMessage;
-import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.core.state.ExecutionState;
-import com.agent.editor.agent.v2.core.state.TaskStatus;
+import com.agent.editor.agent.v2.core.state.ChatMessage;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
@@ -290,7 +286,12 @@ class SupervisorOrchestratorTest {
                             initialState.iteration() + 1,
                             updatedContent,
                             new ChatTranscriptMemory(List.of(
-                                    new ExecutionMessage.ToolExecutionResultExecutionMessage(marker + " finished")
+                                    new ChatMessage.ToolExecutionResultChatMessage(
+                                            marker + "-tool-call",
+                                            "workerTool",
+                                            null,
+                                            marker + " finished"
+                                    )
                             )),
                             ExecutionStage.COMPLETED,
                             null

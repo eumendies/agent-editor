@@ -4,14 +4,10 @@ import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
-import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
-import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
-import com.agent.editor.agent.v2.core.state.ExecutionMessage;
-import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.core.state.ExecutionState;
+import com.agent.editor.agent.v2.core.state.*;
+import com.agent.editor.agent.v2.core.state.ChatMessage;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
-import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -104,8 +100,13 @@ class ReflexionCriticDefinitionTest {
                         1,
                         "Draft body",
                         new ChatTranscriptMemory(List.of(
-                                new ExecutionMessage.AiExecutionMessage("I'll inspect the evidence first."),
-                                new ExecutionMessage.ToolExecutionResultExecutionMessage("analyzeDocument => intro is too long")
+                                new ChatMessage.AiChatMessage("I'll inspect the evidence first."),
+                                new ChatMessage.ToolExecutionResultChatMessage(
+                                        "tool-call-1",
+                                        "analyzeDocument",
+                                        "{}",
+                                        "analyzeDocument => intro is too long"
+                                )
                         )),
                         ExecutionStage.RUNNING,
                         null
@@ -160,7 +161,7 @@ class ReflexionCriticDefinitionTest {
         );
     }
 
-    private String messageText(ChatMessage message) {
+    private String messageText(dev.langchain4j.data.message.ChatMessage message) {
         if (message instanceof UserMessage userMessage) {
             return userMessage.singleText();
         }

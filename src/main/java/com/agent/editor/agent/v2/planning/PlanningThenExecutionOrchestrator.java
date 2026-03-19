@@ -10,7 +10,7 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
-import com.agent.editor.agent.v2.core.state.ExecutionMessage;
+import com.agent.editor.agent.v2.core.state.ChatMessage;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
@@ -128,8 +128,8 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
             );
         }
 
-        ArrayList<ExecutionMessage> messages = new ArrayList<>(transcriptMemory.messages());
-        messages.add(new ExecutionMessage.UserExecutionMessage("Plan step %d: %s".formatted(step.order(), step.instruction())));
+        ArrayList<ChatMessage> messages = new ArrayList<>(transcriptMemory.messages());
+        messages.add(new ChatMessage.UserChatMessage("Plan step %d: %s".formatted(step.order(), step.instruction())));
         return new ExecutionState(
                 state.iteration(),
                 state.currentContent(),

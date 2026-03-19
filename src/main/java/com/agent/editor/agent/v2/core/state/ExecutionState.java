@@ -4,6 +4,7 @@ import com.agent.editor.agent.v2.tool.ToolResult;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 public record ExecutionState(
         int iteration,
@@ -29,8 +30,13 @@ public record ExecutionState(
 
     public ExecutionState(int iteration, boolean completed, String currentContent, List<ToolResult> toolResults) {
         this(iteration, currentContent, new ChatTranscriptMemory(toolResults.stream()
-                .map(result -> new ExecutionMessage.ToolExecutionResultExecutionMessage(result.message()))
-                .map(ExecutionMessage.class::cast)
+                .map(result -> new ChatMessage.ToolExecutionResultChatMessage(
+                        UUID.randomUUID().toString(),
+                        "tool",
+                        null,
+                        result.message()
+                ))
+                .map(ChatMessage.class::cast)
                 .toList()), completed ? ExecutionStage.COMPLETED : ExecutionStage.RUNNING, null);
     }
 
@@ -59,11 +65,11 @@ public record ExecutionState(
         return new ExecutionState(iteration, currentContent, memory, ExecutionStage.COMPLETED, pendingReason);
     }
 
-    public ExecutionState appendMemory(ExecutionMessage message) {
+    public ExecutionState appendMemory(ChatMessage message) {
         return appendMemory(List.of(message));
     }
 
-    public ExecutionState appendMemory(List<ExecutionMessage> messages) {
+    public ExecutionState appendMemory(List<ChatMessage> messages) {
         if (messages.isEmpty()) {
             return this;
         }
@@ -71,7 +77,7 @@ public record ExecutionState(
             throw new IllegalStateException("Execution memory does not support transcript append: "
                     + memory.getClass().getSimpleName());
         }
-        List<ExecutionMessage> merged = new java.util.ArrayList<>(transcriptMemory.messages());
+        List<ChatMessage> merged = new java.util.ArrayList<>(transcriptMemory.messages());
         merged.addAll(messages);
         return new ExecutionState(iteration, currentContent, new ChatTranscriptMemory(merged), stage, pendingReason);
     }
@@ -85,8 +91,8 @@ public record ExecutionState(
             return List.of();
         }
         return transcriptMemory.messages().stream()
-                .filter(ExecutionMessage.ToolExecutionResultExecutionMessage.class::isInstance)
-                .map(ExecutionMessage.ToolExecutionResultExecutionMessage.class::cast)
+                .filter(ChatMessage.ToolExecutionResultChatMessage.class::isInstance)
+                .map(ChatMessage.ToolExecutionResultChatMessage.class::cast)
                 .map(message -> new ToolResult(message.text()))
                 .toList();
     }

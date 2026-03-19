@@ -1,10 +1,7 @@
 package com.agent.editor.agent.v2.core.runtime;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
-import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
-import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.core.state.ExecutionState;
-import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
+import com.agent.editor.agent.v2.core.state.*;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.RecordComponent;
@@ -71,7 +68,7 @@ class ExecutionRequestTest {
         ExecutionState state = new ExecutionState(1, "body");
 
         ExecutionState next = state
-                .appendMemory(new com.agent.editor.agent.v2.core.state.ExecutionMessage.UserExecutionMessage("step 1"))
+                .appendMemory(new ChatMessage.UserChatMessage("step 1"))
                 .advance("updated body");
 
         assertEquals(1, state.iteration());
@@ -81,7 +78,7 @@ class ExecutionRequestTest {
         assertEquals(ExecutionStage.RUNNING, next.stage());
         ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) next.memory();
         assertTrue(transcriptMemory.messages().stream().anyMatch(message ->
-                message instanceof com.agent.editor.agent.v2.core.state.ExecutionMessage.UserExecutionMessage userMessage
+                message instanceof ChatMessage.UserChatMessage userMessage
                         && userMessage.text().contains("step 1")
         ));
     }

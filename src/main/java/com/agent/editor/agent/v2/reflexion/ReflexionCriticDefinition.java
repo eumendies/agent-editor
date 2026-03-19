@@ -119,7 +119,11 @@ public class ReflexionCriticDefinition implements AgentDefinition {
         if (aiMessage.hasToolExecutionRequests()) {
             return new Decision.ToolCalls(
                     aiMessage.toolExecutionRequests().stream()
-                            .map(request -> new com.agent.editor.agent.v2.core.agent.ToolCall(request.name(), request.arguments()))
+                            .map(request -> new com.agent.editor.agent.v2.core.agent.ToolCall(
+                                    request.id(),
+                                    request.name(),
+                                    request.arguments()
+                            ))
                             .toList(),
                     aiMessage.text()
             );

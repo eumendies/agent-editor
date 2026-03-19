@@ -3,10 +3,10 @@ package com.agent.editor.agent.v2.core.runtime;
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
+import com.agent.editor.agent.v2.core.state.ChatMessage;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
-import com.agent.editor.agent.v2.core.state.ExecutionMessage;
 import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.trace.TraceCategory;
 import com.agent.editor.agent.v2.trace.TraceCollector;
@@ -86,10 +86,7 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
                         request.allowedTools()
                 );
                 state = state
-                        .appendMemory(outcome.toolResults().stream()
-                                .map(result -> new ExecutionMessage.ToolExecutionResultExecutionMessage(result.message()))
-                                .map(ExecutionMessage.class::cast)
-                                .toList())
+                        .appendMemory(buildToolInteractionMessages(toolCalls, outcome))
                         .advance(outcome.currentContent());
                 continue;
             }
@@ -113,7 +110,7 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
                                              String currentContent,
                                              List<ToolCall> calls,
                                              List<String> allowedTools) {
-        List<ToolResult> results = new ArrayList<>();
+        List<ToolExecutionRecord> executions = new ArrayList<>();
         String updatedContent = currentContent;
         for (ToolCall call : calls) {
             eventPublisher.publish(new ExecutionEvent(EventType.TOOL_CALLED, taskId, call.name()));
@@ -124,6 +121,7 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
                     "runtime.tool.invocation",
                     Map.of(
                             "toolName", call.name(),
+                            "toolCallId", call.id(),
                             "arguments", call.arguments(),
                             "currentContent", updatedContent
                     )
@@ -138,7 +136,7 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
 
             // 工具拿到的是“当前阶段文档内容”，多个 tool call 会在同一轮里顺序叠加修改结果。
             ToolResult result = handler.execute(new ToolInvocation(call.name(), call.arguments()), new ToolContext(taskId, updatedContent));
-            results.add(result);
+            executions.add(new ToolExecutionRecord(call, result));
             if (result.updatedContent() != null) {
                 updatedContent = result.updatedContent();
             }
@@ -149,16 +147,35 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
                     "runtime.tool.result",
                     Map.of(
                             "toolName", call.name(),
+                            "toolCallId", call.id(),
                             "message", result.message(),
                             "updatedContent", updatedContent
                     )
             ));
             eventPublisher.publish(new ExecutionEvent(EventType.TOOL_SUCCEEDED, taskId, result.message()));
         }
-        return new ToolExecutionOutcome(results, updatedContent);
+        return new ToolExecutionOutcome(executions, updatedContent);
     }
 
-    private record ToolExecutionOutcome(List<ToolResult> toolResults, String currentContent) {
+    private record ToolExecutionOutcome(List<ToolExecutionRecord> executions, String currentContent) {
+    }
+
+    private record ToolExecutionRecord(ToolCall call, ToolResult result) {
+    }
+
+    private List<ChatMessage> buildToolInteractionMessages(Decision.ToolCalls toolCalls, ToolExecutionOutcome outcome) {
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(new ChatMessage.AiToolCallChatMessage(toolCalls.reasoning(), toolCalls.calls()));
+        messages.addAll(outcome.executions().stream()
+                .map(execution -> new ChatMessage.ToolExecutionResultChatMessage(
+                        execution.call().id(),
+                        execution.call().name(),
+                        execution.call().arguments(),
+                        execution.result().message()
+                ))
+                .map(ChatMessage.class::cast)
+                .toList());
+        return messages;
     }
 
     private TraceRecord traceRecord(ExecutionRequest request,
