@@ -31,6 +31,11 @@ public class InMemoryKnowledgeStore implements KnowledgeChunkRepository {
         chunksByDocumentId.computeIfAbsent(chunk.documentId(), ignored -> new ArrayList<>()).add(chunk);
     }
 
+    @Override
+    public void saveAll(List<KnowledgeChunk> chunks) {
+        chunks.forEach(this::saveChunk);
+    }
+
     public List<KnowledgeChunk> getChunks(String documentId) {
         return chunksByDocumentId.getOrDefault(documentId, List.of());
     }
