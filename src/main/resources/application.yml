@@ -42,3 +42,9 @@ rag:
   ask-top-k: 5
   write-top-k: 8
   retrieve-top-k: 12
+
+milvus:
+  host: localhost
+  port: 19530
+  collection-name: knowledge_chunks
+  embedding-dimension: 1024
