@@ -11,6 +11,8 @@ import com.agent.editor.agent.v2.supervisor.WorkerRegistry;
 import com.agent.editor.agent.v2.trace.TraceCollector;
 import com.agent.editor.agent.v2.trace.TraceStore;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
+import com.agent.editor.model.RetrievedKnowledgeChunk;
+import com.agent.editor.service.KnowledgeRetrievalService;
 import com.agent.editor.service.TaskQueryService;
 import com.agent.editor.websocket.WebSocketService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,6 +24,7 @@ import org.springframework.context.annotation.Configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class AgentV2ConfigurationSplitTest {
 
@@ -88,6 +91,27 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context.getBean(WorkerRegistry.class).all())
                     .extracting(WorkerDefinition::workerId)
                     .doesNotContain("reflexion-critic");
+        });
+    }
+
+    @Test
+    void shouldRegisterRetrieveKnowledgeToolWhenRetrievalServiceExists() {
+        contextRunner.withBean(KnowledgeRetrievalService.class, () -> {
+            KnowledgeRetrievalService service = mock(KnowledgeRetrievalService.class);
+            when(service.retrieve("Spring", null, null))
+                    .thenReturn(java.util.List.of(new RetrievedKnowledgeChunk(
+                            "doc-1",
+                            "resume.md",
+                            0,
+                            "项目经历",
+                            "Spring Boot 项目经验",
+                            0.9
+                    )));
+            return service;
+        }).run(context -> {
+            ToolRegistry toolRegistry = context.getBean(ToolRegistry.class);
+
+            assertThat(toolRegistry.get("retrieveKnowledge")).isNotNull();
         });
     }
 
