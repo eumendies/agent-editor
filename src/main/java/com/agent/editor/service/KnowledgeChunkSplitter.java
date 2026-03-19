@@ -2,12 +2,14 @@ package com.agent.editor.service;
 
 import com.agent.editor.config.RagProperties;
 import com.agent.editor.model.KnowledgeChunk;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+@Component
 public class KnowledgeChunkSplitter {
 
     private final RagProperties properties;

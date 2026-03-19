@@ -2,12 +2,14 @@ package com.agent.editor.service;
 
 import com.agent.editor.model.KnowledgeChunk;
 import com.agent.editor.model.KnowledgeDocument;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Component
 public class InMemoryKnowledgeStore {
 
     private final Map<String, KnowledgeDocument> documents = new ConcurrentHashMap<>();

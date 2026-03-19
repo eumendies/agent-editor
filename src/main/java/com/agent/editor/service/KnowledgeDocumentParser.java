@@ -1,11 +1,13 @@
 package com.agent.editor.service;
 
 import com.agent.editor.model.ParsedKnowledgeDocument;
+import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
+@Component
 public class KnowledgeDocumentParser {
 
     public ParsedKnowledgeDocument parse(MultipartFile file) {
