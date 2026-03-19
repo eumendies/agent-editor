@@ -1409,7 +1409,94 @@
             .replace(/>/g, "&gt;");
     }
 
+    function setKnowledgeUploadState(uploading) {
+        const button = document.getElementById("knowledgeUploadBtn");
+        button.disabled = uploading;
+        button.textContent = uploading ? "Uploading..." : "Upload to Knowledge Base";
+    }
+
+    function renderKnowledgeUploadResult(type, title, lines) {
+        const result = document.getElementById("knowledgeUploadResult");
+        result.className = `result-card ${type}`;
+        result.innerHTML = `
+            <div class="result-label">Upload Result</div>
+            <div class="result-title">${escapeHtml(title)}</div>
+            <div class="result-meta">
+                ${lines.map(line => `<div>${escapeHtml(line)}</div>`).join("")}
+            </div>
+        `;
+    }
+
+    async function extractErrorMessage(response) {
+        try {
+            const text = await response.text();
+            return text && text.trim() ? text : "Upload failed";
+        } catch (error) {
+            return "Upload failed";
+        }
+    }
+
+    async function uploadKnowledgeDocument(event) {
+        event.preventDefault();
+
+        const fileInput = document.getElementById("knowledgeFileInput");
+        const categoryInput = document.getElementById("knowledgeCategoryInput");
+        const file = fileInput.files[0];
+        const category = categoryInput.value.trim();
+
+        if (!file) {
+            renderKnowledgeUploadResult("error", "Upload Failed", [
+                "Please choose a knowledge file before uploading."
+            ]);
+            return;
+        }
+
+        if (!category) {
+            renderKnowledgeUploadResult("error", "Upload Failed", [
+                "Please enter a category before uploading."
+            ]);
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("category", category);
+
+        setKnowledgeUploadState(true);
+        renderKnowledgeUploadResult("success", "Uploading...", [
+            `Preparing ${file.name}`,
+            `Category: ${category}`
+        ]);
+
+        try {
+            const response = await fetch("/api/v1/knowledge/documents", {
+                method: "POST",
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(await extractErrorMessage(response));
+            }
+
+            const document = await response.json();
+            renderKnowledgeUploadResult("success", "Upload Completed", [
+                `File: ${document.fileName || file.name}`,
+                `Category: ${document.category || category}`,
+                `Status: ${document.status || "UNKNOWN"}`,
+                `Document ID: ${document.id || "-"}`
+            ]);
+        } catch (error) {
+            renderKnowledgeUploadResult("error", "Upload Failed", [
+                error.message || "Upload failed"
+            ]);
+        } finally {
+            setKnowledgeUploadState(false);
+        }
+    }
+
     window.onload = function() {
+        document.getElementById("knowledgeUploadForm")
+            .addEventListener("submit", uploadKnowledgeDocument);
         syncModeUI("REACT");
         initWebSocket();
         refreshDocument();
