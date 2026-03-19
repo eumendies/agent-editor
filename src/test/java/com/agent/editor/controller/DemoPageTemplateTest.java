@@ -21,5 +21,10 @@ class DemoPageTemplateTest {
         assertTrue(template.contains("Run Reflexion"));
         assertTrue(template.contains("Trace Inspector"));
         assertTrue(template.contains("tracePanel"));
+        assertTrue(template.contains("Knowledge Base Upload"));
+        assertTrue(template.contains("knowledgeUploadForm"));
+        assertTrue(template.contains("knowledgeFileInput"));
+        assertTrue(template.contains("knowledgeCategoryInput"));
+        assertTrue(template.contains("knowledgeUploadResult"));
     }
 }
