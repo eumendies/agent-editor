@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-public class InMemoryKnowledgeStore {
+public class InMemoryKnowledgeStore implements KnowledgeChunkRepository {
 
     private final Map<String, KnowledgeDocument> documents = new ConcurrentHashMap<>();
     private final Map<String, List<KnowledgeChunk>> chunksByDocumentId = new ConcurrentHashMap<>();
@@ -33,5 +33,18 @@ public class InMemoryKnowledgeStore {
 
     public List<KnowledgeChunk> getChunks(String documentId) {
         return chunksByDocumentId.getOrDefault(documentId, List.of());
+    }
+
+    @Override
+    public List<KnowledgeChunk> findByDocumentIds(List<String> documentIds) {
+        if (documentIds == null || documentIds.isEmpty()) {
+            return chunksByDocumentId.values().stream()
+                    .flatMap(List::stream)
+                    .toList();
+        }
+
+        return documentIds.stream()
+                .flatMap(documentId -> getChunks(documentId).stream())
+                .toList();
     }
 }
