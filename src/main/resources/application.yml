@@ -35,3 +35,10 @@ logging:
   level:
     com.agent.editor: DEBUG
     dev.langchain4j: DEBUG
+
+rag:
+  chunk-size: 500
+  chunk-overlap: 80
+  ask-top-k: 5
+  write-top-k: 8
+  retrieve-top-k: 12
