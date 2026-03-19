@@ -19,6 +19,7 @@ import java.util.Objects;
 
 public class MilvusKnowledgeChunkRepository implements KnowledgeChunkRepository {
 
+    private static final String ID = "id";
     private static final String DOCUMENT_ID = "documentId";
     private static final String FILE_NAME = "fileName";
     private static final String CHUNK_INDEX = "chunkIndex";
@@ -71,6 +72,7 @@ public class MilvusKnowledgeChunkRepository implements KnowledgeChunkRepository 
 
     private JsonObject toRow(KnowledgeChunk chunk) {
         JsonObject row = new JsonObject();
+        row.addProperty(ID, chunkId(chunk));
         row.addProperty(DOCUMENT_ID, chunk.documentId());
         row.addProperty(FILE_NAME, chunk.fileName());
         row.addProperty(CHUNK_INDEX, chunk.chunkIndex());
@@ -117,6 +119,10 @@ public class MilvusKnowledgeChunkRepository implements KnowledgeChunkRepository 
                 .map(this::quote)
                 .reduce((left, right) -> left + ", " + right)
                 .orElse("") + "]";
+    }
+
+    private String chunkId(KnowledgeChunk chunk) {
+        return chunk.documentId() + "#" + chunk.chunkIndex();
     }
 
     private String quote(String value) {
