@@ -2,6 +2,7 @@ package com.agent.editor.service;
 
 import com.agent.editor.config.RagProperties;
 import com.agent.editor.model.KnowledgeChunk;
+import com.agent.editor.utils.KnowledgeChunkSplitter;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

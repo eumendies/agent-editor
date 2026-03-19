@@ -1,6 +1,7 @@
 package com.agent.editor.service;
 
 import com.agent.editor.model.ParsedKnowledgeDocument;
+import com.agent.editor.utils.KnowledgeDocumentParser;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 

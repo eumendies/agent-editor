@@ -1,7 +1,7 @@
 package com.agent.editor.config;
 
-import com.agent.editor.service.KnowledgeChunkRepository;
-import com.agent.editor.service.MilvusKnowledgeChunkRepository;
+import com.agent.editor.repository.KnowledgeChunkRepository;
+import com.agent.editor.repository.MilvusKnowledgeChunkRepository;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.service.collection.request.CreateCollectionReq;
 import io.milvus.v2.service.collection.request.LoadCollectionReq;
@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;

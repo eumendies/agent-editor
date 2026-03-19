@@ -1,6 +1,7 @@
 package com.agent.editor.service;
 
 import com.agent.editor.config.RagProperties;
+import com.agent.editor.repository.KnowledgeChunkRepository;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

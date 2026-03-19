@@ -3,6 +3,7 @@ package com.agent.editor.service;
 import com.agent.editor.config.MilvusProperties;
 import com.agent.editor.model.KnowledgeChunk;
 import com.agent.editor.model.RetrievedKnowledgeChunk;
+import com.agent.editor.repository.MilvusKnowledgeChunkRepository;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.service.vector.request.SearchReq;
 import io.milvus.v2.service.vector.request.UpsertReq;

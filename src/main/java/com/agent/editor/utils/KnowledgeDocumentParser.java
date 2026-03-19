@@ -1,4 +1,4 @@
-package com.agent.editor.service;
+package com.agent.editor.utils;
 
 import com.agent.editor.model.ParsedKnowledgeDocument;
 import org.springframework.stereotype.Component;

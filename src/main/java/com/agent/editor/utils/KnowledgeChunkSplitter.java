@@ -1,4 +1,4 @@
-package com.agent.editor.service;
+package com.agent.editor.utils;
 
 import com.agent.editor.config.RagProperties;
 import com.agent.editor.model.KnowledgeChunk;

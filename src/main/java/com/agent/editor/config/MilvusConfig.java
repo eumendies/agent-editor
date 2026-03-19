@@ -1,7 +1,7 @@
 package com.agent.editor.config;
 
-import com.agent.editor.service.KnowledgeChunkRepository;
-import com.agent.editor.service.MilvusKnowledgeChunkRepository;
+import com.agent.editor.repository.KnowledgeChunkRepository;
+import com.agent.editor.repository.MilvusKnowledgeChunkRepository;
 import io.milvus.v2.client.ConnectConfig;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.common.DataType;

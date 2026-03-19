@@ -2,6 +2,7 @@ package com.agent.editor.service;
 
 import com.agent.editor.config.RagProperties;
 import com.agent.editor.model.RetrievedKnowledgeChunk;
+import com.agent.editor.repository.KnowledgeChunkRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

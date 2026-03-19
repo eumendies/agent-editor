@@ -2,6 +2,10 @@ package com.agent.editor.service;
 
 import com.agent.editor.model.KnowledgeChunk;
 import com.agent.editor.model.ParsedKnowledgeDocument;
+import com.agent.editor.repository.InMemoryKnowledgeStore;
+import com.agent.editor.repository.KnowledgeChunkRepository;
+import com.agent.editor.utils.KnowledgeChunkSplitter;
+import com.agent.editor.utils.KnowledgeDocumentParser;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockMultipartFile;

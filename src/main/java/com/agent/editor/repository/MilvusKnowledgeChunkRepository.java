@@ -1,4 +1,4 @@
-package com.agent.editor.service;
+package com.agent.editor.repository;
 
 import com.agent.editor.config.MilvusProperties;
 import com.agent.editor.model.KnowledgeChunk;
