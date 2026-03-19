@@ -11,7 +11,7 @@ class KnowledgeBaseServiceTest {
     @Test
     void shouldCreatePendingKnowledgeDocumentRecord() {
         InMemoryKnowledgeStore store = new InMemoryKnowledgeStore();
-        KnowledgeBaseService service = new KnowledgeBaseService(store, null, null, null);
+        KnowledgeBaseService service = new KnowledgeBaseService(store, store, null, null, null, null);
         MockMultipartFile file = new MockMultipartFile("file", "resume.md", "text/markdown", "# Resume".getBytes());
 
         KnowledgeDocument document = service.upload(file, "resume");

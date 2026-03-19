@@ -16,17 +16,23 @@ import java.util.UUID;
 public class KnowledgeBaseService {
 
     private final InMemoryKnowledgeStore store;
+    private final KnowledgeChunkRepository repository;
     private final KnowledgeDocumentParser parser;
     private final KnowledgeChunkSplitter splitter;
+    private final KnowledgeEmbeddingService embeddingService;
     private final RagProperties ragProperties;
 
     public KnowledgeBaseService(InMemoryKnowledgeStore store,
+                                KnowledgeChunkRepository repository,
                                 KnowledgeDocumentParser parser,
                                 KnowledgeChunkSplitter splitter,
+                                KnowledgeEmbeddingService embeddingService,
                                 RagProperties ragProperties) {
         this.store = store;
+        this.repository = repository;
         this.parser = parser;
         this.splitter = splitter;
+        this.embeddingService = embeddingService;
         this.ragProperties = ragProperties;
     }
 
@@ -39,7 +45,7 @@ public class KnowledgeBaseService {
                 Instant.now()
         );
         store.saveDocument(document);
-        if (parser != null && splitter != null) {
+        if (parser != null && splitter != null && repository != null) {
             ParsedKnowledgeDocument parsed = parser.parse(file);
             List<KnowledgeChunk> chunks = splitter.split(
                     document.id(),
@@ -47,7 +53,12 @@ public class KnowledgeBaseService {
                     parsed.content(),
                     Map.of("category", category, "documentType", parsed.documentType())
             );
-            chunks.forEach(store::saveChunk);
+            List<KnowledgeChunk> chunksToPersist = embeddingService == null
+                    ? chunks
+                    : chunks.stream()
+                    .map(chunk -> chunk.withEmbedding(embeddingService.embed(chunk.chunkText())))
+                    .toList();
+            repository.saveAll(chunksToPersist);
         }
         return document;
     }
