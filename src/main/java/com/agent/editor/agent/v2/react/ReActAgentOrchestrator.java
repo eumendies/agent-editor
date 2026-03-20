@@ -1,17 +1,20 @@
-package com.agent.editor.agent.v2.task;
+package com.agent.editor.agent.v2.react;
 
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
+import com.agent.editor.agent.v2.task.TaskOrchestrator;
+import com.agent.editor.agent.v2.task.TaskRequest;
+import com.agent.editor.agent.v2.task.TaskResult;
 
-public class SingleAgentOrchestrator implements TaskOrchestrator {
+public class ReActAgentOrchestrator implements TaskOrchestrator {
 
     private final ExecutionRuntime runtime;
     private final AgentDefinition agentDefinition;
 
-    public SingleAgentOrchestrator(ExecutionRuntime runtime, AgentDefinition agentDefinition) {
+    public ReActAgentOrchestrator(ExecutionRuntime runtime, AgentDefinition agentDefinition) {
         this.runtime = runtime;
         this.agentDefinition = agentDefinition;
     }

@@ -5,9 +5,9 @@ import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.runtime.DefaultExecutionRuntime;
 import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
-import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.react.ReActAgentOrchestrator;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
@@ -26,7 +26,7 @@ class SingleAgentOrchestratorTest {
                 new DefaultTraceCollector(new InMemoryTraceStore())
         );
         AgentDefinition agent = new StubAgentDefinition();
-        SingleAgentOrchestrator orchestrator = new SingleAgentOrchestrator(runtime, agent);
+        ReActAgentOrchestrator orchestrator = new ReActAgentOrchestrator(runtime, agent);
 
         TaskRequest request = new TaskRequest(
                 "task-1",

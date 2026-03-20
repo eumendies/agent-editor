@@ -16,7 +16,7 @@ import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
 import com.agent.editor.agent.v2.supervisor.SupervisorOrchestrator;
 import com.agent.editor.agent.v2.supervisor.WorkerRegistry;
 import com.agent.editor.agent.v2.task.RoutingTaskOrchestrator;
-import com.agent.editor.agent.v2.task.SingleAgentOrchestrator;
+import com.agent.editor.agent.v2.react.ReActAgentOrchestrator;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.trace.TraceCollector;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
@@ -59,7 +59,7 @@ public class TaskOrchestratorConfig {
                                              ReflexionCriticDefinition reflexionCriticDefinition,
                                              SupervisorAgentDefinition supervisorAgentDefinition,
                                              TraceCollector traceCollector) {
-        TaskOrchestrator reactOrchestrator = new SingleAgentOrchestrator(executionRuntime, reactAgentDefinition);
+        TaskOrchestrator reactOrchestrator = new ReActAgentOrchestrator(executionRuntime, reactAgentDefinition);
         TaskOrchestrator planningOrchestrator = new PlanningThenExecutionOrchestrator(
                 planningAgentDefinition,
                 executionRuntime,
