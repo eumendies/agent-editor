@@ -7,6 +7,7 @@ import java.util.Map;
 /**
  * 按 agent type 把任务分流到不同编排链，避免在 application service 里堆 if/else。
  */
+@Deprecated
 public class RoutingTaskOrchestrator implements TaskOrchestrator {
 
     private final Map<AgentType, TaskOrchestrator> delegates;

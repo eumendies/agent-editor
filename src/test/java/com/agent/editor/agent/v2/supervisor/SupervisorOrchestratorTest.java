@@ -3,6 +3,8 @@ package com.agent.editor.agent.v2.supervisor;
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
+import com.agent.editor.agent.v2.core.memory.ChatMessage;
+import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.*;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
@@ -11,7 +13,6 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
-import com.agent.editor.agent.v2.core.state.ChatMessage;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
@@ -167,7 +168,7 @@ class SupervisorOrchestratorTest {
     }
 
     @Test
-    void shouldStartEachWorkerWithFreshExecutionStateByDefault() {
+    void shouldCarryConversationMemoryAcrossWorkerRuns() {
         WorkerRegistry workerRegistry = new WorkerRegistry();
         workerRegistry.register(new WorkerDefinition(
                 "analyzer",
@@ -207,7 +208,50 @@ class SupervisorOrchestratorTest {
         assertEquals("body", runtime.states().get(0).currentContent());
         assertEquals("body -> analyzer", runtime.states().get(1).currentContent());
         assertTrue(((ChatTranscriptMemory) runtime.states().get(0).memory()).messages().isEmpty());
-        assertTrue(((ChatTranscriptMemory) runtime.states().get(1).memory()).messages().isEmpty());
+        assertEquals(1, ((ChatTranscriptMemory) runtime.states().get(1).memory()).messages().size());
+    }
+
+    @Test
+    void shouldSeedFirstWorkerStateWithSessionMemory() {
+        WorkerRegistry workerRegistry = new WorkerRegistry();
+        workerRegistry.register(new WorkerDefinition(
+                "analyzer",
+                "Analyzer",
+                "Inspect the document",
+                new StubWorkerAgent("analysis complete"),
+                List.of("searchContent")
+        ));
+        workerRegistry.register(new WorkerDefinition(
+                "editor",
+                "Editor",
+                "Apply document edits",
+                new StubWorkerAgent("edited content"),
+                List.of("editDocument")
+        ));
+
+        RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
+        SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(
+                new ScriptedSupervisorAgentDefinition(),
+                workerRegistry,
+                runtime,
+                event -> {},
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
+
+        orchestrator.execute(new TaskRequest(
+                "task-5",
+                "session-5",
+                AgentType.SUPERVISOR,
+                new DocumentSnapshot("doc-5", "Title", "body"),
+                "Improve this document",
+                5,
+                new ChatTranscriptMemory(List.of(
+                        new ChatMessage.UserChatMessage("previous turn")
+                ))
+        ));
+
+        ChatTranscriptMemory firstWorkerMemory = (ChatTranscriptMemory) runtime.states().get(0).memory();
+        assertTrue(firstWorkerMemory.messages().stream().anyMatch(message -> "previous turn".equals(message.text())));
     }
 
     private static final class ScriptedSupervisorAgentDefinition implements SupervisorAgentDefinition {

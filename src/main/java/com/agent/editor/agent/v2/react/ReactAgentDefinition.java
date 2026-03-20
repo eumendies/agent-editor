@@ -131,7 +131,7 @@ public class ReactAgentDefinition implements AgentDefinition {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt));
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().memory()));
-        messages.add(UserMessage.from(userPrompt));
+        // messages.add(UserMessage.from(userPrompt));
         return messages;
     }
 

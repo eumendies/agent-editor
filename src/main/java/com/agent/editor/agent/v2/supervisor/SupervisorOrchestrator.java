@@ -8,6 +8,7 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
@@ -49,6 +50,13 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
     @Override
     public TaskResult execute(TaskRequest request) {
         String currentContent = request.document().content();
+        ExecutionState conversationState = new ExecutionState(
+                0,
+                currentContent,
+                request.memory(),
+                ExecutionStage.RUNNING,
+                null
+        );
         List<WorkerResult> workerResults = new ArrayList<>();
         // 混合 supervisor 允许 worker 重复调度，因此预算至少覆盖“一轮 worker 池 + 一次额外重试 + 最终收口”。
         int dispatchBudget = Math.max(request.maxIterations() + 1, workerRegistry.all().size() + 2);
@@ -109,11 +117,12 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                                 worker.workerId(),
                                 worker.allowedTools()
                         ),
-                        new ExecutionState(0, currentContent)
+                        conversationState.withCurrentContent(currentContent).withStage(ExecutionStage.RUNNING)
                 );
 
                 // worker 执行完后，最新文档内容会回灌给 supervisor，供下一轮继续分派。
                 currentContent = result.finalContent();
+                conversationState = result.finalState();
                 workerResults.add(new WorkerResult(
                         worker.workerId(),
                         TaskStatus.COMPLETED,
@@ -166,7 +175,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                                 "reasoning", complete.reasoning()
                         )
                 ));
-                return new TaskResult(TaskStatus.COMPLETED, complete.finalContent());
+                return new TaskResult(TaskStatus.COMPLETED, complete.finalContent(), conversationState.memory());
             }
         }
 

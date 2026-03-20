@@ -4,6 +4,8 @@ import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
+import com.agent.editor.agent.v2.core.state.ExecutionStage;
+import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
@@ -21,6 +23,13 @@ public class ReActAgentOrchestrator implements TaskOrchestrator {
 
     @Override
     public TaskResult execute(TaskRequest request) {
+        ExecutionState initialState = new ExecutionState(
+                0,
+                request.document().content(),
+                request.memory(),
+                ExecutionStage.RUNNING,
+                null
+        );
         ExecutionResult result = runtime.run(
                 agentDefinition,
                 new ExecutionRequest(
@@ -30,8 +39,9 @@ public class ReActAgentOrchestrator implements TaskOrchestrator {
                         request.document(),
                         request.instruction(),
                         request.maxIterations()
-                )
+                ),
+                initialState
         );
-        return new TaskResult(TaskStatus.COMPLETED, result.finalContent());
+        return new TaskResult(TaskStatus.COMPLETED, result.finalContent(), result.finalState().memory());
     }
 }

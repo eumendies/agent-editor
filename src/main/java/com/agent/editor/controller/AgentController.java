@@ -2,10 +2,12 @@ package com.agent.editor.controller;
 
 import com.agent.editor.dto.AgentTaskRequest;
 import com.agent.editor.dto.AgentTaskResponse;
+import com.agent.editor.dto.SessionMemoryResponse;
 import com.agent.editor.dto.WebSocketMessage;
 import com.agent.editor.model.AgentMode;
 import com.agent.editor.model.AgentStep;
 import com.agent.editor.service.DocumentService;
+import com.agent.editor.service.SessionMemoryQueryService;
 import com.agent.editor.service.TaskApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,10 +28,14 @@ public class AgentController {
     private static final Logger logger = LoggerFactory.getLogger(AgentController.class);
 
     private final TaskApplicationService taskApplicationService;
+    private final SessionMemoryQueryService sessionMemoryQueryService;
     private final DocumentService documentService;
 
-    public AgentController(TaskApplicationService taskApplicationService, DocumentService documentService) {
+    public AgentController(TaskApplicationService taskApplicationService,
+                           SessionMemoryQueryService sessionMemoryQueryService,
+                           DocumentService documentService) {
         this.taskApplicationService = taskApplicationService;
+        this.sessionMemoryQueryService = sessionMemoryQueryService;
         this.documentService = documentService;
     }
 
@@ -68,6 +74,13 @@ public class AgentController {
             @Parameter(description = "Task ID") @PathVariable String taskId) {
         List<AgentStep> steps = taskApplicationService.getTaskSteps(taskId);
         return ResponseEntity.ok(steps);
+    }
+
+    @GetMapping("/session/{sessionId}/memory")
+    @Operation(summary = "Get session memory", description = "Get structured chat memory for a session")
+    public ResponseEntity<SessionMemoryResponse> getSessionMemory(
+            @Parameter(description = "Session ID") @PathVariable String sessionId) {
+        return ResponseEntity.ok(sessionMemoryQueryService.getSessionMemory(sessionId));
     }
 
     @GetMapping("/modes")

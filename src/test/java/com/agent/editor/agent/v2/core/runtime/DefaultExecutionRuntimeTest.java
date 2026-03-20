@@ -4,8 +4,9 @@ import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
+import com.agent.editor.agent.v2.core.memory.ChatMessage;
+import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.*;
-import com.agent.editor.agent.v2.core.state.ChatMessage;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.trace.TraceCategory;
@@ -48,6 +49,14 @@ class DefaultExecutionRuntimeTest {
         assertEquals("body", result.finalContent());
         assertEquals(ExecutionStage.COMPLETED, result.finalState().stage());
         assertEquals("body", result.finalState().currentContent());
+        ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) result.finalState().memory();
+        assertEquals(2, transcriptMemory.messages().size());
+        ChatMessage.UserChatMessage userMessage =
+                (ChatMessage.UserChatMessage) transcriptMemory.messages().get(0);
+        ChatMessage.AiChatMessage aiMessage =
+                (ChatMessage.AiChatMessage) transcriptMemory.messages().get(1);
+        assertEquals("finish", userMessage.text());
+        assertEquals("done", aiMessage.text());
     }
 
     @Test
@@ -228,10 +237,15 @@ class DefaultExecutionRuntimeTest {
                 message instanceof ChatMessage.AiChatMessage aiMessage
                         && aiMessage.text().contains("thinking")
         ));
-        ChatMessage toolInteractionMessage = transcriptMemory.messages().get(2);
-        assertTrue(toolInteractionMessage instanceof ChatMessage.AiToolCallChatMessage);
-        ChatMessage.AiToolCallChatMessage toolCallMessage =
-                (ChatMessage.AiToolCallChatMessage) toolInteractionMessage;
+        assertTrue(transcriptMemory.messages().stream().anyMatch(message ->
+                message instanceof ChatMessage.UserChatMessage userMessage
+                        && userMessage.text().contains("use tool")
+        ));
+        ChatMessage.AiToolCallChatMessage toolCallMessage = transcriptMemory.messages().stream()
+                .filter(ChatMessage.AiToolCallChatMessage.class::isInstance)
+                .map(ChatMessage.AiToolCallChatMessage.class::cast)
+                .findFirst()
+                .orElseThrow();
         assertEquals("need tool", toolCallMessage.text());
         assertEquals(1, toolCallMessage.toolCalls().size());
         assertEquals("appendText", toolCallMessage.toolCalls().get(0).name());

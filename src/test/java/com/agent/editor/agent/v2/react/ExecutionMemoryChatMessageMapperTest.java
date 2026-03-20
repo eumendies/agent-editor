@@ -1,8 +1,8 @@
 package com.agent.editor.agent.v2.react;
 
-import com.agent.editor.agent.v2.core.state.ChatMessage;
-import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
-import com.agent.editor.agent.v2.core.state.ExecutionMemory;
+import com.agent.editor.agent.v2.core.memory.ChatMessage;
+import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
+import com.agent.editor.agent.v2.core.memory.ExecutionMemory;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import dev.langchain4j.data.message.AiMessage;

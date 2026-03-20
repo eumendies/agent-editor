@@ -2,11 +2,11 @@ package com.agent.editor.agent.v2.reflexion;
 
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.state.*;
-import com.agent.editor.agent.v2.core.state.ChatMessage;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
@@ -46,7 +46,13 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
     @Override
     public TaskResult execute(TaskRequest request) {
         // actor state 跨轮复用，保存上一轮真正沉淀下来的编辑上下文与 critique 历史。
-        ExecutionState actorState = new ExecutionState(0, request.document().content());
+        ExecutionState actorState = new ExecutionState(
+                0,
+                request.document().content(),
+                request.memory(),
+                ExecutionStage.RUNNING,
+                null
+        );
         String currentContent = request.document().content();
 
         for (int round = 1; round <= request.maxIterations(); round++) {
@@ -110,7 +116,7 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
                                 "content", currentContent
                         )
                 ));
-                return new TaskResult(TaskStatus.COMPLETED, currentContent);
+                return new TaskResult(TaskStatus.COMPLETED, currentContent, actorState.memory());
             }
 
             actorState = actorState
@@ -134,7 +140,7 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
                 request.maxIterations(),
                 Map.of("content", currentContent)
         ));
-        return new TaskResult(TaskStatus.COMPLETED, currentContent);
+        return new TaskResult(TaskStatus.COMPLETED, currentContent, actorState.memory());
     }
 
     private ExecutionRequest actorRequest(TaskRequest request, String currentContent) {

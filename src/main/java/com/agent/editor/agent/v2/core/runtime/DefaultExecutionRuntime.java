@@ -3,7 +3,7 @@ package com.agent.editor.agent.v2.core.runtime;
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
-import com.agent.editor.agent.v2.core.state.ChatMessage;
+import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
@@ -49,7 +49,7 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
         eventPublisher.publish(new ExecutionEvent(EventType.TASK_STARTED, request.taskId(), "execution started"));
 
         // runtime 维护“本轮文档内容 + 工具结果历史”，每次决策都基于最新状态继续推进。
-        ExecutionState state = initialState;
+        ExecutionState state = initialState.appendMemory(new ChatMessage.UserChatMessage(request.instruction()));
         while (state.iteration() < request.maxIterations() && !state.completed()) {
             eventPublisher.publish(new ExecutionEvent(EventType.ITERATION_STARTED, request.taskId(), "iteration " + state.iteration()));
             traceCollector.collect(traceRecord(
@@ -71,7 +71,9 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
             if (decision instanceof Decision.Complete complete) {
                 // Complete 表示 agent 明确结束，本轮状态里的 currentContent 就是最终文档内容。
                 eventPublisher.publish(new ExecutionEvent(EventType.TASK_COMPLETED, request.taskId(), complete.result()));
-                ExecutionState completedState = state.markCompleted();
+                ExecutionState completedState = state
+                        .appendMemory(new ChatMessage.AiChatMessage(complete.result()))
+                        .markCompleted();
                 return new ExecutionResult(complete.result(), state.currentContent(), completedState);
             }
 
@@ -94,7 +96,9 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
             if (decision instanceof Decision.Respond respond) {
                 // Respond 用在“不再调用工具，但也不需要额外完成语义”的轻量收口场景。
                 eventPublisher.publish(new ExecutionEvent(EventType.TASK_COMPLETED, request.taskId(), respond.message()));
-                ExecutionState completedState = state.markCompleted();
+                ExecutionState completedState = state
+                        .appendMemory(new ChatMessage.AiChatMessage(respond.message()))
+                        .markCompleted();
                 return new ExecutionResult(respond.message(), state.currentContent(), completedState);
             }
 

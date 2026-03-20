@@ -2,15 +2,15 @@ package com.agent.editor.agent.v2.planning;
 
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.memory.ChatMessage;
+import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
-import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
-import com.agent.editor.agent.v2.core.state.ChatMessage;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
@@ -73,7 +73,13 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
                 )
         ));
 
-        ExecutionState currentState = new ExecutionState(0, request.document().content());
+        ExecutionState currentState = new ExecutionState(
+                0,
+                request.document().content(),
+                request.memory(),
+                ExecutionStage.RUNNING,
+                null
+        );
         String currentContent = request.document().content();
         for (PlanStep step : plan.steps()) {
             traceCollector.collect(new TraceRecord(
@@ -114,7 +120,7 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
             currentState = result.finalState();
         }
 
-        return new TaskResult(TaskStatus.COMPLETED, currentContent);
+        return new TaskResult(TaskStatus.COMPLETED, currentContent, currentState.memory());
     }
 
     private ExecutionState prepareStepState(ExecutionState state, PlanStep step) {

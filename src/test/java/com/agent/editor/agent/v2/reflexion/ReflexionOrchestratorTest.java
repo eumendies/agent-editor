@@ -7,9 +7,9 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
-import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
+import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
-import com.agent.editor.agent.v2.core.state.ChatMessage;
+import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
@@ -88,13 +88,18 @@ class ReflexionOrchestratorTest {
                 AgentType.REFLEXION,
                 new DocumentSnapshot("doc-2", "Title", "body"),
                 "Improve the draft",
-                3
+                3,
+                new ChatTranscriptMemory(List.of(
+                        new ChatMessage.UserChatMessage("previous turn")
+                ))
         ));
 
         assertEquals(TaskStatus.COMPLETED, result.status());
         assertEquals("body -> actor-pass-1 -> actor-pass-2", result.finalContent());
         assertEquals(2, runtime.actorStates.size());
         assertEquals(2, runtime.criticStates.size());
+        ChatTranscriptMemory firstActorMemory = (ChatTranscriptMemory) runtime.actorStates.get(0).memory();
+        assertTrue(firstActorMemory.messages().stream().anyMatch(message -> "previous turn".equals(message.text())));
         ChatTranscriptMemory secondActorMemory = (ChatTranscriptMemory) runtime.actorStates.get(1).memory();
         assertTrue(secondActorMemory.messages().stream().anyMatch(message ->
                 message instanceof ChatMessage.UserChatMessage userMessage

@@ -3,6 +3,8 @@ package com.agent.editor.agent.v2.planning;
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
+import com.agent.editor.agent.v2.core.memory.ChatMessage;
+import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.*;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
@@ -11,7 +13,6 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
-import com.agent.editor.agent.v2.core.state.ChatMessage;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
@@ -92,13 +93,18 @@ class PlanningThenExecutionOrchestratorTest {
                 AgentType.PLANNING,
                 new DocumentSnapshot("doc-2", "Title", "body"),
                 "Improve document",
-                5
+                5,
+                new ChatTranscriptMemory(List.of(
+                        new ChatMessage.UserChatMessage("previous turn")
+                ))
         ));
 
         assertEquals(TaskStatus.COMPLETED, result.status());
         assertEquals(2, runtime.states().size());
         assertEquals("body", runtime.states().get(0).currentContent());
         assertEquals("body -> Add outline", runtime.states().get(1).currentContent());
+        ChatTranscriptMemory firstStepMemory = (ChatTranscriptMemory) runtime.states().get(0).memory();
+        assertTrue(firstStepMemory.messages().stream().anyMatch(message -> "previous turn".equals(message.text())));
         ChatTranscriptMemory secondStepMemory = (ChatTranscriptMemory) runtime.states().get(1).memory();
         assertTrue(secondStepMemory.messages().stream().anyMatch(message ->
                 message instanceof ChatMessage.UserChatMessage userMessage

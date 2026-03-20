@@ -1,9 +1,9 @@
 package com.agent.editor.agent.v2.mapper;
 
 import com.agent.editor.agent.v2.core.agent.ToolCall;
-import com.agent.editor.agent.v2.core.state.ChatTranscriptMemory;
-import com.agent.editor.agent.v2.core.state.ExecutionMemory;
-import com.agent.editor.agent.v2.core.state.ChatMessage;
+import com.agent.editor.agent.v2.core.memory.ChatMessage;
+import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
+import com.agent.editor.agent.v2.core.memory.ExecutionMemory;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.*;
 

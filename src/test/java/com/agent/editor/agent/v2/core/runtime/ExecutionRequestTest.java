@@ -1,6 +1,8 @@
 package com.agent.editor.agent.v2.core.runtime;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.memory.ChatMessage;
+import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.*;
 import org.junit.jupiter.api.Test;
 
