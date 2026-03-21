@@ -46,9 +46,10 @@ class ReactAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("final answer"))
                 .build());
+        TraceStore traceStore = new InMemoryTraceStore();
         ReactAgentDefinition definition = new ReactAgentDefinition(
                 chatModel,
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                new DefaultTraceCollector(traceStore)
         );
 
         Decision decision = definition.decide(context());
@@ -59,8 +60,13 @@ class ReactAgentDefinitionTest {
         assertEquals(2, chatModel.lastRequest.messages().size());
         assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
         UserMessage userMessage = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
-        assertTrue(userMessage.singleText().contains("body"));
-        assertTrue(userMessage.singleText().contains("rewrite this"));
+        assertEquals("rewrite this", userMessage.singleText());
+        assertTrue(traceStore.getByTaskId("task-1").stream().anyMatch(trace ->
+                trace.category() == TraceCategory.MODEL_REQUEST
+                        && "react.model.request".equals(trace.stage())
+                        && trace.payload().get("userPrompt").toString().contains("body")
+                        && trace.payload().get("userPrompt").toString().contains("rewrite this")
+        ));
     }
 
     @Test
@@ -87,7 +93,7 @@ class ReactAgentDefinitionTest {
     }
 
     @Test
-    void shouldAppendTranscriptMemoryMessagesToModelRequest() {
+    void shouldAppendTranscriptMemoryMessagesToModelRequestWithoutDuplicatingCurrentTurnPrompt() {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("final answer"))
                 .build());
@@ -116,7 +122,8 @@ class ReactAgentDefinitionTest {
                                         "{\"query\":\"heading\"}",
                                         "Search for 'heading': Found"
                                 ),
-                                new ChatMessage.AiChatMessage("I found the heading block.")
+                                new ChatMessage.AiChatMessage("I found the heading block."),
+                                new ChatMessage.UserChatMessage("rewrite this")
                         )),
                         ExecutionStage.RUNNING,
                         null
@@ -138,8 +145,7 @@ class ReactAgentDefinitionTest {
         assertTrue(transcriptToolResult.text().contains("Search for 'heading': Found"));
         assertInstanceOf(AiMessage.class, chatModel.lastRequest.messages().get(3));
         UserMessage currentTurn = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(4));
-        assertTrue(currentTurn.singleText().contains("revised body"));
-        assertTrue(currentTurn.singleText().contains("rewrite this"));
+        assertEquals("rewrite this", currentTurn.singleText());
     }
 
     @Test
@@ -204,7 +210,15 @@ class ReactAgentDefinitionTest {
                         "rewrite this",
                         3
                 ),
-                new ExecutionState(0, "body"),
+                new ExecutionState(
+                        0,
+                        "body",
+                        new ChatTranscriptMemory(java.util.List.of(
+                                new ChatMessage.UserChatMessage("rewrite this")
+                        )),
+                        ExecutionStage.RUNNING,
+                        null
+                ),
                 java.util.List.of()
         );
     }
