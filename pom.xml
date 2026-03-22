@@ -84,6 +84,12 @@
             <artifactId>pdfbox</artifactId>
             <version>3.0.5</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.vladsch.flexmark</groupId>
+            <artifactId>flexmark</artifactId>
+            <version>0.64.8</version>
+        </dependency>
         
         <!-- JSON -->
         <dependency>

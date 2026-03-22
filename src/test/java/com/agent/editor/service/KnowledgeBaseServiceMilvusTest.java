@@ -10,10 +10,12 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -49,5 +51,36 @@ class KnowledgeBaseServiceMilvusTest {
         assertEquals("resume", chunksCaptor.getValue().get(0).metadata().get("category"));
         assertEquals("markdown", chunksCaptor.getValue().get(0).metadata().get("documentType"));
         assertArrayEquals(new float[]{0.1f, 0.2f, 0.3f}, chunksCaptor.getValue().get(0).embedding());
+    }
+
+    @Test
+    void shouldPersistMarkdownChunksWithHeadingPath() {
+        InMemoryKnowledgeStore store = new InMemoryKnowledgeStore();
+        KnowledgeChunkRepository repository = mock(KnowledgeChunkRepository.class);
+        KnowledgeDocumentParser parser = mock(KnowledgeDocumentParser.class);
+        KnowledgeChunkSplitter splitter = new KnowledgeChunkSplitter(new com.agent.editor.config.RagProperties(30, 10, 5, 8, 12));
+        KnowledgeBaseService service = new KnowledgeBaseService(
+                store,
+                repository,
+                parser,
+                splitter,
+                null,
+                null
+        );
+        String content = """
+                # 项目经历
+                ## Agent Editor
+                负责 Markdown 递归分块
+                """;
+        MockMultipartFile file = new MockMultipartFile("file", "resume.md", "text/markdown", content.getBytes(StandardCharsets.UTF_8));
+        when(parser.parse(file)).thenReturn(new ParsedKnowledgeDocument(content, "markdown"));
+
+        service.upload(file, "resume");
+
+        ArgumentCaptor<List<KnowledgeChunk>> chunksCaptor = ArgumentCaptor.forClass(List.class);
+        verify(repository).saveAll(chunksCaptor.capture());
+        assertEquals("项目经历 > Agent Editor", chunksCaptor.getValue().get(0).heading());
+        assertTrue(chunksCaptor.getValue().stream()
+                .allMatch(chunk -> "项目经历 > Agent Editor".equals(chunk.heading())));
     }
 }
