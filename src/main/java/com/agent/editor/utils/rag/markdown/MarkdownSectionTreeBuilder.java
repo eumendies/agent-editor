@@ -1,4 +1,4 @@
-package com.agent.editor.utils.markdown;
+package com.agent.editor.utils.rag.markdown;
 
 import com.vladsch.flexmark.ast.Heading;
 import com.vladsch.flexmark.parser.Parser;

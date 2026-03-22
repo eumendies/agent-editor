@@ -1,7 +1,7 @@
 package com.agent.editor.service;
 
 import com.agent.editor.model.ParsedKnowledgeDocument;
-import com.agent.editor.utils.KnowledgeDocumentParser;
+import com.agent.editor.utils.rag.KnowledgeDocumentParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;

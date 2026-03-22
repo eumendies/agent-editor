@@ -1,4 +1,4 @@
-package com.agent.editor.utils.pdf;
+package com.agent.editor.utils.rag.pdf;
 
 record PdfTextLine(
         int pageIndex,

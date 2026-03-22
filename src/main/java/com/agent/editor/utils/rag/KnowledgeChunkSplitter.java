@@ -1,8 +1,8 @@
-package com.agent.editor.utils;
+package com.agent.editor.utils.rag;
 
 import com.agent.editor.config.RagProperties;
 import com.agent.editor.model.KnowledgeChunk;
-import com.agent.editor.utils.markdown.MarkdownKnowledgeChunkSplitter;
+import com.agent.editor.utils.rag.markdown.MarkdownKnowledgeChunkSplitter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

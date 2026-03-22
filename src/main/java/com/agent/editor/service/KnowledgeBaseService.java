@@ -6,8 +6,8 @@ import com.agent.editor.model.KnowledgeDocument;
 import com.agent.editor.model.ParsedKnowledgeDocument;
 import com.agent.editor.repository.InMemoryKnowledgeStore;
 import com.agent.editor.repository.KnowledgeChunkRepository;
-import com.agent.editor.utils.KnowledgeChunkSplitter;
-import com.agent.editor.utils.KnowledgeDocumentParser;
+import com.agent.editor.utils.rag.KnowledgeChunkSplitter;
+import com.agent.editor.utils.rag.KnowledgeDocumentParser;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 

@@ -1,4 +1,4 @@
-package com.agent.editor.utils.pdf;
+package com.agent.editor.utils.rag.pdf;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;

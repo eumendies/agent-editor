@@ -1,7 +1,7 @@
-package com.agent.editor.utils;
+package com.agent.editor.utils.rag;
 
 import com.agent.editor.model.ParsedKnowledgeDocument;
-import com.agent.editor.utils.pdf.PdfKnowledgeExtractor;
+import com.agent.editor.utils.rag.pdf.PdfKnowledgeExtractor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 

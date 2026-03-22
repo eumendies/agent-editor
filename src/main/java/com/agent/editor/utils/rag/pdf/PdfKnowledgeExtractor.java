@@ -1,4 +1,4 @@
-package com.agent.editor.utils.pdf;
+package com.agent.editor.utils.rag.pdf;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

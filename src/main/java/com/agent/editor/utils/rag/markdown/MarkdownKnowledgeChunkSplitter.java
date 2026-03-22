@@ -1,8 +1,8 @@
-package com.agent.editor.utils.markdown;
+package com.agent.editor.utils.rag.markdown;
 
 import com.agent.editor.config.RagProperties;
 import com.agent.editor.model.KnowledgeChunk;
-import com.agent.editor.utils.SlidingWindowChunker;
+import com.agent.editor.utils.rag.SlidingWindowChunker;
 
 import java.util.ArrayList;
 import java.util.List;
