@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 public class PdfKnowledgeExtractor {
 
     private static final float ROW_TOLERANCE = 8.0f;
-    private static final float COLUMN_GAP = 40.0f;
+    private static final float COLUMN_GAP = 20.0f;
     // 可见字符太少时，基本可以视为扫描件或图片页，当前版本直接给出 OCR 未启用提示。
     private static final int OCR_MIN_VISIBLE_CHARACTERS = 10;
 
@@ -80,9 +80,9 @@ public class PdfKnowledgeExtractor {
 
     private String formatPage(List<PdfTextLine> pageLines) {
         // 先识别表格，再识别双栏；否则表格行容易被双栏逻辑打散。
-        if (looksLikeTable(pageLines)) {
-            return formatTable(pageLines);
-        }
+//        if (looksLikeTable(pageLines)) {
+//            return formatTable(pageLines);
+//        }
         if (looksLikeDoubleColumn(pageLines)) {
             return formatDoubleColumn(pageLines);
         }

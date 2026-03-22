@@ -124,6 +124,24 @@ class KnowledgeDocumentParserTest {
     }
 
     @Test
+    void shouldKeepNormalSentencePdfAsPlainTextInsteadOfTable() throws IOException {
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "sentence.pdf",
+                "application/pdf",
+                createSegmentedSentencePdf()
+        );
+        KnowledgeDocumentParser parser = new KnowledgeDocumentParser();
+
+        ParsedKnowledgeDocument parsed = parser.parse(file);
+
+        assertTrue(parsed.content().contains("Alpha beta gamma"), parsed.content());
+        assertTrue(parsed.content().contains("Delta epsilon zeta"), parsed.content());
+        assertFalse(parsed.content().contains("Alpha | beta | gamma"), parsed.content());
+        assertFalse(parsed.content().contains("Delta | epsilon | zeta"), parsed.content());
+    }
+
+    @Test
     void shouldFailGracefullyWhenPdfNeedsOcr() throws IOException {
         MockMultipartFile file = new MockMultipartFile(
                 "file",
@@ -236,6 +254,26 @@ class KnowledgeDocumentParserTest {
         }
     }
 
+    private byte[] createSegmentedSentencePdf() throws IOException {
+        try (PDDocument document = new PDDocument();
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            PDPage page = new PDPage(PDRectangle.LETTER);
+            document.addPage(page);
+
+            try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
+                writeWord(contentStream, "Alpha", 72, 720);
+                writeWord(contentStream, "beta", 120, 720);
+                writeWord(contentStream, "gamma", 160, 720);
+                writeWord(contentStream, "Delta", 72, 690);
+                writeWord(contentStream, "epsilon", 120, 690);
+                writeWord(contentStream, "zeta", 180, 690);
+            }
+
+            document.save(output);
+            return output.toByteArray();
+        }
+    }
+
     private void writeRow(PDPageContentStream contentStream, List<String> values, float y) throws IOException {
         float[] xPositions = {72, 220, 340};
         for (int i = 0; i < values.size(); i++) {
@@ -249,5 +287,9 @@ class KnowledgeDocumentParserTest {
         contentStream.newLineAtOffset(x, y);
         contentStream.showText(text);
         contentStream.endText();
+    }
+
+    private void writeWord(PDPageContentStream contentStream, String text, float x, float y) throws IOException {
+        writeLine(contentStream, text, x, y);
     }
 }
