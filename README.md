@@ -122,6 +122,16 @@ mvn spring-boot:run
 - `/`
 - `/editor`
 
+## RAG 检索说明
+
+当前知识库检索默认使用 Milvus 混合检索：
+
+- dense 语义检索基于 `embedding`
+- lexical 检索只覆盖 `heading + chunkText`
+- 默认集合名为 `knowledge_chunks_v2`
+
+如果你是从旧的向量检索版本升级过来，需要重新上传知识库文档，才能重建混合检索所需的全文字段和索引。旧集合中的历史数据不会自动迁移到 `knowledge_chunks_v2`。
+
 ## 对外接口
 
 常用接口：

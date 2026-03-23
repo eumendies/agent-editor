@@ -28,6 +28,6 @@ public class KnowledgeRetrievalService {
             return List.of();
         }
         float[] queryVector = embeddingService.embed(query);
-        return repository.searchByVector(queryVector, documentIds, limit);
+        return repository.searchHybrid(query, queryVector, documentIds, limit);
     }
 }

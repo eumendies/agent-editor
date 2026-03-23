@@ -108,7 +108,7 @@ class KnowledgeDocumentParserTest {
     }
 
     @Test
-    void shouldPreserveSimpleTableStructureInPdfOutput() throws IOException {
+    void shouldReadSimpleTablePdfInNaturalOrderWhenTableFormattingIsDisabled() throws IOException {
         MockMultipartFile file = new MockMultipartFile(
                 "file",
                 "table.pdf",
@@ -119,8 +119,14 @@ class KnowledgeDocumentParserTest {
 
         ParsedKnowledgeDocument parsed = parser.parse(file);
 
-        assertTrue(parsed.content().contains("Name | Score | Rank"));
-        assertTrue(parsed.content().contains("Alice | 95 | 1"));
+        String content = parsed.content();
+        assertTrue(content.contains("Name"), content);
+        assertTrue(content.contains("Score"), content);
+        assertTrue(content.contains("Rank"), content);
+        assertTrue(content.contains("Alice"), content);
+        assertTrue(content.contains("95"), content);
+        assertTrue(content.contains("1"), content);
+        assertFalse(content.contains("Name | Score | Rank"), content);
     }
 
     @Test

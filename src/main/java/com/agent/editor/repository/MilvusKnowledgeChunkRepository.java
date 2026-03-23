@@ -7,8 +7,11 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.common.IndexParam;
+import io.milvus.v2.service.vector.request.AnnSearchReq;
+import io.milvus.v2.service.vector.request.HybridSearchReq;
 import io.milvus.v2.service.vector.request.SearchReq;
 import io.milvus.v2.service.vector.request.UpsertReq;
+import io.milvus.v2.service.vector.request.data.EmbeddedText;
 import io.milvus.v2.service.vector.request.data.FloatVec;
 import io.milvus.v2.service.vector.response.SearchResp;
 
@@ -25,7 +28,10 @@ public class MilvusKnowledgeChunkRepository implements KnowledgeChunkRepository 
     private static final String CHUNK_INDEX = "chunkIndex";
     private static final String HEADING = "heading";
     private static final String CHUNK_TEXT = "chunkText";
+    private static final String FULL_TEXT = "fullText";
+    private static final String SPARSE_FULL_TEXT = "sparseFullText";
     private static final String EMBEDDING = "embedding";
+    private static final List<String> OUTPUT_FIELDS = List.of(DOCUMENT_ID, FILE_NAME, CHUNK_INDEX, HEADING, CHUNK_TEXT);
 
     private final MilvusClientV2 milvusClient;
     private final MilvusProperties properties;
@@ -53,6 +59,37 @@ public class MilvusKnowledgeChunkRepository implements KnowledgeChunkRepository 
     }
 
     @Override
+    public List<RetrievedKnowledgeChunk> searchHybrid(String query, float[] queryVector, List<String> documentIds, int topK) {
+        int candidateTopK = Math.max(topK * 3, 20);
+        try {
+            SearchResp response = milvusClient.hybridSearch(HybridSearchReq.builder()
+                    .collectionName(properties.collectionName())
+                    .searchRequests(List.of(
+                            AnnSearchReq.builder()
+                                    .vectorFieldName(EMBEDDING)
+                                    .metricType(IndexParam.MetricType.COSINE)
+                                    .topK(candidateTopK)
+                                    .filter(buildDocumentFilter(documentIds))
+                                    .vectors(List.of(new FloatVec(queryVector)))
+                                    .build(),
+                            AnnSearchReq.builder()
+                                    .vectorFieldName(SPARSE_FULL_TEXT)
+                                    .metricType(IndexParam.MetricType.BM25)
+                                    .topK(candidateTopK)
+                                    .filter(buildDocumentFilter(documentIds))
+                                    .vectors(List.of(new EmbeddedText(query)))
+                                    .build()
+                    ))
+                    .topK(topK)
+                    .outFields(OUTPUT_FIELDS)
+                    .build());
+            return toRetrievedChunks(response);
+        } catch (RuntimeException error) {
+            return searchByVector(queryVector, documentIds, topK);
+        }
+    }
+
+    @Override
     public List<RetrievedKnowledgeChunk> searchByVector(float[] queryVector, List<String> documentIds, int topK) {
         SearchResp response = milvusClient.search(SearchReq.builder()
                 .collectionName(properties.collectionName())
@@ -60,10 +97,14 @@ public class MilvusKnowledgeChunkRepository implements KnowledgeChunkRepository 
                 .metricType(IndexParam.MetricType.COSINE)
                 .topK(topK)
                 .filter(buildDocumentFilter(documentIds))
-                .outputFields(List.of(DOCUMENT_ID, FILE_NAME, CHUNK_INDEX, HEADING, CHUNK_TEXT))
+                .outputFields(OUTPUT_FIELDS)
                 .data(List.of(new FloatVec(queryVector)))
                 .build());
 
+        return toRetrievedChunks(response);
+    }
+
+    private List<RetrievedKnowledgeChunk> toRetrievedChunks(SearchResp response) {
         return response.getSearchResults().stream()
                 .flatMap(List::stream)
                 .map(this::toRetrievedChunk)
@@ -80,9 +121,17 @@ public class MilvusKnowledgeChunkRepository implements KnowledgeChunkRepository 
             row.addProperty(HEADING, chunk.heading());
         }
         row.addProperty(CHUNK_TEXT, chunk.chunkText());
+        row.addProperty(FULL_TEXT, buildFullText(chunk));
         chunk.metadata().forEach(row::addProperty);
         row.add(EMBEDDING, toJsonArray(chunk.embedding()));
         return row;
+    }
+
+    private String buildFullText(KnowledgeChunk chunk) {
+        if (chunk.heading() == null || chunk.heading().isBlank()) {
+            return chunk.chunkText();
+        }
+        return chunk.heading() + "\n" + chunk.chunkText();
     }
 
     private JsonArray toJsonArray(float[] embedding) {

@@ -22,7 +22,7 @@ class KnowledgeRetrievalServiceVectorTest {
         KnowledgeChunkRepository repository = mock(KnowledgeChunkRepository.class);
         KnowledgeEmbeddingService embeddingService = mock(KnowledgeEmbeddingService.class);
         when(embeddingService.embed("streaming project")).thenReturn(new float[]{0.1f, 0.2f});
-        when(repository.searchByVector(any(), isNull(), eq(5)))
+        when(repository.searchHybrid(eq("streaming project"), any(), isNull(), eq(5)))
                 .thenReturn(List.of(new RetrievedKnowledgeChunk(
                         "doc-1",
                         "resume.md",
@@ -42,6 +42,6 @@ class KnowledgeRetrievalServiceVectorTest {
         assertEquals(1, results.size());
         assertEquals(0.92, results.get(0).score());
         verify(embeddingService).embed("streaming project");
-        verify(repository).searchByVector(any(), isNull(), eq(5));
+        verify(repository).searchHybrid(eq("streaming project"), any(), isNull(), eq(5));
     }
 }

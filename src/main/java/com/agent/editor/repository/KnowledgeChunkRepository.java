@@ -13,6 +13,13 @@ public interface KnowledgeChunkRepository {
         throw new UnsupportedOperationException("Chunk persistence is not implemented");
     }
 
+    default List<RetrievedKnowledgeChunk> searchHybrid(String query,
+                                                       float[] queryVector,
+                                                       List<String> documentIds,
+                                                       int topK) {
+        throw new UnsupportedOperationException("Hybrid search is not implemented");
+    }
+
     default List<RetrievedKnowledgeChunk> searchByVector(float[] queryVector, List<String> documentIds, int topK) {
         throw new UnsupportedOperationException("Vector search is not implemented");
     }

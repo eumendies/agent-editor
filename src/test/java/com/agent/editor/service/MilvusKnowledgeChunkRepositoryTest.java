@@ -5,6 +5,7 @@ import com.agent.editor.model.KnowledgeChunk;
 import com.agent.editor.model.RetrievedKnowledgeChunk;
 import com.agent.editor.repository.MilvusKnowledgeChunkRepository;
 import io.milvus.v2.client.MilvusClientV2;
+import io.milvus.v2.service.vector.request.HybridSearchReq;
 import io.milvus.v2.service.vector.request.SearchReq;
 import io.milvus.v2.service.vector.request.UpsertReq;
 import io.milvus.v2.service.vector.response.SearchResp;
@@ -28,7 +29,7 @@ class MilvusKnowledgeChunkRepositoryTest {
     @Test
     void shouldMapMilvusHitsToRetrievedKnowledgeChunks() {
         MilvusClientV2 milvusClient = mock(MilvusClientV2.class);
-        when(milvusClient.search(any(SearchReq.class))).thenReturn(SearchResp.builder()
+        when(milvusClient.hybridSearch(any(HybridSearchReq.class))).thenReturn(SearchResp.builder()
                 .searchResults(List.of(List.of(SearchResp.SearchResult.builder()
                         .entity(Map.of(
                                 "documentId", "doc-1",
@@ -42,10 +43,15 @@ class MilvusKnowledgeChunkRepositoryTest {
                 .build());
         MilvusKnowledgeChunkRepository repository = new MilvusKnowledgeChunkRepository(
                 milvusClient,
-                new MilvusProperties("localhost", 19530, "knowledge_chunks", 3)
+                new MilvusProperties("localhost", 19530, "knowledge_chunks_v2", 3)
         );
 
-        List<RetrievedKnowledgeChunk> results = repository.searchByVector(new float[]{0.1f, 0.2f, 0.3f}, null, 3);
+        List<RetrievedKnowledgeChunk> results = repository.searchHybrid(
+                "Spring Boot",
+                new float[]{0.1f, 0.2f, 0.3f},
+                null,
+                3
+        );
 
         assertEquals(1, results.size());
         assertEquals("resume.md", results.get(0).fileName());
@@ -53,11 +59,40 @@ class MilvusKnowledgeChunkRepositoryTest {
         assertEquals("Spring Boot 项目经验", results.get(0).chunkText());
         assertTrue(results.get(0).score() > 0);
 
+        ArgumentCaptor<HybridSearchReq> requestCaptor = ArgumentCaptor.forClass(HybridSearchReq.class);
+        verify(milvusClient).hybridSearch(requestCaptor.capture());
+        assertEquals("knowledge_chunks_v2", requestCaptor.getValue().getCollectionName());
+        assertEquals(3, requestCaptor.getValue().getTopK());
+        assertEquals(2, requestCaptor.getValue().getSearchRequests().size());
+        assertEquals("embedding", requestCaptor.getValue().getSearchRequests().get(0).getVectorFieldName());
+        assertEquals("sparseFullText", requestCaptor.getValue().getSearchRequests().get(1).getVectorFieldName());
+    }
+
+    @Test
+    void shouldFallbackToVectorSearchWhenHybridSearchFails() {
+        MilvusClientV2 milvusClient = mock(MilvusClientV2.class);
+        when(milvusClient.hybridSearch(any(HybridSearchReq.class))).thenThrow(new RuntimeException("hybrid failed"));
+        when(milvusClient.search(any(SearchReq.class))).thenReturn(SearchResp.builder()
+                .searchResults(List.of(List.of()))
+                .build());
+        MilvusKnowledgeChunkRepository repository = new MilvusKnowledgeChunkRepository(
+                milvusClient,
+                new MilvusProperties("localhost", 19530, "knowledge_chunks_v2", 3)
+        );
+
+        List<RetrievedKnowledgeChunk> results = repository.searchHybrid(
+                "Spring Boot",
+                new float[]{0.1f, 0.2f, 0.3f},
+                List.of("doc-1"),
+                3
+        );
+
+        assertTrue(results.isEmpty());
+
         ArgumentCaptor<SearchReq> requestCaptor = ArgumentCaptor.forClass(SearchReq.class);
         verify(milvusClient).search(requestCaptor.capture());
-        assertEquals("knowledge_chunks", requestCaptor.getValue().getCollectionName());
-        assertEquals(3, requestCaptor.getValue().getTopK());
-        assertNull(requestCaptor.getValue().getFilter());
+        assertEquals("knowledge_chunks_v2", requestCaptor.getValue().getCollectionName());
+        assertEquals("documentId in [\"doc-1\"]", requestCaptor.getValue().getFilter());
     }
 
     @Test
@@ -65,7 +100,7 @@ class MilvusKnowledgeChunkRepositoryTest {
         MilvusClientV2 milvusClient = mock(MilvusClientV2.class);
         MilvusKnowledgeChunkRepository repository = new MilvusKnowledgeChunkRepository(
                 milvusClient,
-                new MilvusProperties("localhost", 19530, "knowledge_chunks", 3)
+                new MilvusProperties("localhost", 19530, "knowledge_chunks_v2", 3)
         );
 
         repository.saveAll(List.of(new KnowledgeChunk(
@@ -82,11 +117,12 @@ class MilvusKnowledgeChunkRepositoryTest {
         verify(milvusClient).upsert(requestCaptor.capture());
         UpsertReq request = requestCaptor.getValue();
 
-        assertEquals("knowledge_chunks", request.getCollectionName());
+        assertEquals("knowledge_chunks_v2", request.getCollectionName());
         assertEquals("doc-1", request.getData().get(0).get("documentId").getAsString());
         assertEquals("resume.md", request.getData().get(0).get("fileName").getAsString());
         assertEquals("项目经历", request.getData().get(0).get("heading").getAsString());
         assertEquals("Spring Boot 项目经验", request.getData().get(0).get("chunkText").getAsString());
+        assertEquals("项目经历\nSpring Boot 项目经验", request.getData().get(0).get("fullText").getAsString());
         assertEquals("resume", request.getData().get(0).get("category").getAsString());
         assertEquals("markdown", request.getData().get(0).get("documentType").getAsString());
         assertArrayEquals(

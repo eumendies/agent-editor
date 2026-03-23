@@ -47,5 +47,5 @@ milvus:
   enabled: true
   host: localhost
   port: 19530
-  collection-name: knowledge_chunks
+  collection-name: knowledge_chunks_v2
   embedding-dimension: 1024
