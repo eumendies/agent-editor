@@ -1,5 +1,8 @@
 package com.agent.editor.agent.v2.supervisor;
 
+import com.agent.editor.agent.v2.supervisor.worker.WorkerDefinition;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerResult;
+
 import java.util.List;
 
 public record SupervisorContext(

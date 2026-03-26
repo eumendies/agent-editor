@@ -19,6 +19,8 @@ import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.trace.TraceCategory;
 import com.agent.editor.agent.v2.trace.TraceStore;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerDefinition;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerRegistry;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;

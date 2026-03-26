@@ -16,7 +16,7 @@ import com.agent.editor.agent.v2.reflexion.ReflexionCriticDefinition;
 import com.agent.editor.agent.v2.reflexion.ReflexionOrchestrator;
 import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
 import com.agent.editor.agent.v2.supervisor.SupervisorOrchestrator;
-import com.agent.editor.agent.v2.supervisor.WorkerRegistry;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerRegistry;
 import com.agent.editor.agent.v2.task.RoutingTaskOrchestrator;
 import com.agent.editor.agent.v2.react.ReActAgentOrchestrator;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;

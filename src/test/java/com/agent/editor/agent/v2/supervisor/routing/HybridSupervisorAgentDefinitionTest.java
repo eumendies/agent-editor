@@ -1,10 +1,14 @@
-package com.agent.editor.agent.v2.supervisor;
+package com.agent.editor.agent.v2.supervisor.routing;
 
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
+import com.agent.editor.agent.v2.supervisor.SupervisorContext;
+import com.agent.editor.agent.v2.supervisor.SupervisorDecision;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerDefinition;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerResult;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -233,8 +237,17 @@ class HybridSupervisorAgentDefinitionTest {
     }
 
     @Test
-    void shouldPreferResearcherForFactSeekingTaskWhenModelIsUnavailable() {
-        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition((SupervisorRoutingAiService) null);
+    void shouldUseRoutingServiceToSelectResearcherForInitialDispatch() {
+        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
+                new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
+                        SupervisorAction.ASSIGN_WORKER,
+                        "researcher",
+                        "Collect supporting evidence from the knowledge base",
+                        null,
+                        null,
+                        "fact-heavy task"
+                ))
+        );
 
         SupervisorDecision decision = definition.decide(new SupervisorContext(
                 "task-8",
@@ -250,8 +263,17 @@ class HybridSupervisorAgentDefinitionTest {
     }
 
     @Test
-    void shouldPreferWriterForPureRewriteTaskWhenModelIsUnavailable() {
-        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition((SupervisorRoutingAiService) null);
+    void shouldUseRoutingServiceToSelectWriterForInitialDispatch() {
+        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
+                new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
+                        SupervisorAction.ASSIGN_WORKER,
+                        "writer",
+                        "Rewrite the draft while preserving intent",
+                        null,
+                        null,
+                        "rewrite task"
+                ))
+        );
 
         SupervisorDecision decision = definition.decide(new SupervisorContext(
                 "task-9",

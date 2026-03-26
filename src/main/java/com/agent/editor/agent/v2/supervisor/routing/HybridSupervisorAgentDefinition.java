@@ -1,7 +1,12 @@
-package com.agent.editor.agent.v2.supervisor;
+package com.agent.editor.agent.v2.supervisor.routing;
 
-import com.agent.editor.agent.v2.rag.ReviewerFeedback;
-import com.agent.editor.agent.v2.rag.ReviewerVerdict;
+import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
+import com.agent.editor.agent.v2.supervisor.SupervisorContext;
+import com.agent.editor.agent.v2.supervisor.SupervisorDecision;
+import com.agent.editor.agent.v2.supervisor.worker.ReviewerFeedback;
+import com.agent.editor.agent.v2.supervisor.worker.ReviewerVerdict;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerDefinition;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerResult;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.model.chat.ChatModel;
@@ -109,13 +114,6 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
 
         ArrayList<WorkerDefinition> ordered = new ArrayList<>();
         if (context.workerResults().isEmpty()) {
-            if (needsResearch(context.originalInstruction())) {
-                addByCapability(ordered, allowedWorkers, "research");
-                addByCapability(ordered, allowedWorkers, "write");
-            } else {
-                addByCapability(ordered, allowedWorkers, "write");
-                addByCapability(ordered, allowedWorkers, "research");
-            }
             addRemaining(ordered, allowedWorkers);
             return List.copyOf(ordered);
         }
@@ -244,32 +242,6 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
         } catch (Exception ignored) {
             return null;
         }
-    }
-
-    private boolean needsResearch(String instruction) {
-        if (instruction == null || instruction.isBlank()) {
-            return false;
-        }
-        String normalized = instruction.toLowerCase();
-        if (normalized.contains("without adding new facts")
-                || normalized.contains("polish")
-                || normalized.contains("rewrite")
-                || normalized.contains("concise")
-                || normalized.contains("tone")
-                || normalized.contains("格式")
-                || normalized.contains("润色")
-                || normalized.contains("改写")) {
-            return false;
-        }
-        return normalized.contains("knowledge base")
-                || normalized.contains("knowledge")
-                || normalized.contains("facts")
-                || normalized.contains("project")
-                || normalized.contains("grounded")
-                || normalized.contains("technical")
-                || normalized.contains("资料")
-                || normalized.contains("事实")
-                || normalized.contains("项目");
     }
 
     private void addByCapability(List<WorkerDefinition> ordered,

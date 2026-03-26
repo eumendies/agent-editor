@@ -1,4 +1,4 @@
-package com.agent.editor.agent.v2.rag;
+package com.agent.editor.agent.v2.supervisor.worker;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
@@ -56,7 +56,7 @@ class ResearcherAgentDefinitionTest {
                 new ChatMessage.UserChatMessage("ground this answer")
         ))));
 
-        assertThatToolNames(chatModel.lastRequest).equals(List.of("retrieveKnowledge"));
+        assertEquals(List.of("retrieveKnowledge"), assertThatToolNames(chatModel.lastRequest));
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
         assertTrue(systemMessage.text().contains("Use retrieveKnowledge"));
         assertTrue(systemMessage.text().contains("return strict JSON"));

@@ -3,11 +3,14 @@ package com.agent.editor.config;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.reflexion.ReflexionActorDefinition;
 import com.agent.editor.agent.v2.reflexion.ReflexionCriticDefinition;
-import com.agent.editor.agent.v2.supervisor.HybridSupervisorAgentDefinition;
 import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
-import com.agent.editor.agent.v2.supervisor.WorkerDefinition;
+import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgentDefinition;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
-import com.agent.editor.agent.v2.supervisor.WorkerRegistry;
+import com.agent.editor.agent.v2.supervisor.worker.EvidenceReviewerAgentDefinition;
+import com.agent.editor.agent.v2.supervisor.worker.GroundedWriterAgentDefinition;
+import com.agent.editor.agent.v2.supervisor.worker.ResearcherAgentDefinition;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerDefinition;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerRegistry;
 import com.agent.editor.agent.v2.trace.TraceCollector;
 import com.agent.editor.agent.v2.trace.TraceStore;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
@@ -62,14 +65,17 @@ class AgentV2ConfigurationSplitTest {
 
             assertThat(workerRegistry.all())
                     .extracting(WorkerDefinition::workerId)
-                    .containsExactly("analyzer", "editor", "reviewer");
+                    .containsExactly("researcher", "writer", "reviewer");
             assertThat(workerRegistry.all())
                     .extracting(WorkerDefinition::capabilities)
                     .allSatisfy(capabilities -> assertThat(capabilities).isNotEmpty());
-            assertThat(workerRegistry.get("analyzer").capabilities()).containsExactly("analyze");
-            assertThat(workerRegistry.get("editor").capabilities()).containsExactly("edit", "draft");
-            assertThat(workerRegistry.get("editor").description()).contains("writing from scratch");
+            assertThat(workerRegistry.get("researcher").capabilities()).containsExactly("research");
+            assertThat(workerRegistry.get("writer").capabilities()).containsExactly("write", "edit");
+            assertThat(workerRegistry.get("writer").description()).contains("grounded");
             assertThat(workerRegistry.get("reviewer").capabilities()).containsExactly("review");
+            assertThat(workerRegistry.get("researcher").agentDefinition()).isInstanceOf(ResearcherAgentDefinition.class);
+            assertThat(workerRegistry.get("writer").agentDefinition()).isInstanceOf(GroundedWriterAgentDefinition.class);
+            assertThat(workerRegistry.get("reviewer").agentDefinition()).isInstanceOf(EvidenceReviewerAgentDefinition.class);
         });
     }
 

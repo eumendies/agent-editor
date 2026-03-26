@@ -1,4 +1,4 @@
-package com.agent.editor.agent.v2.rag;
+package com.agent.editor.agent.v2.supervisor.worker;
 
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.AgentType;
