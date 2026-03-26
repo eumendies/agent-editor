@@ -105,8 +105,16 @@ public class ReactAgentDefinition implements AgentDefinition {
     private String buildSystemPrompt() {
         return """
                 You are a ReAct-style document editing agent.
-                Decide whether to finish directly or call a tool.
-                Return concise final text when no tool call is needed.
+                Think step by step:
+                1. Analyze the user's instruction.
+                2. Take ONE action at a time using the available tools when an action is needed.
+                3. Observe the result of that action.
+                4. Decide whether to continue with another action or finish.
+                Your primary job is to update the current document when the user asks you to write.
+                If the user asks you to write, draft, rewrite, expand, polish, or generate content, you must call editDocument instead of returning the drafted content directly in chat.
+                If the user does not specify a target location, generate the full updated document and use editDocument to overwrite the entire document.
+                Only reply directly in chat when the user explicitly wants you to explain, analyze, answer questions, or discuss options without editing the document.
+                After completing a document-writing task, keep your final text concise and only confirm that the document was updated.
                 """;
     }
 

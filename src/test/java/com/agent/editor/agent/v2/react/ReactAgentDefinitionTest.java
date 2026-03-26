@@ -93,6 +93,28 @@ class ReactAgentDefinitionTest {
     }
 
     @Test
+    void shouldInstructWritingRequestsToUseEditDocumentByDefault() {
+        RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
+                .aiMessage(AiMessage.from("updated"))
+                .build());
+        ReactAgentDefinition definition = new ReactAgentDefinition(
+                chatModel,
+                new DefaultTraceCollector(new InMemoryTraceStore())
+        );
+
+        definition.decide(context());
+
+        SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
+        String prompt = systemMessage.text();
+        assertTrue(prompt.contains("must call editDocument"));
+        assertTrue(prompt.contains("overwrite the entire document"));
+        assertTrue(prompt.contains("explain, analyze, answer questions, or discuss options"));
+        assertTrue(prompt.contains("Think step by step"));
+        assertTrue(prompt.contains("Take ONE action at a time"));
+        assertTrue(prompt.contains("Observe the result"));
+    }
+
+    @Test
     void shouldAppendTranscriptMemoryMessagesToModelRequestWithoutDuplicatingCurrentTurnPrompt() {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("final answer"))
