@@ -4,6 +4,7 @@ import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
+import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
@@ -52,7 +53,7 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
                 .withRequest(request)
                 .withToolSpecifications(toolRegistry.specifications(request.allowedTools()))
                 .appendMemory(new ChatMessage.UserChatMessage(request.instruction()));
-        while (state.iteration() < request.maxIterations() && !state.completed()) {
+        while (state.iteration() < request.maxIterations() && state.stage() != com.agent.editor.agent.v2.core.state.ExecutionStage.COMPLETED) {
             eventPublisher.publish(new ExecutionEvent(EventType.ITERATION_STARTED, request.taskId(), "iteration " + state.iteration()));
             traceCollector.collect(traceRecord(
                     request,
@@ -61,7 +62,7 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
                     "runtime.iteration.started",
                     Map.of(
                             "currentContent", state.currentContent(),
-                            "toolResults", state.toolResults().stream().map(ToolResult::message).toList(),
+                            "toolResults", extractToolResultMessages(state),
                             "maxIterations", request.maxIterations()
                     )
             ));
@@ -199,5 +200,16 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
                 iteration,
                 payload
         );
+    }
+
+    private List<String> extractToolResultMessages(AgentRunContext state) {
+        if (!(state.memory() instanceof ChatTranscriptMemory transcriptMemory)) {
+            return List.of();
+        }
+        return transcriptMemory.messages().stream()
+                .filter(ChatMessage.ToolExecutionResultChatMessage.class::isInstance)
+                .map(ChatMessage.ToolExecutionResultChatMessage.class::cast)
+                .map(ChatMessage.ToolExecutionResultChatMessage::text)
+                .toList();
     }
 }

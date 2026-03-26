@@ -7,6 +7,7 @@ import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Method;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -78,5 +79,15 @@ class AgentRunContextTest {
         assertEquals(ExecutionStage.COMPLETED, updated.stage());
         ChatTranscriptMemory memory = (ChatTranscriptMemory) updated.memory();
         assertEquals(1, memory.messages().size());
+    }
+
+    @Test
+    void shouldNotExposeInterpretationHelpers() {
+        List<String> declaredMethodNames = List.of(AgentRunContext.class.getDeclaredMethods()).stream()
+                .map(Method::getName)
+                .toList();
+
+        assertTrue(declaredMethodNames.stream().noneMatch("completed"::equals));
+        assertTrue(declaredMethodNames.stream().noneMatch("toolResults"::equals));
     }
 }

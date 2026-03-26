@@ -283,7 +283,7 @@ class ToolLoopExecutionRuntimeTest {
 
         @Override
         public Decision decide(AgentRunContext context) {
-            if (context.state().toolResults().isEmpty()) {
+            if (toolResultCount(context) == 0) {
                 return new Decision.ToolCalls(List.of(new ToolCall("appendText", "{\"suffix\":\" world\"}")), "need tool");
             }
             return new Decision.Complete("updated", "tool finished");
@@ -324,7 +324,7 @@ class ToolLoopExecutionRuntimeTest {
 
         @Override
         public Decision decide(AgentRunContext context) {
-            if (context.state().toolResults().size() < 2) {
+            if (toolResultCount(context) < 2) {
                 return new Decision.ToolCalls(List.of(new ToolCall("appendText", "{\"suffix\":\" world\"}")), "need another tool run");
             }
             return new Decision.Complete("used two tools", "tool history available");
@@ -347,5 +347,12 @@ class ToolLoopExecutionRuntimeTest {
             seenContent = context.state().currentContent();
             return new Decision.Complete("resumed", "resumed execution");
         }
+    }
+
+    private static long toolResultCount(AgentRunContext context) {
+        ChatTranscriptMemory memory = (ChatTranscriptMemory) context.memory();
+        return memory.messages().stream()
+                .filter(ChatMessage.ToolExecutionResultChatMessage.class::isInstance)
+                .count();
     }
 }

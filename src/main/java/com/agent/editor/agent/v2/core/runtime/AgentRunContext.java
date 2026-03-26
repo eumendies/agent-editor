@@ -4,7 +4,6 @@ import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.memory.ExecutionMemory;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.tool.ToolResult;
 import dev.langchain4j.agent.tool.ToolSpecification;
 
 import java.util.List;
@@ -99,18 +98,4 @@ public record AgentRunContext(
         );
     }
 
-    public boolean completed() {
-        return stage == ExecutionStage.COMPLETED;
-    }
-
-    public List<ToolResult> toolResults() {
-        if (!(memory instanceof ChatTranscriptMemory transcriptMemory)) {
-            return List.of();
-        }
-        return transcriptMemory.messages().stream()
-                .filter(ChatMessage.ToolExecutionResultChatMessage.class::isInstance)
-                .map(ChatMessage.ToolExecutionResultChatMessage.class::cast)
-                .map(message -> new ToolResult(message.text()))
-                .toList();
-    }
 }
