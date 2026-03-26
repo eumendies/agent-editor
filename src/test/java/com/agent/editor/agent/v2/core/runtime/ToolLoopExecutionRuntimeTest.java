@@ -24,12 +24,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class DefaultExecutionRuntimeTest {
+class ToolLoopExecutionRuntimeTest {
 
     @Test
     void shouldCompleteWhenAgentReturnsCompleteDecision() {
         AgentDefinition agent = new CompletingAgentDefinition();
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 new ToolRegistry(),
                 event -> {},
                 new DefaultTraceCollector(new InMemoryTraceStore())
@@ -63,7 +63,7 @@ class DefaultExecutionRuntimeTest {
     void shouldExecuteToolCallsBeforeCompleting() {
         ToolRegistry registry = new ToolRegistry();
         registry.register(new AppendToolHandler());
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
                 event -> {},
                 new DefaultTraceCollector(new InMemoryTraceStore())
@@ -88,7 +88,7 @@ class DefaultExecutionRuntimeTest {
     void shouldRejectToolCallsOutsideAllowedWorkerTools() {
         ToolRegistry registry = new ToolRegistry();
         registry.register(new AppendToolHandler());
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
                 event -> {},
                 new DefaultTraceCollector(new InMemoryTraceStore())
@@ -114,7 +114,7 @@ class DefaultExecutionRuntimeTest {
     void shouldAccumulateToolResultsAcrossIterations() {
         ToolRegistry registry = new ToolRegistry();
         registry.register(new AppendToolHandler());
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
                 event -> {},
                 new DefaultTraceCollector(new InMemoryTraceStore())
@@ -139,7 +139,7 @@ class DefaultExecutionRuntimeTest {
         ToolRegistry registry = new ToolRegistry();
         registry.register(new AppendToolHandler());
         TraceStore traceStore = new InMemoryTraceStore();
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
                 event -> {},
                 new DefaultTraceCollector(traceStore)
@@ -173,7 +173,7 @@ class DefaultExecutionRuntimeTest {
     @Test
     void shouldResumeFromProvidedExecutionState() {
         ToolRegistry registry = new ToolRegistry();
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
                 event -> {},
                 new DefaultTraceCollector(new InMemoryTraceStore())
@@ -202,7 +202,7 @@ class DefaultExecutionRuntimeTest {
     void shouldPreserveExistingMemoryWhenToolResultsAreAppended() {
         ToolRegistry registry = new ToolRegistry();
         registry.register(new AppendToolHandler());
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
                 event -> {},
                 new DefaultTraceCollector(new InMemoryTraceStore())

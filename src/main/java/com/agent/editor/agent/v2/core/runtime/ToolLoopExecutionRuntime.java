@@ -23,16 +23,16 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * 通用单 agent runtime。
- * 它只负责 decision -> tool execution -> next decision 的循环，不关心上层是 ReAct、Planning 还是 Supervisor worker。
+ * 需要工具循环的单 agent 执行器。
+ * 它只负责 decision -> tool execution -> next decision 的循环，不负责多 agent 编排或跨 agent 上下文策略。
  */
-public class DefaultExecutionRuntime implements ExecutionRuntime {
+public class ToolLoopExecutionRuntime implements ExecutionRuntime {
 
     private final ToolRegistry toolRegistry;
     private final EventPublisher eventPublisher;
     private final TraceCollector traceCollector;
 
-    public DefaultExecutionRuntime(ToolRegistry toolRegistry, EventPublisher eventPublisher, TraceCollector traceCollector) {
+    public ToolLoopExecutionRuntime(ToolRegistry toolRegistry, EventPublisher eventPublisher, TraceCollector traceCollector) {
         this.toolRegistry = toolRegistry;
         this.eventPublisher = eventPublisher;
         this.traceCollector = traceCollector;
