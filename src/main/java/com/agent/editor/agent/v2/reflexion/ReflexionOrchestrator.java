@@ -3,6 +3,7 @@ package com.agent.editor.agent.v2.reflexion;
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
+import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
@@ -46,12 +47,14 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
     @Override
     public TaskResult execute(TaskRequest request) {
         // actor state 跨轮复用，保存上一轮真正沉淀下来的编辑上下文与 critique 历史。
-        ExecutionState actorState = new ExecutionState(
+        AgentRunContext actorState = new AgentRunContext(
+                null,
                 0,
                 request.document().content(),
                 request.memory(),
                 ExecutionStage.RUNNING,
-                null
+                null,
+                List.of()
         );
         String currentContent = request.document().content();
 
@@ -92,7 +95,7 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
                     criticDefinition,
                     criticRequest(request, currentContent, actorResult.finalMessage()),
                     // critic 每轮 fresh，避免把上轮批评过程本身继续带进下一轮判定。
-                    new ExecutionState(0, currentContent)
+                    new AgentRunContext(0, currentContent)
             );
             ReflexionCritique critique = criticDefinition.parseCritique(criticResult.finalMessage());
             traceCollector.collect(traceRecord(
@@ -176,12 +179,23 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
 
     private String formatCritique(int round, ReflexionCritique critique) {
         return """
-                Critique round %d:
-                %s
+                Reflection critique:
+                {"round":%d,"verdict":"%s","feedback":"%s","reasoning":"%s"}
+                """.formatted(
+                round,
+                critique.verdict().name(),
+                escapeJson(critique.feedback()),
+                escapeJson(critique.reasoning())
+        );
+    }
 
-                Reasoning:
-                %s
-                """.formatted(round, critique.feedback(), critique.reasoning());
+    private String escapeJson(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"");
     }
 
     private TraceRecord traceRecord(TaskRequest request,

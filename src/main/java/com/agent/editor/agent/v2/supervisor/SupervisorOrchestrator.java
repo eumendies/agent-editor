@@ -4,12 +4,15 @@ import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
+import com.agent.editor.agent.v2.core.memory.ChatMessage;
+import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
+import com.agent.editor.agent.v2.core.memory.ExecutionMemory;
+import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
@@ -53,12 +56,14 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
     @Override
     public TaskResult execute(TaskRequest request) {
         String currentContent = request.document().content();
-        ExecutionState conversationState = new ExecutionState(
+        AgentRunContext conversationState = new AgentRunContext(
+                null,
                 0,
                 currentContent,
                 request.memory(),
                 ExecutionStage.RUNNING,
-                null
+                null,
+                List.of()
         );
         List<WorkerResult> workerResults = new ArrayList<>();
         // 混合 supervisor 允许 worker 重复调度，因此预算至少覆盖“一轮 worker 池 + 一次额外重试 + 最终收口”。
@@ -120,12 +125,14 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                                 worker.workerId(),
                                 worker.allowedTools()
                         ),
-                        conversationState.withCurrentContent(currentContent).withStage(ExecutionStage.RUNNING)
+                        buildWorkerRunContext(conversationState, currentContent)
                 );
 
                 // worker 执行完后，最新文档内容会回灌给 supervisor，供下一轮继续分派。
                 currentContent = result.finalContent();
-                conversationState = result.finalState();
+                conversationState = appendWorkerSummary(conversationState, worker.workerId(), result.finalMessage())
+                        .withCurrentContent(currentContent)
+                        .withStage(ExecutionStage.RUNNING);
                 workerResults.add(new WorkerResult(
                         worker.workerId(),
                         TaskStatus.COMPLETED,
@@ -183,5 +190,26 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
         }
 
         throw new IllegalStateException("Supervisor terminated without completion");
+    }
+
+    // worker 之间只共享结构化阶段结果，不共享完整工具 transcript，避免角色决策被上游过程污染。
+    private AgentRunContext buildWorkerRunContext(AgentRunContext conversationState, String currentContent) {
+        return new AgentRunContext(
+                null,
+                conversationState.iteration(),
+                currentContent,
+                conversationState.memory(),
+                ExecutionStage.RUNNING,
+                conversationState.pendingReason(),
+                List.of()
+        );
+    }
+
+    private AgentRunContext appendWorkerSummary(AgentRunContext conversationState, String workerId, String summary) {
+        return conversationState.appendMemory(new ChatMessage.UserChatMessage("""
+                Previous worker result:
+                workerId: %s
+                summary: %s
+                """.formatted(workerId, summary)));
     }
 }

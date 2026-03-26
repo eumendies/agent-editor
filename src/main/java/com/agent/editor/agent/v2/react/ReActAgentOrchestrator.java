@@ -1,11 +1,11 @@
 package com.agent.editor.agent.v2.react;
 
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
+import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
@@ -23,12 +23,14 @@ public class ReActAgentOrchestrator implements TaskOrchestrator {
 
     @Override
     public TaskResult execute(TaskRequest request) {
-        ExecutionState initialState = new ExecutionState(
+        AgentRunContext initialState = new AgentRunContext(
+                null,
                 0,
                 request.document().content(),
                 request.memory(),
                 ExecutionStage.RUNNING,
-                null
+                null,
+                java.util.List.of()
         );
         ExecutionResult result = runtime.run(
                 agentDefinition,

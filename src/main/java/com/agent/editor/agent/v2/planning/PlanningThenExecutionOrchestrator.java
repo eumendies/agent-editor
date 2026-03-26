@@ -7,12 +7,12 @@ import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
+import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
@@ -73,12 +73,14 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
                 )
         ));
 
-        ExecutionState currentState = new ExecutionState(
+        AgentRunContext currentState = new AgentRunContext(
+                null,
                 0,
                 request.document().content(),
                 request.memory(),
                 ExecutionStage.RUNNING,
-                null
+                null,
+                java.util.List.of()
         );
         String currentContent = request.document().content();
         for (PlanStep step : plan.steps()) {
@@ -97,7 +99,7 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
                             "currentContent", currentContent
                     )
             ));
-            ExecutionState stepState = prepareStepState(currentState, step);
+            AgentRunContext stepState = prepareStepState(currentState, step);
             // 每个步骤都基于上一步的文档内容继续执行，形成显式的阶段性产物传递。
             ExecutionResult result = executionRuntime.run(
                     executionAgent,
@@ -123,25 +125,29 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
         return new TaskResult(TaskStatus.COMPLETED, currentContent, currentState.memory());
     }
 
-    private ExecutionState prepareStepState(ExecutionState state, PlanStep step) {
+    private AgentRunContext prepareStepState(AgentRunContext state, PlanStep step) {
         if (!(state.memory() instanceof ChatTranscriptMemory transcriptMemory)) {
-            return new ExecutionState(
+            return new AgentRunContext(
+                    state.request(),
                     state.iteration(),
                     state.currentContent(),
                     state.memory(),
                     ExecutionStage.RUNNING,
-                    state.pendingReason()
+                    state.pendingReason(),
+                    state.toolSpecifications()
             );
         }
 
         ArrayList<ChatMessage> messages = new ArrayList<>(transcriptMemory.messages());
         messages.add(new ChatMessage.UserChatMessage("Plan step %d: %s".formatted(step.order(), step.instruction())));
-        return new ExecutionState(
+        return new AgentRunContext(
+                state.request(),
                 state.iteration(),
                 state.currentContent(),
                 new ChatTranscriptMemory(messages),
                 ExecutionStage.RUNNING,
-                state.pendingReason()
+                state.pendingReason(),
+                state.toolSpecifications()
         );
     }
 }

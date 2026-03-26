@@ -4,7 +4,7 @@ import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
-import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
+import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.*;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
@@ -88,7 +88,7 @@ class ReflexionCriticDefinitionTest {
                 new DefaultTraceCollector(new InMemoryTraceStore())
         );
 
-        definition.decide(new ExecutionContext(
+        definition.decide(new AgentRunContext(
                 new ExecutionRequest(
                         "task-critic-2",
                         "session-critic-2",
@@ -97,21 +97,19 @@ class ReflexionCriticDefinitionTest {
                         "Review this draft and decide pass or revise",
                         3
                 ),
-                new ExecutionState(
-                        1,
-                        "Draft body",
-                        new ChatTranscriptMemory(List.of(
-                                new ChatMessage.AiChatMessage("I'll inspect the evidence first."),
-                                new ChatMessage.ToolExecutionResultChatMessage(
-                                        "tool-call-1",
-                                        "analyzeDocument",
-                                        "{}",
-                                        "analyzeDocument => intro is too long"
-                                )
-                        )),
-                        ExecutionStage.RUNNING,
-                        null
-                ),
+                1,
+                "Draft body",
+                new ChatTranscriptMemory(List.of(
+                        new ChatMessage.AiChatMessage("I'll inspect the evidence first."),
+                        new ChatMessage.ToolExecutionResultChatMessage(
+                                "tool-call-1",
+                                "analyzeDocument",
+                                "{}",
+                                "analyzeDocument => intro is too long"
+                        )
+                )),
+                ExecutionStage.RUNNING,
+                null,
                 java.util.List.of()
         ));
 
@@ -147,8 +145,8 @@ class ReflexionCriticDefinitionTest {
         assertEquals(Boolean.FALSE, rootSchema.additionalProperties());
     }
 
-    private ExecutionContext context() {
-        return new ExecutionContext(
+    private AgentRunContext context() {
+        return new AgentRunContext(
                 new ExecutionRequest(
                         "task-critic-1",
                         "session-critic-1",
@@ -157,7 +155,11 @@ class ReflexionCriticDefinitionTest {
                         "Review this draft and decide pass or revise",
                         3
                 ),
-                new ExecutionState(0, "Draft body"),
+                0,
+                "Draft body",
+                new ChatTranscriptMemory(List.of()),
+                ExecutionStage.RUNNING,
+                null,
                 java.util.List.of()
         );
     }

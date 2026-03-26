@@ -2,8 +2,8 @@ package com.agent.editor.config;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.memory.SessionMemoryStore;
-import com.agent.editor.agent.v2.core.runtime.DefaultExecutionRuntime;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
+import com.agent.editor.agent.v2.core.runtime.ToolLoopExecutionRuntime;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.LegacyEventAdapter;
 import com.agent.editor.agent.v2.event.WebSocketEventPublisher;
@@ -49,7 +49,7 @@ public class TaskOrchestratorConfig {
     public ExecutionRuntime executionRuntime(ToolRegistry toolRegistry,
                                              EventPublisher eventPublisher,
                                              TraceCollector traceCollector) {
-        return new DefaultExecutionRuntime(toolRegistry, eventPublisher, traceCollector);
+        return new ToolLoopExecutionRuntime(toolRegistry, eventPublisher, traceCollector);
     }
 
     @Bean

@@ -24,12 +24,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class DefaultExecutionRuntimeTest {
+class ToolLoopExecutionRuntimeTest {
 
     @Test
     void shouldCompleteWhenAgentReturnsCompleteDecision() {
         AgentDefinition agent = new CompletingAgentDefinition();
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 new ToolRegistry(),
                 event -> {},
                 new DefaultTraceCollector(new InMemoryTraceStore())
@@ -63,7 +63,7 @@ class DefaultExecutionRuntimeTest {
     void shouldExecuteToolCallsBeforeCompleting() {
         ToolRegistry registry = new ToolRegistry();
         registry.register(new AppendToolHandler());
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
                 event -> {},
                 new DefaultTraceCollector(new InMemoryTraceStore())
@@ -88,7 +88,7 @@ class DefaultExecutionRuntimeTest {
     void shouldRejectToolCallsOutsideAllowedWorkerTools() {
         ToolRegistry registry = new ToolRegistry();
         registry.register(new AppendToolHandler());
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
                 event -> {},
                 new DefaultTraceCollector(new InMemoryTraceStore())
@@ -114,7 +114,7 @@ class DefaultExecutionRuntimeTest {
     void shouldAccumulateToolResultsAcrossIterations() {
         ToolRegistry registry = new ToolRegistry();
         registry.register(new AppendToolHandler());
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
                 event -> {},
                 new DefaultTraceCollector(new InMemoryTraceStore())
@@ -139,7 +139,7 @@ class DefaultExecutionRuntimeTest {
         ToolRegistry registry = new ToolRegistry();
         registry.register(new AppendToolHandler());
         TraceStore traceStore = new InMemoryTraceStore();
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
                 event -> {},
                 new DefaultTraceCollector(traceStore)
@@ -173,7 +173,7 @@ class DefaultExecutionRuntimeTest {
     @Test
     void shouldResumeFromProvidedExecutionState() {
         ToolRegistry registry = new ToolRegistry();
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
                 event -> {},
                 new DefaultTraceCollector(new InMemoryTraceStore())
@@ -187,7 +187,7 @@ class DefaultExecutionRuntimeTest {
                 "finish",
                 3
         );
-        ExecutionState initialState = new ExecutionState(2, "resumed body");
+        AgentRunContext initialState = new AgentRunContext(2, "resumed body");
 
         ExecutionResult result = runtime.run(agent, request, initialState);
 
@@ -202,7 +202,7 @@ class DefaultExecutionRuntimeTest {
     void shouldPreserveExistingMemoryWhenToolResultsAreAppended() {
         ToolRegistry registry = new ToolRegistry();
         registry.register(new AppendToolHandler());
-        ExecutionRuntime runtime = new DefaultExecutionRuntime(
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
                 event -> {},
                 new DefaultTraceCollector(new InMemoryTraceStore())
@@ -215,7 +215,8 @@ class DefaultExecutionRuntimeTest {
                 "use tool",
                 3
         );
-        ExecutionState initialState = new ExecutionState(
+        AgentRunContext initialState = new AgentRunContext(
+                null,
                 0,
                 "body",
                 new ChatTranscriptMemory(List.of(
@@ -223,7 +224,8 @@ class DefaultExecutionRuntimeTest {
                         new ChatMessage.AiChatMessage("thinking")
                 )),
                 ExecutionStage.RUNNING,
-                null
+                null,
+                List.of()
         );
 
         ExecutionResult result = runtime.run(new ToolUsingAgentDefinition(), request, initialState);
@@ -267,7 +269,7 @@ class DefaultExecutionRuntimeTest {
         }
 
         @Override
-        public Decision decide(ExecutionContext context) {
+        public Decision decide(AgentRunContext context) {
             return new Decision.Complete("done", "complete immediately");
         }
     }
@@ -280,8 +282,8 @@ class DefaultExecutionRuntimeTest {
         }
 
         @Override
-        public Decision decide(ExecutionContext context) {
-            if (context.state().toolResults().isEmpty()) {
+        public Decision decide(AgentRunContext context) {
+            if (toolResultCount(context) == 0) {
                 return new Decision.ToolCalls(List.of(new ToolCall("appendText", "{\"suffix\":\" world\"}")), "need tool");
             }
             return new Decision.Complete("updated", "tool finished");
@@ -321,8 +323,8 @@ class DefaultExecutionRuntimeTest {
         }
 
         @Override
-        public Decision decide(ExecutionContext context) {
-            if (context.state().toolResults().size() < 2) {
+        public Decision decide(AgentRunContext context) {
+            if (toolResultCount(context) < 2) {
                 return new Decision.ToolCalls(List.of(new ToolCall("appendText", "{\"suffix\":\" world\"}")), "need another tool run");
             }
             return new Decision.Complete("used two tools", "tool history available");
@@ -340,10 +342,17 @@ class DefaultExecutionRuntimeTest {
         }
 
         @Override
-        public Decision decide(ExecutionContext context) {
+        public Decision decide(AgentRunContext context) {
             seenIteration = context.state().iteration();
             seenContent = context.state().currentContent();
             return new Decision.Complete("resumed", "resumed execution");
         }
+    }
+
+    private static long toolResultCount(AgentRunContext context) {
+        ChatTranscriptMemory memory = (ChatTranscriptMemory) context.memory();
+        return memory.messages().stream()
+                .filter(ChatMessage.ToolExecutionResultChatMessage.class::isInstance)
+                .count();
     }
 }

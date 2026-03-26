@@ -2,13 +2,12 @@ package com.agent.editor.agent.v2.react;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
-import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
+import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.trace.TraceCategory;
@@ -124,7 +123,7 @@ class ReactAgentDefinitionTest {
                 new DefaultTraceCollector(new InMemoryTraceStore())
         );
 
-        Decision decision = definition.decide(new ExecutionContext(
+        Decision decision = definition.decide(new AgentRunContext(
                 new ExecutionRequest(
                         "task-2",
                         "session-1",
@@ -133,23 +132,21 @@ class ReactAgentDefinitionTest {
                         "rewrite this",
                         3
                 ),
-                new ExecutionState(
-                        1,
-                        "revised body",
-                        new ChatTranscriptMemory(java.util.List.of(
-                                new ChatMessage.UserChatMessage("Plan step 1: inspect headings"),
-                                new ChatMessage.ToolExecutionResultChatMessage(
-                                        "tool-call-1",
-                                        "searchContent",
-                                        "{\"query\":\"heading\"}",
-                                        "Search for 'heading': Found"
-                                ),
-                                new ChatMessage.AiChatMessage("I found the heading block."),
-                                new ChatMessage.UserChatMessage("rewrite this")
-                        )),
-                        ExecutionStage.RUNNING,
-                        null
-                ),
+                1,
+                "revised body",
+                new ChatTranscriptMemory(java.util.List.of(
+                        new ChatMessage.UserChatMessage("Plan step 1: inspect headings"),
+                        new ChatMessage.ToolExecutionResultChatMessage(
+                                "tool-call-1",
+                                "searchContent",
+                                "{\"query\":\"heading\"}",
+                                "Search for 'heading': Found"
+                        ),
+                        new ChatMessage.AiChatMessage("I found the heading block."),
+                        new ChatMessage.UserChatMessage("rewrite this")
+                )),
+                ExecutionStage.RUNNING,
+                null,
                 java.util.List.of()
         ));
 
@@ -222,8 +219,8 @@ class ReactAgentDefinitionTest {
         ));
     }
 
-    private ExecutionContext context() {
-        return new ExecutionContext(
+    private AgentRunContext context() {
+        return new AgentRunContext(
                 new ExecutionRequest(
                         "task-1",
                         "session-1",
@@ -232,15 +229,13 @@ class ReactAgentDefinitionTest {
                         "rewrite this",
                         3
                 ),
-                new ExecutionState(
-                        0,
-                        "body",
-                        new ChatTranscriptMemory(java.util.List.of(
-                                new ChatMessage.UserChatMessage("rewrite this")
-                        )),
-                        ExecutionStage.RUNNING,
-                        null
-                ),
+                0,
+                "body",
+                new ChatTranscriptMemory(java.util.List.of(
+                        new ChatMessage.UserChatMessage("rewrite this")
+                )),
+                ExecutionStage.RUNNING,
+                null,
                 java.util.List.of()
         );
     }

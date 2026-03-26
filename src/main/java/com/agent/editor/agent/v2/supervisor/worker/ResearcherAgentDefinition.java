@@ -4,7 +4,7 @@ import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
-import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
+import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.v2.trace.TraceCategory;
 import com.agent.editor.agent.v2.trace.TraceCollector;
@@ -48,7 +48,7 @@ public class ResearcherAgentDefinition implements AgentDefinition {
     }
 
     @Override
-    public Decision decide(ExecutionContext context) {
+    public Decision decide(AgentRunContext context) {
         if (chatModel == null) {
             return new Decision.Complete("{}", "researcher stub");
         }
@@ -108,7 +108,7 @@ public class ResearcherAgentDefinition implements AgentDefinition {
                 """;
     }
 
-    private List<ChatMessage> buildMessages(ExecutionContext context, String systemPrompt) {
+    private List<ChatMessage> buildMessages(AgentRunContext context, String systemPrompt) {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt));
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().memory()));
@@ -119,7 +119,7 @@ public class ResearcherAgentDefinition implements AgentDefinition {
         return new ToolCall(request.id(), request.name(), request.arguments());
     }
 
-    private TraceRecord traceRecord(ExecutionContext context,
+    private TraceRecord traceRecord(AgentRunContext context,
                                     TraceCategory category,
                                     String stage,
                                     Map<String, Object> payload) {

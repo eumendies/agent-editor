@@ -3,14 +3,13 @@ package com.agent.editor.agent.v2.reflexion;
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
-import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
+import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
-import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
@@ -103,7 +102,9 @@ class ReflexionOrchestratorTest {
         ChatTranscriptMemory secondActorMemory = (ChatTranscriptMemory) runtime.actorStates.get(1).memory();
         assertTrue(secondActorMemory.messages().stream().anyMatch(message ->
                 message instanceof ChatMessage.UserChatMessage userMessage
-                        && userMessage.text().contains("Tighten the introduction")
+                        && userMessage.text().contains("\"verdict\":\"REVISE\"")
+                        && userMessage.text().contains("\"feedback\":\"Tighten the introduction\"")
+                        && userMessage.text().contains("\"reasoning\":\"too long\"")
         ));
         assertEquals(0, runtime.criticStates.get(0).iteration());
         assertEquals(0, runtime.criticStates.get(1).iteration());
@@ -204,12 +205,12 @@ class ReflexionOrchestratorTest {
         }
 
         @Override
-        public Decision decide(ExecutionContext context) {
+        public Decision decide(AgentRunContext context) {
             ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) context.state().memory();
             long critiqueCount = transcriptMemory.messages().stream()
                     .filter(ChatMessage.UserChatMessage.class::isInstance)
                     .map(ChatMessage.UserChatMessage.class::cast)
-                    .filter(message -> message.text().startsWith("Critique round"))
+                    .filter(message -> message.text().startsWith("Reflection critique"))
                     .count();
             long round = critiqueCount + 1;
             return new Decision.Complete(context.state().currentContent() + " -> actor-pass-" + round, "actor done");
@@ -218,31 +219,27 @@ class ReflexionOrchestratorTest {
 
     private static final class RecordingExecutionRuntime implements ExecutionRuntime {
 
-        private final List<ExecutionState> actorStates = new ArrayList<>();
-        private final List<ExecutionState> criticStates = new ArrayList<>();
+        private final List<AgentRunContext> actorStates = new ArrayList<>();
+        private final List<AgentRunContext> criticStates = new ArrayList<>();
         private final List<List<String>> actorAllowedTools = new ArrayList<>();
         private final List<List<String>> criticAllowedTools = new ArrayList<>();
 
         @Override
-        public ExecutionResult run(AgentDefinition definition, ExecutionRequest request, ExecutionState initialState) {
+        public ExecutionResult run(AgentDefinition definition, ExecutionRequest request, AgentRunContext initialState) {
             if (definition instanceof ReflexionCriticDefinition criticDefinition) {
                 criticStates.add(initialState);
                 criticAllowedTools.add(request.allowedTools());
-                Decision.Complete complete = (Decision.Complete) criticDefinition.decide(new ExecutionContext(
-                        request,
-                        initialState,
-                        List.of()
-                ));
+                Decision.Complete complete = (Decision.Complete) criticDefinition.decide(
+                        initialState.withRequest(request).withToolSpecifications(List.of())
+                );
                 return new ExecutionResult(complete.result(), initialState.currentContent(), initialState.markCompleted());
             }
 
             actorStates.add(initialState);
             actorAllowedTools.add(request.allowedTools());
-            Decision.Complete complete = (Decision.Complete) definition.decide(new ExecutionContext(
-                    request,
-                    initialState,
-                    List.of()
-            ));
+            Decision.Complete complete = (Decision.Complete) definition.decide(
+                    initialState.withRequest(request).withToolSpecifications(List.of())
+            );
             return new ExecutionResult(
                     complete.result(),
                     complete.result(),
@@ -252,7 +249,7 @@ class ReflexionOrchestratorTest {
 
         @Override
         public ExecutionResult run(AgentDefinition definition, ExecutionRequest request) {
-            return run(definition, request, new ExecutionState(0, request.document().content()));
+            return run(definition, request, new AgentRunContext(0, request.document().content()));
         }
     }
 

@@ -4,11 +4,10 @@ import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
-import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
+import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
@@ -126,8 +125,8 @@ class ResearcherAgentDefinitionTest {
         assertEquals("ground this answer", currentTurn.singleText());
     }
 
-    private ExecutionContext context(List<ToolSpecification> toolSpecifications, ChatTranscriptMemory memory) {
-        return new ExecutionContext(
+    private AgentRunContext context(List<ToolSpecification> toolSpecifications, ChatTranscriptMemory memory) {
+        return new AgentRunContext(
                 new ExecutionRequest(
                         "task-1",
                         "session-1",
@@ -136,13 +135,11 @@ class ResearcherAgentDefinitionTest {
                         "ground this answer",
                         3
                 ),
-                new ExecutionState(
-                        0,
-                        "body",
-                        memory,
-                        ExecutionStage.RUNNING,
-                        null
-                ),
+                0,
+                "body",
+                memory,
+                ExecutionStage.RUNNING,
+                null,
                 toolSpecifications
         );
     }
