@@ -179,12 +179,23 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
 
     private String formatCritique(int round, ReflexionCritique critique) {
         return """
-                Critique round %d:
-                %s
+                Reflection critique:
+                {"round":%d,"verdict":"%s","feedback":"%s","reasoning":"%s"}
+                """.formatted(
+                round,
+                critique.verdict().name(),
+                escapeJson(critique.feedback()),
+                escapeJson(critique.reasoning())
+        );
+    }
 
-                Reasoning:
-                %s
-                """.formatted(round, critique.feedback(), critique.reasoning());
+    private String escapeJson(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"");
     }
 
     private TraceRecord traceRecord(TaskRequest request,

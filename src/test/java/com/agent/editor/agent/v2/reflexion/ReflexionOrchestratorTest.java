@@ -102,7 +102,9 @@ class ReflexionOrchestratorTest {
         ChatTranscriptMemory secondActorMemory = (ChatTranscriptMemory) runtime.actorStates.get(1).memory();
         assertTrue(secondActorMemory.messages().stream().anyMatch(message ->
                 message instanceof ChatMessage.UserChatMessage userMessage
-                        && userMessage.text().contains("Tighten the introduction")
+                        && userMessage.text().contains("\"verdict\":\"REVISE\"")
+                        && userMessage.text().contains("\"feedback\":\"Tighten the introduction\"")
+                        && userMessage.text().contains("\"reasoning\":\"too long\"")
         ));
         assertEquals(0, runtime.criticStates.get(0).iteration());
         assertEquals(0, runtime.criticStates.get(1).iteration());
@@ -208,7 +210,7 @@ class ReflexionOrchestratorTest {
             long critiqueCount = transcriptMemory.messages().stream()
                     .filter(ChatMessage.UserChatMessage.class::isInstance)
                     .map(ChatMessage.UserChatMessage.class::cast)
-                    .filter(message -> message.text().startsWith("Critique round"))
+                    .filter(message -> message.text().startsWith("Reflection critique"))
                     .count();
             long round = critiqueCount + 1;
             return new Decision.Complete(context.state().currentContent() + " -> actor-pass-" + round, "actor done");
