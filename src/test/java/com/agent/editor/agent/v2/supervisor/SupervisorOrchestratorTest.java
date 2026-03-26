@@ -170,7 +170,7 @@ class SupervisorOrchestratorTest {
     }
 
     @Test
-    void shouldCarryConversationMemoryAcrossWorkerRuns() {
+    void shouldIsolateWorkerRunMemoryWhilePassingStructuredWorkerResults() {
         WorkerRegistry workerRegistry = new WorkerRegistry();
         workerRegistry.register(new WorkerDefinition(
                 "analyzer",
@@ -210,7 +210,12 @@ class SupervisorOrchestratorTest {
         assertEquals("body", runtime.states().get(0).currentContent());
         assertEquals("body -> analyzer", runtime.states().get(1).currentContent());
         assertTrue(((ChatTranscriptMemory) runtime.states().get(0).memory()).messages().isEmpty());
-        assertEquals(1, ((ChatTranscriptMemory) runtime.states().get(1).memory()).messages().size());
+        ChatTranscriptMemory secondWorkerMemory = (ChatTranscriptMemory) runtime.states().get(1).memory();
+        assertTrue(secondWorkerMemory.messages().stream().anyMatch(message ->
+                message instanceof ChatMessage.UserChatMessage userMessage
+                        && userMessage.text().contains("analyzer result")
+        ));
+        assertTrue(secondWorkerMemory.messages().stream().noneMatch(ChatMessage.ToolExecutionResultChatMessage.class::isInstance));
     }
 
     @Test
