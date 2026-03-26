@@ -3,7 +3,7 @@ package com.agent.editor.agent.v2.planning;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
-import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
+import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 
 import java.util.List;
@@ -25,7 +25,7 @@ public class PlanningAgentDefinition implements AgentDefinition {
     }
 
     @Override
-    public Decision decide(ExecutionContext context) {
+    public Decision decide(AgentRunContext context) {
         // 兼容统一 runtime：当 planner 被当作普通 agent 运行时，返回可展示的计划文本。
         PlanResult plan = createPlan(context.request().document(), context.request().instruction());
         String result = plan.steps().stream()

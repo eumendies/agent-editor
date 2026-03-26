@@ -187,7 +187,7 @@ class DefaultExecutionRuntimeTest {
                 "finish",
                 3
         );
-        ExecutionState initialState = new ExecutionState(2, "resumed body");
+        AgentRunContext initialState = new AgentRunContext(2, "resumed body");
 
         ExecutionResult result = runtime.run(agent, request, initialState);
 
@@ -215,7 +215,8 @@ class DefaultExecutionRuntimeTest {
                 "use tool",
                 3
         );
-        ExecutionState initialState = new ExecutionState(
+        AgentRunContext initialState = new AgentRunContext(
+                null,
                 0,
                 "body",
                 new ChatTranscriptMemory(List.of(
@@ -223,7 +224,8 @@ class DefaultExecutionRuntimeTest {
                         new ChatMessage.AiChatMessage("thinking")
                 )),
                 ExecutionStage.RUNNING,
-                null
+                null,
+                List.of()
         );
 
         ExecutionResult result = runtime.run(new ToolUsingAgentDefinition(), request, initialState);
@@ -267,7 +269,7 @@ class DefaultExecutionRuntimeTest {
         }
 
         @Override
-        public Decision decide(ExecutionContext context) {
+        public Decision decide(AgentRunContext context) {
             return new Decision.Complete("done", "complete immediately");
         }
     }
@@ -280,7 +282,7 @@ class DefaultExecutionRuntimeTest {
         }
 
         @Override
-        public Decision decide(ExecutionContext context) {
+        public Decision decide(AgentRunContext context) {
             if (context.state().toolResults().isEmpty()) {
                 return new Decision.ToolCalls(List.of(new ToolCall("appendText", "{\"suffix\":\" world\"}")), "need tool");
             }
@@ -321,7 +323,7 @@ class DefaultExecutionRuntimeTest {
         }
 
         @Override
-        public Decision decide(ExecutionContext context) {
+        public Decision decide(AgentRunContext context) {
             if (context.state().toolResults().size() < 2) {
                 return new Decision.ToolCalls(List.of(new ToolCall("appendText", "{\"suffix\":\" world\"}")), "need another tool run");
             }
@@ -340,7 +342,7 @@ class DefaultExecutionRuntimeTest {
         }
 
         @Override
-        public Decision decide(ExecutionContext context) {
+        public Decision decide(AgentRunContext context) {
             seenIteration = context.state().iteration();
             seenContent = context.state().currentContent();
             return new Decision.Complete("resumed", "resumed execution");

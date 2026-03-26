@@ -4,12 +4,12 @@ import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
+import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
@@ -53,12 +53,14 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
     @Override
     public TaskResult execute(TaskRequest request) {
         String currentContent = request.document().content();
-        ExecutionState conversationState = new ExecutionState(
+        AgentRunContext conversationState = new AgentRunContext(
+                null,
                 0,
                 currentContent,
                 request.memory(),
                 ExecutionStage.RUNNING,
-                null
+                null,
+                List.of()
         );
         List<WorkerResult> workerResults = new ArrayList<>();
         // 混合 supervisor 允许 worker 重复调度，因此预算至少覆盖“一轮 worker 池 + 一次额外重试 + 最终收口”。

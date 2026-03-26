@@ -9,7 +9,7 @@ import com.agent.editor.agent.v2.core.state.*;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
-import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
+import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
@@ -302,7 +302,7 @@ class SupervisorOrchestratorTest {
         }
 
         @Override
-        public Decision decide(ExecutionContext context) {
+        public Decision decide(AgentRunContext context) {
             return new Decision.Complete(result, "done");
         }
     }
@@ -310,7 +310,7 @@ class SupervisorOrchestratorTest {
     private static final class RecordingExecutionRuntime implements ExecutionRuntime {
 
         private final List<ExecutionRequest> requests = new ArrayList<>();
-        private final List<ExecutionState> states = new ArrayList<>();
+        private final List<AgentRunContext> states = new ArrayList<>();
 
         @Override
         public ExecutionResult run(AgentDefinition definition, ExecutionRequest request) {
@@ -320,7 +320,7 @@ class SupervisorOrchestratorTest {
         }
 
         @Override
-        public ExecutionResult run(AgentDefinition definition, ExecutionRequest request, ExecutionState initialState) {
+        public ExecutionResult run(AgentDefinition definition, ExecutionRequest request, AgentRunContext initialState) {
             requests.add(request);
             states.add(initialState);
             String marker = request.allowedTools().contains("editDocument") ? "editor" : "analyzer";
@@ -328,7 +328,8 @@ class SupervisorOrchestratorTest {
             return new ExecutionResult(
                     marker + " result",
                     updatedContent,
-                    new ExecutionState(
+                    new AgentRunContext(
+                            request,
                             initialState.iteration() + 1,
                             updatedContent,
                             new ChatTranscriptMemory(List.of(
@@ -340,7 +341,8 @@ class SupervisorOrchestratorTest {
                                     )
                             )),
                             ExecutionStage.COMPLETED,
-                            null
+                            null,
+                            List.of()
                     )
             );
         }
@@ -353,7 +355,7 @@ class SupervisorOrchestratorTest {
             return requests.stream().map(ExecutionRequest::allowedTools).toList();
         }
 
-        private List<ExecutionState> states() {
+        private List<AgentRunContext> states() {
             return states;
         }
     }

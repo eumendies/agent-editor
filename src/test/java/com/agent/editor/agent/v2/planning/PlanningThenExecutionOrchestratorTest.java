@@ -9,7 +9,7 @@ import com.agent.editor.agent.v2.core.state.*;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
-import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
+import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
@@ -135,7 +135,7 @@ class PlanningThenExecutionOrchestratorTest {
         }
 
         @Override
-        public Decision decide(ExecutionContext context) {
+        public Decision decide(AgentRunContext context) {
             return new Decision.Complete(context.request().instruction(), "done");
         }
     }
@@ -143,7 +143,7 @@ class PlanningThenExecutionOrchestratorTest {
     private static final class RecordingExecutionRuntime implements ExecutionRuntime {
 
         private final List<ExecutionRequest> requests = new ArrayList<>();
-        private final List<ExecutionState> states = new ArrayList<>();
+        private final List<AgentRunContext> states = new ArrayList<>();
 
         @Override
         public ExecutionResult run(AgentDefinition definition, ExecutionRequest request) {
@@ -152,21 +152,23 @@ class PlanningThenExecutionOrchestratorTest {
         }
 
         @Override
-        public ExecutionResult run(AgentDefinition definition, ExecutionRequest request, ExecutionState initialState) {
+        public ExecutionResult run(AgentDefinition definition, ExecutionRequest request, AgentRunContext initialState) {
             requests.add(request);
             states.add(initialState);
             String updatedContent = initialState.currentContent() + " -> " + request.instruction();
             return new ExecutionResult(
                     request.instruction(),
                     updatedContent,
-                    new ExecutionState(
+                    new AgentRunContext(
+                            request,
                             initialState.iteration() + 1,
                             updatedContent,
                             new ChatTranscriptMemory(List.of(
                                     new ChatMessage.UserChatMessage("completed " + request.instruction())
                             )),
                             ExecutionStage.COMPLETED,
-                            null
+                            null,
+                            List.of()
                     )
             );
         }
@@ -179,7 +181,7 @@ class PlanningThenExecutionOrchestratorTest {
             return requests;
         }
 
-        private List<ExecutionState> states() {
+        private List<AgentRunContext> states() {
             return states;
         }
     }

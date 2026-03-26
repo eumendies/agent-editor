@@ -3,7 +3,7 @@ package com.agent.editor.agent.v2.supervisor.routing;
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
-import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
+import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.supervisor.SupervisorContext;
 import com.agent.editor.agent.v2.supervisor.SupervisorDecision;
@@ -475,7 +475,7 @@ class HybridSupervisorAgentDefinitionTest {
         }
 
         @Override
-        public Decision decide(ExecutionContext context) {
+        public Decision decide(AgentRunContext context) {
             return new Decision.Complete("unused", "unused");
         }
     }

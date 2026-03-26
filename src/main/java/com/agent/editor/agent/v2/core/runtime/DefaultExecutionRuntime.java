@@ -7,7 +7,6 @@ import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
-import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.trace.TraceCategory;
 import com.agent.editor.agent.v2.trace.TraceCollector;
 import com.agent.editor.agent.v2.trace.TraceRecord;
@@ -41,15 +40,18 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
 
     @Override
     public ExecutionResult run(AgentDefinition definition, ExecutionRequest request) {
-        return run(definition, request, new ExecutionState(0, request.document().content()));
+        return run(definition, request, new AgentRunContext(0, request.document().content()).withRequest(request));
     }
 
     @Override
-    public ExecutionResult run(AgentDefinition definition, ExecutionRequest request, ExecutionState initialState) {
+    public ExecutionResult run(AgentDefinition definition, ExecutionRequest request, AgentRunContext initialContext) {
         eventPublisher.publish(new ExecutionEvent(EventType.TASK_STARTED, request.taskId(), "execution started"));
 
         // runtime 维护“本轮文档内容 + 工具结果历史”，每次决策都基于最新状态继续推进。
-        ExecutionState state = initialState.appendMemory(new ChatMessage.UserChatMessage(request.instruction()));
+        AgentRunContext state = initialContext
+                .withRequest(request)
+                .withToolSpecifications(toolRegistry.specifications(request.allowedTools()))
+                .appendMemory(new ChatMessage.UserChatMessage(request.instruction()));
         while (state.iteration() < request.maxIterations() && !state.completed()) {
             eventPublisher.publish(new ExecutionEvent(EventType.ITERATION_STARTED, request.taskId(), "iteration " + state.iteration()));
             traceCollector.collect(traceRecord(
@@ -65,13 +67,12 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
             ));
 
             // worker 运行时只暴露被允许的工具列表，避免异构 worker 越权调用别的能力。
-            ExecutionContext context = new ExecutionContext(request, state, toolRegistry.specifications(request.allowedTools()));
-            Decision decision = definition.decide(context);
+            Decision decision = definition.decide(state);
 
             if (decision instanceof Decision.Complete complete) {
                 // Complete 表示 agent 明确结束，本轮状态里的 currentContent 就是最终文档内容。
                 eventPublisher.publish(new ExecutionEvent(EventType.TASK_COMPLETED, request.taskId(), complete.result()));
-                ExecutionState completedState = state
+                AgentRunContext completedState = state
                         .appendMemory(new ChatMessage.AiChatMessage(complete.result()))
                         .markCompleted();
                 return new ExecutionResult(complete.result(), state.currentContent(), completedState);
@@ -96,7 +97,7 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
             if (decision instanceof Decision.Respond respond) {
                 // Respond 用在“不再调用工具，但也不需要额外完成语义”的轻量收口场景。
                 eventPublisher.publish(new ExecutionEvent(EventType.TASK_COMPLETED, request.taskId(), respond.message()));
-                ExecutionState completedState = state
+                AgentRunContext completedState = state
                         .appendMemory(new ChatMessage.AiChatMessage(respond.message()))
                         .markCompleted();
                 return new ExecutionResult(respond.message(), state.currentContent(), completedState);

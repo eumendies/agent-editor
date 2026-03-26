@@ -32,21 +32,23 @@ class ExecutionRequestTest {
     }
 
     @Test
-    void shouldUseCheckpointShapedExecutionState() {
-        ExecutionState state = new ExecutionState(
+    void shouldUseCheckpointShapedAgentRunContext() {
+        AgentRunContext state = new AgentRunContext(
+                null,
                 2,
                 "body",
                 new ChatTranscriptMemory(List.of()),
                 ExecutionStage.RUNNING,
-                null
+                null,
+                List.of()
         );
 
         assertEquals(2, state.iteration());
         assertEquals("body", state.currentContent());
         assertEquals(ExecutionStage.RUNNING, state.stage());
         assertEquals(
-                List.of("iteration", "currentContent", "memory", "stage", "pendingReason"),
-                Arrays.stream(ExecutionState.class.getRecordComponents())
+                List.of("request", "iteration", "currentContent", "memory", "stage", "pendingReason", "toolSpecifications"),
+                Arrays.stream(AgentRunContext.class.getRecordComponents())
                         .map(RecordComponent::getName)
                         .toList()
         );
@@ -67,9 +69,9 @@ class ExecutionRequestTest {
 
     @Test
     void shouldAdvanceStateImmutably() {
-        ExecutionState state = new ExecutionState(1, "body");
+        AgentRunContext state = new AgentRunContext(1, "body");
 
-        ExecutionState next = state
+        AgentRunContext next = state
                 .appendMemory(new ChatMessage.UserChatMessage("step 1"))
                 .advance("updated body");
 

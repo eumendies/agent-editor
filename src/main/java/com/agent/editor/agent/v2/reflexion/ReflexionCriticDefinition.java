@@ -3,7 +3,7 @@ package com.agent.editor.agent.v2.reflexion;
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
-import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
+import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.v2.trace.TraceCategory;
 import com.agent.editor.agent.v2.trace.TraceCollector;
@@ -72,7 +72,7 @@ public class ReflexionCriticDefinition implements AgentDefinition {
     }
 
     @Override
-    public Decision decide(ExecutionContext context) {
+    public Decision decide(AgentRunContext context) {
         if (chatModel == null) {
             // 测试或降级场景下允许 critic 缺席，但仍返回一个结构合法的 revise 结果。
             return new Decision.Complete("""
@@ -158,7 +158,7 @@ public class ReflexionCriticDefinition implements AgentDefinition {
                 """;
     }
 
-    private String buildUserPrompt(ExecutionContext context) {
+    private String buildUserPrompt(AgentRunContext context) {
         return """
                 Current document:
                 %s
@@ -171,7 +171,7 @@ public class ReflexionCriticDefinition implements AgentDefinition {
         );
     }
 
-    private List<ChatMessage> buildMessages(ExecutionContext context, String systemPrompt, String userPrompt) {
+    private List<ChatMessage> buildMessages(AgentRunContext context, String systemPrompt, String userPrompt) {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt));
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().memory()));
@@ -179,7 +179,7 @@ public class ReflexionCriticDefinition implements AgentDefinition {
         return messages;
     }
 
-    private TraceRecord traceRecord(ExecutionContext context,
+    private TraceRecord traceRecord(AgentRunContext context,
                                     TraceCategory category,
                                     String stage,
                                     Map<String, Object> payload) {

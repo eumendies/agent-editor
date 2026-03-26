@@ -4,11 +4,10 @@ import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
-import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
+import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.core.state.ExecutionState;
 import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
@@ -80,8 +79,8 @@ class GroundedWriterAgentDefinitionTest {
         assertEquals("editDocument", toolCalls.calls().get(0).name());
     }
 
-    private ExecutionContext context(List<ToolSpecification> toolSpecifications) {
-        return new ExecutionContext(
+    private AgentRunContext context(List<ToolSpecification> toolSpecifications) {
+        return new AgentRunContext(
                 new ExecutionRequest(
                         "task-1",
                         "session-1",
@@ -90,15 +89,13 @@ class GroundedWriterAgentDefinitionTest {
                         "rewrite the answer using available evidence",
                         3
                 ),
-                new ExecutionState(
-                        0,
-                        "body",
-                        new ChatTranscriptMemory(List.of(
-                                new ChatMessage.UserChatMessage("rewrite the answer using available evidence")
-                        )),
-                        ExecutionStage.RUNNING,
-                        null
-                ),
+                0,
+                "body",
+                new ChatTranscriptMemory(List.of(
+                        new ChatMessage.UserChatMessage("rewrite the answer using available evidence")
+                )),
+                ExecutionStage.RUNNING,
+                null,
                 toolSpecifications
         );
     }
