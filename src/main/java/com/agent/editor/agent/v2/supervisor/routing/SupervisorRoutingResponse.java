@@ -1,4 +1,4 @@
-package com.agent.editor.agent.v2.supervisor;
+package com.agent.editor.agent.v2.supervisor.routing;
 
 record SupervisorRoutingResponse(
         SupervisorAction action,

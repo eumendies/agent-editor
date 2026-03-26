@@ -1,4 +1,4 @@
-package com.agent.editor.agent.v2.supervisor;
+package com.agent.editor.agent.v2.supervisor.worker;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

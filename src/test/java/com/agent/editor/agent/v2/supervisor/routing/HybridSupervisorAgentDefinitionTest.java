@@ -1,10 +1,14 @@
-package com.agent.editor.agent.v2.supervisor;
+package com.agent.editor.agent.v2.supervisor.routing;
 
 import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.runtime.ExecutionContext;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
+import com.agent.editor.agent.v2.supervisor.SupervisorContext;
+import com.agent.editor.agent.v2.supervisor.SupervisorDecision;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerDefinition;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerResult;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -232,6 +236,121 @@ class HybridSupervisorAgentDefinitionTest {
         assertEquals("editor", assignWorker.workerId());
     }
 
+    @Test
+    void shouldUseRoutingServiceToSelectResearcherForInitialDispatch() {
+        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
+                new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
+                        SupervisorAction.ASSIGN_WORKER,
+                        "researcher",
+                        "Collect supporting evidence from the knowledge base",
+                        null,
+                        null,
+                        "fact-heavy task"
+                ))
+        );
+
+        SupervisorDecision decision = definition.decide(new SupervisorContext(
+                "task-8",
+                "session-1",
+                "Write an answer about this project using my knowledge base details and technical facts",
+                "Draft body",
+                ragWorkers(),
+                List.of()
+        ));
+
+        SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
+        assertEquals("researcher", assignWorker.workerId());
+    }
+
+    @Test
+    void shouldUseRoutingServiceToSelectWriterForInitialDispatch() {
+        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
+                new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
+                        SupervisorAction.ASSIGN_WORKER,
+                        "writer",
+                        "Rewrite the draft while preserving intent",
+                        null,
+                        null,
+                        "rewrite task"
+                ))
+        );
+
+        SupervisorDecision decision = definition.decide(new SupervisorContext(
+                "task-9",
+                "session-1",
+                "Polish the introduction and make it more concise without adding new facts",
+                "Draft body",
+                ragWorkers(),
+                List.of()
+        ));
+
+        SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
+        assertEquals("writer", assignWorker.workerId());
+    }
+
+    @Test
+    void shouldCompleteWhenReviewerPassesInstructionAndGroundingChecks() {
+        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition((SupervisorRoutingAiService) null);
+
+        SupervisorDecision decision = definition.decide(new SupervisorContext(
+                "task-10",
+                "session-1",
+                "Write an answer grounded in my project materials",
+                "Final answer",
+                ragWorkers(),
+                List.of(
+                        new WorkerResult("researcher", TaskStatus.COMPLETED, evidenceSummary(), "Draft body"),
+                        new WorkerResult("writer", TaskStatus.COMPLETED, "updated answer", "Final answer"),
+                        new WorkerResult("reviewer", TaskStatus.COMPLETED, reviewerPass(), "Final answer")
+                )
+        ));
+
+        SupervisorDecision.Complete complete = assertInstanceOf(SupervisorDecision.Complete.class, decision);
+        assertEquals("Final answer", complete.finalContent());
+    }
+
+    @Test
+    void shouldReturnToWriterWhenReviewerOnlyFindsInstructionGap() {
+        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition((SupervisorRoutingAiService) null);
+
+        SupervisorDecision decision = definition.decide(new SupervisorContext(
+                "task-11",
+                "session-1",
+                "Write an answer grounded in my project materials",
+                "Draft answer",
+                ragWorkers(),
+                List.of(
+                        new WorkerResult("researcher", TaskStatus.COMPLETED, evidenceSummary(), "Draft body"),
+                        new WorkerResult("writer", TaskStatus.COMPLETED, "updated answer", "Draft answer"),
+                        new WorkerResult("reviewer", TaskStatus.COMPLETED, reviewerInstructionGap(), "Draft answer")
+                )
+        ));
+
+        SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
+        assertEquals("writer", assignWorker.workerId());
+    }
+
+    @Test
+    void shouldMakeResearcherEligibleAgainWhenReviewerFlagsUnsupportedClaims() {
+        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition((SupervisorRoutingAiService) null);
+
+        SupervisorDecision decision = definition.decide(new SupervisorContext(
+                "task-12",
+                "session-1",
+                "Write an answer grounded in my project materials",
+                "Draft answer",
+                ragWorkers(),
+                List.of(
+                        new WorkerResult("researcher", TaskStatus.COMPLETED, evidenceSummary(), "Draft body"),
+                        new WorkerResult("writer", TaskStatus.COMPLETED, "updated answer", "Draft answer"),
+                        new WorkerResult("reviewer", TaskStatus.COMPLETED, reviewerUnsupportedClaim(), "Draft answer")
+                )
+        ));
+
+        SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
+        assertEquals("researcher", assignWorker.workerId());
+    }
+
     private static List<WorkerDefinition> workers() {
         AgentDefinition workerAgent = new NoOpWorkerAgent();
         return List.of(
@@ -260,6 +379,60 @@ class HybridSupervisorAgentDefinitionTest {
                         List.of("review")
                 )
         );
+    }
+
+    private static List<WorkerDefinition> ragWorkers() {
+        AgentDefinition workerAgent = new NoOpWorkerAgent();
+        return List.of(
+                new WorkerDefinition(
+                        "researcher",
+                        "Researcher",
+                        "Collect evidence from the knowledge base.",
+                        workerAgent,
+                        List.of("retrieveKnowledge"),
+                        List.of("research")
+                ),
+                new WorkerDefinition(
+                        "writer",
+                        "Writer",
+                        "Write or revise the document.",
+                        workerAgent,
+                        List.of("editDocument"),
+                        List.of("write")
+                ),
+                new WorkerDefinition(
+                        "reviewer",
+                        "Reviewer",
+                        "Check instruction completion and evidence grounding.",
+                        workerAgent,
+                        List.of("searchContent"),
+                        List.of("review")
+                )
+        );
+    }
+
+    private static String evidenceSummary() {
+        return """
+                {"queries":["agentic rag"],"evidenceSummary":"grounded evidence","limitations":"no metrics","uncoveredPoints":[],"chunks":[]}
+                """;
+    }
+
+    private static String reviewerPass() {
+        return """
+                {"verdict":"PASS","instructionSatisfied":true,"evidenceGrounded":true,"unsupportedClaims":[],"missingRequirements":[],"feedback":"looks good","reasoning":"complete"}
+                """;
+    }
+
+    private static String reviewerInstructionGap() {
+        return """
+                {"verdict":"REVISE","instructionSatisfied":false,"evidenceGrounded":true,"unsupportedClaims":[],"missingRequirements":["Explain project value"],"feedback":"finish the answer","reasoning":"missing requirement"}
+                """;
+    }
+
+    private static String reviewerUnsupportedClaim() {
+        return """
+                {"verdict":"REVISE","instructionSatisfied":true,"evidenceGrounded":false,"unsupportedClaims":["Latency improved by 40%"],"missingRequirements":[],"feedback":"remove unsupported claim","reasoning":"ungrounded"}
+                """;
     }
 
     private static final class RecordingChatModel implements ChatModel {

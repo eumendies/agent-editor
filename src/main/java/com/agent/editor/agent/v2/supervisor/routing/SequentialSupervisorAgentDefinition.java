@@ -1,4 +1,9 @@
-package com.agent.editor.agent.v2.supervisor;
+package com.agent.editor.agent.v2.supervisor.routing;
+
+import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
+import com.agent.editor.agent.v2.supervisor.SupervisorContext;
+import com.agent.editor.agent.v2.supervisor.SupervisorDecision;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerDefinition;
 
 import java.util.Set;
 import java.util.stream.Collectors;

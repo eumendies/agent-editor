@@ -17,6 +17,9 @@ import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.trace.TraceCategory;
 import com.agent.editor.agent.v2.trace.TraceCollector;
 import com.agent.editor.agent.v2.trace.TraceRecord;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerDefinition;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerRegistry;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerResult;
 
 import java.util.ArrayList;
 import java.util.List;

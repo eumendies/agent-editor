@@ -1,12 +1,25 @@
-package com.agent.editor.agent.v2.supervisor;
+package com.agent.editor.agent.v2.supervisor.routing;
 
+import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
+import com.agent.editor.agent.v2.supervisor.SupervisorContext;
+import com.agent.editor.agent.v2.supervisor.SupervisorDecision;
+import com.agent.editor.agent.v2.supervisor.worker.ReviewerFeedback;
+import com.agent.editor.agent.v2.supervisor.worker.ReviewerVerdict;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerDefinition;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerResult;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinition {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private final SupervisorRoutingAiService routingAiService;
 
@@ -20,6 +33,18 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
 
     @Override
     public SupervisorDecision decide(SupervisorContext context) {
+        ReviewerFeedback reviewerFeedback = latestReviewerFeedback(context);
+        if (reviewerFeedback != null
+                && reviewerFeedback.verdict() == ReviewerVerdict.PASS
+                && reviewerFeedback.instructionSatisfied()
+                && reviewerFeedback.evidenceGrounded()) {
+            return new SupervisorDecision.Complete(
+                    context.currentContent(),
+                    summarize(context),
+                    "reviewer approved completion"
+            );
+        }
+
         if (shouldStopForNoProgress(context)) {
             return new SupervisorDecision.Complete(
                     context.currentContent(),
@@ -80,9 +105,36 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
 
     private List<WorkerDefinition> selectCandidates(SupervisorContext context) {
         String demotedWorkerId = consecutiveWorkerId(context);
-        return context.availableWorkers().stream()
+        List<WorkerDefinition> allowedWorkers = context.availableWorkers().stream()
                 .filter(worker -> !worker.workerId().equals(demotedWorkerId))
                 .toList();
+        if (allowedWorkers.isEmpty()) {
+            return List.of();
+        }
+
+        ArrayList<WorkerDefinition> ordered = new ArrayList<>();
+        if (context.workerResults().isEmpty()) {
+            addRemaining(ordered, allowedWorkers);
+            return List.copyOf(ordered);
+        }
+
+        WorkerResult latest = context.workerResults().get(context.workerResults().size() - 1);
+        if ("reviewer".equals(latest.workerId())) {
+            ReviewerFeedback reviewerFeedback = parseReviewerFeedback(latest.summary());
+            if (reviewerFeedback != null) {
+                // reviewer 只报告问题类型，不直接命令下一跳；是否重新 research 仍由 supervisor 控制。
+                if (!reviewerFeedback.evidenceGrounded()) {
+                    addByCapability(ordered, allowedWorkers, "research");
+                    addByCapability(ordered, allowedWorkers, "write");
+                } else if (!reviewerFeedback.instructionSatisfied()
+                        || !reviewerFeedback.missingRequirements().isEmpty()) {
+                    addByCapability(ordered, allowedWorkers, "write");
+                }
+            }
+        }
+
+        addRemaining(ordered, allowedWorkers);
+        return List.copyOf(ordered);
     }
 
     private boolean shouldStopForNoProgress(SupervisorContext context) {
@@ -168,5 +220,45 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
             return primary;
         }
         return Objects.requireNonNullElse(fallback, "");
+    }
+
+    private ReviewerFeedback latestReviewerFeedback(SupervisorContext context) {
+        if (context.workerResults().isEmpty()) {
+            return null;
+        }
+        WorkerResult latest = context.workerResults().get(context.workerResults().size() - 1);
+        if (!"reviewer".equals(latest.workerId())) {
+            return null;
+        }
+        return parseReviewerFeedback(latest.summary());
+    }
+
+    private ReviewerFeedback parseReviewerFeedback(String summary) {
+        if (summary == null || summary.isBlank()) {
+            return null;
+        }
+        try {
+            return OBJECT_MAPPER.readValue(summary, ReviewerFeedback.class);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private void addByCapability(List<WorkerDefinition> ordered,
+                                 List<WorkerDefinition> allowedWorkers,
+                                 String capability) {
+        allowedWorkers.stream()
+                .filter(worker -> worker.capabilities().contains(capability))
+                .forEach(worker -> addIfAbsent(ordered, worker));
+    }
+
+    private void addRemaining(List<WorkerDefinition> ordered, List<WorkerDefinition> allowedWorkers) {
+        allowedWorkers.forEach(worker -> addIfAbsent(ordered, worker));
+    }
+
+    private void addIfAbsent(List<WorkerDefinition> ordered, WorkerDefinition worker) {
+        if (!ordered.contains(worker)) {
+            ordered.add(worker);
+        }
     }
 }

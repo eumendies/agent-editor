@@ -1,10 +1,13 @@
 package com.agent.editor.config;
 
-import com.agent.editor.agent.v2.react.ReactAgentDefinition;
-import com.agent.editor.agent.v2.supervisor.HybridSupervisorAgentDefinition;
 import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
-import com.agent.editor.agent.v2.supervisor.WorkerDefinition;
-import com.agent.editor.agent.v2.supervisor.WorkerRegistry;
+import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgentDefinition;
+import com.agent.editor.agent.v2.supervisor.worker.EvidenceReviewerAgentDefinition;
+import com.agent.editor.agent.v2.supervisor.worker.GroundedWriterAgentDefinition;
+import com.agent.editor.agent.v2.supervisor.worker.ResearcherAgentDefinition;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerDefinition;
+import com.agent.editor.agent.v2.supervisor.worker.WorkerRegistry;
+import com.agent.editor.agent.v2.trace.TraceCollector;
 import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,30 +23,46 @@ public class SupervisorAgentConfig {
     }
 
     @Bean
-    public WorkerRegistry workerRegistry(ReactAgentDefinition reactAgentDefinition) {
+    public ResearcherAgentDefinition researcherAgentDefinition(ChatModel chatModel, TraceCollector traceCollector) {
+        return new ResearcherAgentDefinition(chatModel, traceCollector);
+    }
+
+    @Bean
+    public GroundedWriterAgentDefinition groundedWriterAgentDefinition(ChatModel chatModel, TraceCollector traceCollector) {
+        return new GroundedWriterAgentDefinition(chatModel, traceCollector);
+    }
+
+    @Bean
+    public EvidenceReviewerAgentDefinition evidenceReviewerAgentDefinition(ChatModel chatModel, TraceCollector traceCollector) {
+        return new EvidenceReviewerAgentDefinition(chatModel, traceCollector);
+    }
+
+    @Bean
+    public WorkerRegistry workerRegistry(ResearcherAgentDefinition researcherAgentDefinition,
+                                         GroundedWriterAgentDefinition groundedWriterAgentDefinition,
+                                         EvidenceReviewerAgentDefinition evidenceReviewerAgentDefinition) {
         WorkerRegistry workerRegistry = new WorkerRegistry();
-        // 第一版先用异构 worker 池把角色边界和工具边界立住，后面再升级为动态注册或能力发现。
         workerRegistry.register(new WorkerDefinition(
-                "analyzer",
-                "Analyzer",
-                "Inspect the document and identify issues before changes are made.",
-                reactAgentDefinition,
-                List.of("searchContent", "analyzeDocument"),
-                List.of("analyze")
+                "researcher",
+                "Researcher",
+                "Collect grounded evidence from the knowledge base before downstream writing or review.",
+                researcherAgentDefinition,
+                List.of("retrieveKnowledge"),
+                List.of("research")
         ));
         workerRegistry.register(new WorkerDefinition(
-                "editor",
-                "Editor",
-                "Draft, rewrite, and apply concrete edits to the document, including writing from scratch when needed.",
-                reactAgentDefinition,
+                "writer",
+                "Writer",
+                "Produce grounded document updates and revisions without introducing unsupported claims.",
+                groundedWriterAgentDefinition,
                 List.of("editDocument", "searchContent"),
-                List.of("edit", "draft")
+                List.of("write", "edit")
         ));
         workerRegistry.register(new WorkerDefinition(
                 "reviewer",
                 "Reviewer",
-                "Review the revised document and flag any remaining issues.",
-                reactAgentDefinition,
+                "Review whether the response follows the user instruction and remains grounded in available evidence.",
+                evidenceReviewerAgentDefinition,
                 List.of("searchContent", "analyzeDocument"),
                 List.of("review")
         ));
