@@ -70,7 +70,7 @@ class TaskApplicationServiceTest {
 
         service.execute(request);
 
-        assertEquals(AgentType.SUPERVISOR, orchestrator.lastRequest.agentType());
+        assertEquals(AgentType.SUPERVISOR, orchestrator.lastRequest.getAgentType());
     }
 
     @Test
@@ -94,7 +94,7 @@ class TaskApplicationServiceTest {
 
         service.execute(request);
 
-        assertEquals(AgentType.REFLEXION, orchestrator.lastRequest.agentType());
+        assertEquals(AgentType.REFLEXION, orchestrator.lastRequest.getAgentType());
     }
 
     @Test

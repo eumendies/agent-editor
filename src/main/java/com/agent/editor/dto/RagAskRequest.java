@@ -1,9 +1,16 @@
 package com.agent.editor.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.List;
 
-public record RagAskRequest(
-        String question,
-        List<String> documentIds
-) {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class RagAskRequest {
+
+    private String question;
+    private List<String> documentIds;
 }

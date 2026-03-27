@@ -18,8 +18,8 @@ class RagPropertiesTest {
 
     @Test
     void shouldBindRagProperties() {
-        assertEquals(500, ragProperties.chunkSize());
-        assertEquals(80, ragProperties.chunkOverlap());
-        assertEquals(5, ragProperties.askTopK());
+        assertEquals(500, ragProperties.getChunkSize());
+        assertEquals(80, ragProperties.getChunkOverlap());
+        assertEquals(5, ragProperties.getAskTopK());
     }
 }

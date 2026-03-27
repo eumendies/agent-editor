@@ -16,30 +16,30 @@ public class SequentialSupervisorAgentDefinition implements SupervisorAgentDefin
     @Override
     public SupervisorDecision decide(SupervisorContext context) {
         // 当前实现是确定性的顺序调度器：先找还没执行过的 worker，最后再统一收口。
-        Set<String> completedWorkers = context.workerResults().stream()
-                .map(result -> result.workerId())
+        Set<String> completedWorkers = context.getWorkerResults().stream()
+                .map(result -> result.getWorkerId())
                 .collect(Collectors.toSet());
 
         // 先把每个 worker 跑完一轮，后续如果要升级成 LLM supervisor，可以直接替换这个策略实现。
-        for (WorkerDefinition worker : context.availableWorkers()) {
-            if (!completedWorkers.contains(worker.workerId())) {
-                String instruction = worker.role() + ": " + worker.description() + "\nTask: " + context.originalInstruction();
+        for (WorkerDefinition worker : context.getAvailableWorkers()) {
+            if (!completedWorkers.contains(worker.getWorkerId())) {
+                String instruction = worker.getRole() + ": " + worker.getDescription() + "\nTask: " + context.getOriginalInstruction();
                 return new SupervisorDecision.AssignWorker(
-                        worker.workerId(),
+                        worker.getWorkerId(),
                         instruction,
-                        "delegate to " + worker.workerId()
+                        "delegate to " + worker.getWorkerId()
                 );
             }
         }
 
-        String summary = context.workerResults().stream()
-                .map(result -> result.workerId() + ": " + result.summary())
+        String summary = context.getWorkerResults().stream()
+                .map(result -> result.getWorkerId() + ": " + result.getSummary())
                 .reduce((left, right) -> left + "\n" + right)
                 .orElse("No worker steps executed");
 
         // supervisor 自己负责最终收口，worker 只产出中间结果。
         return new SupervisorDecision.Complete(
-                context.currentContent(),
+                context.getCurrentContent(),
                 summary,
                 "all workers completed"
         );

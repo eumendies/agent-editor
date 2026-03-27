@@ -25,7 +25,7 @@ public class WebSocketEventPublisher implements EventPublisher {
     public void publish(ExecutionEvent event) {
         // 查询接口和实时推送共用同一条 ExecutionEvent 流，避免两套状态来源逐渐漂移。
         taskQueryService.appendEvent(event);
-        webSocketService.sendToTask(event.taskId(), legacyEventAdapter.toWebSocketMessage(event));
+        webSocketService.sendToTask(event.getTaskId(), legacyEventAdapter.toWebSocketMessage(event));
     }
 
     LegacyEventAdapter legacyAdapter() {

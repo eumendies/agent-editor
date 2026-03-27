@@ -57,16 +57,16 @@ class PlanningThenExecutionOrchestratorTest {
                 5
         ));
 
-        assertEquals(TaskStatus.COMPLETED, result.status());
-        assertEquals("body -> Add outline -> Refine tone", result.finalContent());
+        assertEquals(TaskStatus.COMPLETED, result.getStatus());
+        assertEquals("body -> Add outline -> Refine tone", result.getFinalContent());
         assertEquals(List.of("Add outline", "Refine tone"), runtime.instructions());
-        assertEquals("body", runtime.requests().get(0).document().content());
-        assertEquals("body -> Add outline", runtime.requests().get(1).document().content());
-        assertEquals(EventType.PLAN_CREATED, eventPublisher.events().get(0).type());
+        assertEquals("body", runtime.requests().get(0).getDocument().getContent());
+        assertEquals("body -> Add outline", runtime.requests().get(1).getDocument().getContent());
+        assertEquals(EventType.PLAN_CREATED, eventPublisher.events().get(0).getType());
         assertTrue(traceStore.getByTaskId("task-1").stream().anyMatch(trace ->
-                trace.category() == TraceCategory.ORCHESTRATION_DECISION
-                        && "planning.plan.created".equals(trace.stage())
-                        && trace.payload().containsKey("plan")
+                trace.getCategory() == TraceCategory.ORCHESTRATION_DECISION
+                        && "planning.plan.created".equals(trace.getStage())
+                        && trace.getPayload().containsKey("plan")
         ));
     }
 
@@ -99,16 +99,16 @@ class PlanningThenExecutionOrchestratorTest {
                 ))
         ));
 
-        assertEquals(TaskStatus.COMPLETED, result.status());
+        assertEquals(TaskStatus.COMPLETED, result.getStatus());
         assertEquals(2, runtime.states().size());
-        assertEquals("body", runtime.states().get(0).currentContent());
-        assertEquals("body -> Add outline", runtime.states().get(1).currentContent());
-        ChatTranscriptMemory firstStepMemory = (ChatTranscriptMemory) runtime.states().get(0).memory();
-        assertTrue(firstStepMemory.messages().stream().anyMatch(message -> "previous turn".equals(message.text())));
-        ChatTranscriptMemory secondStepMemory = (ChatTranscriptMemory) runtime.states().get(1).memory();
-        assertTrue(secondStepMemory.messages().stream().anyMatch(message ->
+        assertEquals("body", runtime.states().get(0).getCurrentContent());
+        assertEquals("body -> Add outline", runtime.states().get(1).getCurrentContent());
+        ChatTranscriptMemory firstStepMemory = (ChatTranscriptMemory) runtime.states().get(0).getMemory();
+        assertTrue(firstStepMemory.getMessages().stream().anyMatch(message -> "previous turn".equals(message.getText())));
+        ChatTranscriptMemory secondStepMemory = (ChatTranscriptMemory) runtime.states().get(1).getMemory();
+        assertTrue(secondStepMemory.getMessages().stream().anyMatch(message ->
                 message instanceof ChatMessage.UserChatMessage userMessage
-                        && userMessage.text().contains("completed Add outline")
+                        && userMessage.getText().contains("completed Add outline")
         ));
     }
 
@@ -136,7 +136,7 @@ class PlanningThenExecutionOrchestratorTest {
 
         @Override
         public Decision decide(AgentRunContext context) {
-            return new Decision.Complete(context.request().instruction(), "done");
+            return new Decision.Complete(context.getRequest().getInstruction(), "done");
         }
     }
 
@@ -148,23 +148,23 @@ class PlanningThenExecutionOrchestratorTest {
         @Override
         public ExecutionResult run(AgentDefinition definition, ExecutionRequest request) {
             requests.add(request);
-            return new ExecutionResult(request.instruction(), request.document().content() + " -> " + request.instruction());
+            return new ExecutionResult(request.getInstruction(), request.getDocument().getContent() + " -> " + request.getInstruction());
         }
 
         @Override
         public ExecutionResult run(AgentDefinition definition, ExecutionRequest request, AgentRunContext initialState) {
             requests.add(request);
             states.add(initialState);
-            String updatedContent = initialState.currentContent() + " -> " + request.instruction();
+            String updatedContent = initialState.getCurrentContent() + " -> " + request.getInstruction();
             return new ExecutionResult(
-                    request.instruction(),
+                    request.getInstruction(),
                     updatedContent,
                     new AgentRunContext(
                             request,
-                            initialState.iteration() + 1,
+                            initialState.getIteration() + 1,
                             updatedContent,
                             new ChatTranscriptMemory(List.of(
-                                    new ChatMessage.UserChatMessage("completed " + request.instruction())
+                                    new ChatMessage.UserChatMessage("completed " + request.getInstruction())
                             )),
                             ExecutionStage.COMPLETED,
                             null,
@@ -174,7 +174,7 @@ class PlanningThenExecutionOrchestratorTest {
         }
 
         private List<String> instructions() {
-            return requests.stream().map(ExecutionRequest::instruction).toList();
+            return requests.stream().map(ExecutionRequest::getInstruction).toList();
         }
 
         private List<ExecutionRequest> requests() {

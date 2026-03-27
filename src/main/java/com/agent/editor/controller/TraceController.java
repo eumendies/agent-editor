@@ -35,8 +35,8 @@ public class TraceController {
         response.setTaskId(taskId);
         response.setTotalRecords(traces.size());
         response.setCategoryCounts(traces.stream()
-                .collect(Collectors.groupingBy(trace -> trace.category().name(), Collectors.counting())));
-        response.setStages(traces.stream().map(TraceRecord::stage).toList());
+                .collect(Collectors.groupingBy(trace -> trace.getCategory().name(), Collectors.counting())));
+        response.setStages(traces.stream().map(TraceRecord::getStage).toList());
         return ResponseEntity.ok(response);
     }
 }

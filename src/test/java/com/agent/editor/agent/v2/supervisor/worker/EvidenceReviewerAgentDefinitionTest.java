@@ -75,7 +75,7 @@ class EvidenceReviewerAgentDefinitionTest {
         Decision decision = definition.decide(context(List.of(analyzeDocumentTool())));
 
         Decision.ToolCalls toolCalls = assertInstanceOf(Decision.ToolCalls.class, decision);
-        assertEquals("analyzeDocument", toolCalls.calls().get(0).name());
+        assertEquals("analyzeDocument", toolCalls.getCalls().get(0).getName());
     }
 
     private AgentRunContext context(List<ToolSpecification> toolSpecifications) {

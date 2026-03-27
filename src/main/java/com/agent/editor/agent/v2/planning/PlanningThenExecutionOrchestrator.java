@@ -52,50 +52,50 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
     @Override
     public TaskResult execute(TaskRequest request) {
         // planning 阶段只生成计划，不直接落文档；真正写文档仍然走统一 execution runtime。
-        PlanResult plan = planningAgent.createPlan(request.document(), request.instruction());
+        PlanResult plan = planningAgent.createPlan(request.getDocument(), request.getInstruction());
         eventPublisher.publish(new ExecutionEvent(
                 EventType.PLAN_CREATED,
-                request.taskId(),
-                "plan created with %d step(s)".formatted(plan.steps().size())
+                request.getTaskId(),
+                "plan created with %d step(s)".formatted(plan.getSteps().size())
         ));
         traceCollector.collect(new TraceRecord(
                 UUID.randomUUID().toString(),
-                request.taskId(),
+                request.getTaskId(),
                 Instant.now(),
                 TraceCategory.ORCHESTRATION_DECISION,
                 "planning.plan.created",
-                request.agentType(),
+                request.getAgentType(),
                 null,
                 null,
                 Map.of(
-                        "plan", plan.steps().stream().map(step -> step.order() + ". " + step.instruction()).toList(),
-                        "instruction", request.instruction()
+                        "plan", plan.getSteps().stream().map(step -> step.getOrder() + ". " + step.getInstruction()).toList(),
+                        "instruction", request.getInstruction()
                 )
         ));
 
         AgentRunContext currentState = new AgentRunContext(
                 null,
                 0,
-                request.document().content(),
-                request.memory(),
+                request.getDocument().getContent(),
+                request.getMemory(),
                 ExecutionStage.RUNNING,
                 null,
                 java.util.List.of()
         );
-        String currentContent = request.document().content();
-        for (PlanStep step : plan.steps()) {
+        String currentContent = request.getDocument().getContent();
+        for (PlanStep step : plan.getSteps()) {
             traceCollector.collect(new TraceRecord(
                     UUID.randomUUID().toString(),
-                    request.taskId(),
+                    request.getTaskId(),
                     Instant.now(),
                     TraceCategory.ORCHESTRATION_DECISION,
                     "planning.step.dispatch",
-                    request.agentType(),
+                    request.getAgentType(),
                     null,
-                    step.order(),
+                    step.getOrder(),
                     Map.of(
-                            "stepOrder", step.order(),
-                            "stepInstruction", step.instruction(),
+                            "stepOrder", step.getOrder(),
+                            "stepInstruction", step.getInstruction(),
                             "currentContent", currentContent
                     )
             ));
@@ -104,50 +104,50 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
             ExecutionResult result = executionRuntime.run(
                     executionAgent,
                     new ExecutionRequest(
-                            request.taskId(),
-                            request.sessionId(),
+                            request.getTaskId(),
+                            request.getSessionId(),
                             AgentType.REACT,
                             new DocumentSnapshot(
-                                    request.document().documentId(),
-                                    request.document().title(),
+                                    request.getDocument().getDocumentId(),
+                                    request.getDocument().getTitle(),
                                     currentContent
                             ),
-                            step.instruction(),
-                            request.maxIterations()
+                            step.getInstruction(),
+                            request.getMaxIterations()
                     ),
                     stepState
             );
             // 每一步都把上一步的产物作为新的文档输入，形成显式串行阶段链。
-            currentContent = result.finalContent();
-            currentState = result.finalState();
+            currentContent = result.getFinalContent();
+            currentState = result.getFinalState();
         }
 
-        return new TaskResult(TaskStatus.COMPLETED, currentContent, currentState.memory());
+        return new TaskResult(TaskStatus.COMPLETED, currentContent, currentState.getMemory());
     }
 
     private AgentRunContext prepareStepState(AgentRunContext state, PlanStep step) {
-        if (!(state.memory() instanceof ChatTranscriptMemory transcriptMemory)) {
+        if (!(state.getMemory() instanceof ChatTranscriptMemory transcriptMemory)) {
             return new AgentRunContext(
-                    state.request(),
-                    state.iteration(),
-                    state.currentContent(),
-                    state.memory(),
+                    state.getRequest(),
+                    state.getIteration(),
+                    state.getCurrentContent(),
+                    state.getMemory(),
                     ExecutionStage.RUNNING,
-                    state.pendingReason(),
-                    state.toolSpecifications()
+                    state.getPendingReason(),
+                    state.getToolSpecifications()
             );
         }
 
-        ArrayList<ChatMessage> messages = new ArrayList<>(transcriptMemory.messages());
-        messages.add(new ChatMessage.UserChatMessage("Plan step %d: %s".formatted(step.order(), step.instruction())));
+        ArrayList<ChatMessage> messages = new ArrayList<>(transcriptMemory.getMessages());
+        messages.add(new ChatMessage.UserChatMessage("Plan step %d: %s".formatted(step.getOrder(), step.getInstruction())));
         return new AgentRunContext(
-                state.request(),
-                state.iteration(),
-                state.currentContent(),
+                state.getRequest(),
+                state.getIteration(),
+                state.getCurrentContent(),
                 new ChatTranscriptMemory(messages),
                 ExecutionStage.RUNNING,
-                state.pendingReason(),
-                state.toolSpecifications()
+                state.getPendingReason(),
+                state.getToolSpecifications()
         );
     }
 }

@@ -39,8 +39,8 @@ class HybridSupervisorAgentDefinitionTest {
                 "No worker steps executed"
         );
 
-        assertEquals(SupervisorAction.ASSIGN_WORKER, response.action());
-        assertEquals("editor", response.workerId());
+        assertEquals(SupervisorAction.ASSIGN_WORKER, response.getAction());
+        assertEquals("editor", response.getWorkerId());
         assertInstanceOf(dev.langchain4j.model.chat.request.ChatRequestParameters.class, chatModel.lastRequest.parameters());
     }
 
@@ -60,8 +60,8 @@ class HybridSupervisorAgentDefinitionTest {
                 "No worker steps executed"
         );
 
-        assertEquals(SupervisorAction.ASSIGN_WORKER, response.action());
-        assertEquals("editor", response.workerId());
+        assertEquals(SupervisorAction.ASSIGN_WORKER, response.getAction());
+        assertEquals("editor", response.getWorkerId());
     }
 
     @Test
@@ -87,9 +87,9 @@ class HybridSupervisorAgentDefinitionTest {
         ));
 
         SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
-        assertEquals("editor", assignWorker.workerId());
-        assertEquals("Apply the approved revision", assignWorker.instruction());
-        assertEquals("editing is next", assignWorker.reasoning());
+        assertEquals("editor", assignWorker.getWorkerId());
+        assertEquals("Apply the approved revision", assignWorker.getInstruction());
+        assertEquals("editing is next", assignWorker.getReasoning());
     }
 
     @Test
@@ -115,7 +115,7 @@ class HybridSupervisorAgentDefinitionTest {
         ));
 
         SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
-        assertEquals("analyzer", assignWorker.workerId());
+        assertEquals("analyzer", assignWorker.getWorkerId());
     }
 
     @Test
@@ -144,9 +144,9 @@ class HybridSupervisorAgentDefinitionTest {
         ));
 
         SupervisorDecision.Complete complete = assertInstanceOf(SupervisorDecision.Complete.class, decision);
-        assertEquals("Final body", complete.finalContent());
-        assertEquals("work complete", complete.summary());
-        assertEquals("done", complete.reasoning());
+        assertEquals("Final body", complete.getFinalContent());
+        assertEquals("work complete", complete.getSummary());
+        assertEquals("done", complete.getReasoning());
     }
 
     @Test
@@ -175,7 +175,7 @@ class HybridSupervisorAgentDefinitionTest {
         ));
 
         SupervisorDecision.Complete complete = assertInstanceOf(SupervisorDecision.Complete.class, decision);
-        assertEquals("Draft body", complete.finalContent());
+        assertEquals("Draft body", complete.getFinalContent());
     }
 
     @Test
@@ -204,7 +204,7 @@ class HybridSupervisorAgentDefinitionTest {
         ));
 
         SupervisorDecision.Complete complete = assertInstanceOf(SupervisorDecision.Complete.class, decision);
-        assertEquals("Draft body", complete.finalContent());
+        assertEquals("Draft body", complete.getFinalContent());
     }
 
     @Test
@@ -233,7 +233,7 @@ class HybridSupervisorAgentDefinitionTest {
         ));
 
         SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
-        assertEquals("editor", assignWorker.workerId());
+        assertEquals("editor", assignWorker.getWorkerId());
     }
 
     @Test
@@ -259,7 +259,7 @@ class HybridSupervisorAgentDefinitionTest {
         ));
 
         SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
-        assertEquals("researcher", assignWorker.workerId());
+        assertEquals("researcher", assignWorker.getWorkerId());
     }
 
     @Test
@@ -285,7 +285,7 @@ class HybridSupervisorAgentDefinitionTest {
         ));
 
         SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
-        assertEquals("writer", assignWorker.workerId());
+        assertEquals("writer", assignWorker.getWorkerId());
     }
 
     @Test
@@ -306,7 +306,7 @@ class HybridSupervisorAgentDefinitionTest {
         ));
 
         SupervisorDecision.Complete complete = assertInstanceOf(SupervisorDecision.Complete.class, decision);
-        assertEquals("Final answer", complete.finalContent());
+        assertEquals("Final answer", complete.getFinalContent());
     }
 
     @Test
@@ -327,7 +327,7 @@ class HybridSupervisorAgentDefinitionTest {
         ));
 
         SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
-        assertEquals("writer", assignWorker.workerId());
+        assertEquals("writer", assignWorker.getWorkerId());
     }
 
     @Test
@@ -348,7 +348,7 @@ class HybridSupervisorAgentDefinitionTest {
         ));
 
         SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
-        assertEquals("researcher", assignWorker.workerId());
+        assertEquals("researcher", assignWorker.getWorkerId());
     }
 
     private static List<WorkerDefinition> workers() {

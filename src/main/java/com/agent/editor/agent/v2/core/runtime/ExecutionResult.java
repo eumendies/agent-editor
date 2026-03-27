@@ -1,11 +1,21 @@
 package com.agent.editor.agent.v2.core.runtime;
 
-import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
+import com.agent.editor.agent.v2.core.state.ExecutionStage;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-public record ExecutionResult(String finalMessage, String finalContent, AgentRunContext finalState) {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExecutionResult {
+
+    private String finalMessage;
+    private String finalContent;
+    private AgentRunContext finalState;
 
     public ExecutionResult(String finalMessage) {
         this(finalMessage, finalMessage, new AgentRunContext(

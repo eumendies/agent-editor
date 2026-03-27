@@ -64,18 +64,18 @@ class AgentV2ConfigurationSplitTest {
             WorkerRegistry workerRegistry = context.getBean(WorkerRegistry.class);
 
             assertThat(workerRegistry.all())
-                    .extracting(WorkerDefinition::workerId)
+                    .extracting(WorkerDefinition::getWorkerId)
                     .containsExactly("researcher", "writer", "reviewer");
             assertThat(workerRegistry.all())
-                    .extracting(WorkerDefinition::capabilities)
+                    .extracting(WorkerDefinition::getCapabilities)
                     .allSatisfy(capabilities -> assertThat(capabilities).isNotEmpty());
-            assertThat(workerRegistry.get("researcher").capabilities()).containsExactly("research");
-            assertThat(workerRegistry.get("writer").capabilities()).containsExactly("write", "edit");
-            assertThat(workerRegistry.get("writer").description()).contains("grounded");
-            assertThat(workerRegistry.get("reviewer").capabilities()).containsExactly("review");
-            assertThat(workerRegistry.get("researcher").agentDefinition()).isInstanceOf(ResearcherAgentDefinition.class);
-            assertThat(workerRegistry.get("writer").agentDefinition()).isInstanceOf(GroundedWriterAgentDefinition.class);
-            assertThat(workerRegistry.get("reviewer").agentDefinition()).isInstanceOf(EvidenceReviewerAgentDefinition.class);
+            assertThat(workerRegistry.get("researcher").getCapabilities()).containsExactly("research");
+            assertThat(workerRegistry.get("writer").getCapabilities()).containsExactly("write", "edit");
+            assertThat(workerRegistry.get("writer").getDescription()).contains("grounded");
+            assertThat(workerRegistry.get("reviewer").getCapabilities()).containsExactly("review");
+            assertThat(workerRegistry.get("researcher").getAgentDefinition()).isInstanceOf(ResearcherAgentDefinition.class);
+            assertThat(workerRegistry.get("writer").getAgentDefinition()).isInstanceOf(GroundedWriterAgentDefinition.class);
+            assertThat(workerRegistry.get("reviewer").getAgentDefinition()).isInstanceOf(EvidenceReviewerAgentDefinition.class);
         });
     }
 
@@ -95,7 +95,7 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(ReflexionActorDefinition.class);
             assertThat(context).hasSingleBean(ReflexionCriticDefinition.class);
             assertThat(context.getBean(WorkerRegistry.class).all())
-                    .extracting(WorkerDefinition::workerId)
+                    .extracting(WorkerDefinition::getWorkerId)
                     .doesNotContain("reflexion-critic");
         });
     }

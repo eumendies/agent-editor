@@ -1,6 +1,9 @@
 package com.agent.editor.agent.v2.core.memory;
 
 import com.agent.editor.agent.v2.core.agent.ToolCall;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -10,21 +13,49 @@ public sealed interface ChatMessage permits ChatMessage.SystemChatMessage,
         ChatMessage.AiToolCallChatMessage,
         ChatMessage.ToolExecutionResultChatMessage {
 
-    String text();
+    String getText();
 
-    record SystemChatMessage(String text) implements ChatMessage {
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    final class SystemChatMessage implements ChatMessage {
+
+        private String text;
     }
 
-    record UserChatMessage(String text) implements ChatMessage {
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    final class UserChatMessage implements ChatMessage {
+
+        private String text;
     }
 
-    record AiChatMessage(String text) implements ChatMessage {
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    final class AiChatMessage implements ChatMessage {
+
+        private String text;
     }
 
-    record AiToolCallChatMessage(String text, List<ToolCall> toolCalls) implements ChatMessage {
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    final class AiToolCallChatMessage implements ChatMessage {
+
+        private String text;
+        private List<ToolCall> toolCalls;
     }
 
-    record ToolExecutionResultChatMessage(String id, String name, String argument, String text)
-            implements ChatMessage {
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    final class ToolExecutionResultChatMessage implements ChatMessage {
+
+        private String id;
+        private String name;
+        private String argument;
+        private String text;
     }
 }

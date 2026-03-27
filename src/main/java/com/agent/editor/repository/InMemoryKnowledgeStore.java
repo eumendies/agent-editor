@@ -16,7 +16,7 @@ public class InMemoryKnowledgeStore implements KnowledgeChunkRepository {
     private final Map<String, List<KnowledgeChunk>> chunksByDocumentId = new ConcurrentHashMap<>();
 
     public void saveDocument(KnowledgeDocument document) {
-        documents.put(document.id(), document);
+        documents.put(document.getId(), document);
     }
 
     public KnowledgeDocument getDocument(String documentId) {
@@ -28,7 +28,7 @@ public class InMemoryKnowledgeStore implements KnowledgeChunkRepository {
     }
 
     public void saveChunk(KnowledgeChunk chunk) {
-        chunksByDocumentId.computeIfAbsent(chunk.documentId(), ignored -> new ArrayList<>()).add(chunk);
+        chunksByDocumentId.computeIfAbsent(chunk.getDocumentId(), ignored -> new ArrayList<>()).add(chunk);
     }
 
     @Override

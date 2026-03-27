@@ -1,16 +1,27 @@
 package com.agent.editor.utils.rag.markdown;
 
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.List;
 
-// 章节树构建结果：包含标题前正文和所有顶层章节。
-public record MarkdownSectionDocument(
-        String leadingContent,
-        List<MarkdownSectionNode> sections
-) {
+@Data
+@NoArgsConstructor
+public class MarkdownSectionDocument {
 
-    public MarkdownSectionDocument {
-        // 统一在入口做标准化，避免后续分块逻辑重复判空和复制集合。
-        leadingContent = leadingContent == null ? "" : leadingContent.trim();
-        sections = sections == null ? List.of() : List.copyOf(sections);
+    private String leadingContent = "";
+    private List<MarkdownSectionNode> sections = List.of();
+
+    public MarkdownSectionDocument(String leadingContent, List<MarkdownSectionNode> sections) {
+        setLeadingContent(leadingContent);
+        setSections(sections);
+    }
+
+    public void setLeadingContent(String leadingContent) {
+        this.leadingContent = leadingContent == null ? "" : leadingContent.trim();
+    }
+
+    public void setSections(List<MarkdownSectionNode> sections) {
+        this.sections = sections == null ? List.of() : List.copyOf(sections);
     }
 }

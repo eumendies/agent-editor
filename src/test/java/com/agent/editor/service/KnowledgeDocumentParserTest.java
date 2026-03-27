@@ -38,8 +38,8 @@ class KnowledgeDocumentParserTest {
 
         ParsedKnowledgeDocument parsed = parser.parse(file);
 
-        assertTrue(parsed.content().contains("项目"));
-        assertEquals("MARKDOWN", parsed.documentType());
+        assertTrue(parsed.getContent().contains("项目"));
+        assertEquals("MARKDOWN", parsed.getDocumentType());
     }
 
     @Test
@@ -54,8 +54,8 @@ class KnowledgeDocumentParserTest {
 
         ParsedKnowledgeDocument parsed = parser.parse(file);
 
-        assertEquals("PDF", parsed.documentType());
-        assertTrue(parsed.content().contains("Knowledge Parser PDF Sample"));
+        assertEquals("PDF", parsed.getDocumentType());
+        assertTrue(parsed.getContent().contains("Knowledge Parser PDF Sample"));
     }
 
     @Test
@@ -85,7 +85,7 @@ class KnowledgeDocumentParserTest {
 
         ParsedKnowledgeDocument parsed = parser.parse(file);
 
-        String content = parsed.content();
+        String content = parsed.getContent();
         assertTrue(content.indexOf("Left Column A") < content.indexOf("Left Column B"));
         assertTrue(content.indexOf("Left Column B") < content.indexOf("Right Column A"));
     }
@@ -102,9 +102,9 @@ class KnowledgeDocumentParserTest {
 
         ParsedKnowledgeDocument parsed = parser.parse(file);
 
-        assertFalse(parsed.content().contains("Contents"));
-        assertFalse(parsed.content().contains("Chapter One........1"));
-        assertTrue(parsed.content().contains("Chapter One Body"));
+        assertFalse(parsed.getContent().contains("Contents"));
+        assertFalse(parsed.getContent().contains("Chapter One........1"));
+        assertTrue(parsed.getContent().contains("Chapter One Body"));
     }
 
     @Test
@@ -119,7 +119,7 @@ class KnowledgeDocumentParserTest {
 
         ParsedKnowledgeDocument parsed = parser.parse(file);
 
-        String content = parsed.content();
+        String content = parsed.getContent();
         assertTrue(content.contains("Name"), content);
         assertTrue(content.contains("Score"), content);
         assertTrue(content.contains("Rank"), content);
@@ -141,10 +141,10 @@ class KnowledgeDocumentParserTest {
 
         ParsedKnowledgeDocument parsed = parser.parse(file);
 
-        assertTrue(parsed.content().contains("Alpha beta gamma"), parsed.content());
-        assertTrue(parsed.content().contains("Delta epsilon zeta"), parsed.content());
-        assertFalse(parsed.content().contains("Alpha | beta | gamma"), parsed.content());
-        assertFalse(parsed.content().contains("Delta | epsilon | zeta"), parsed.content());
+        assertTrue(parsed.getContent().contains("Alpha beta gamma"), parsed.getContent());
+        assertTrue(parsed.getContent().contains("Delta epsilon zeta"), parsed.getContent());
+        assertFalse(parsed.getContent().contains("Alpha | beta | gamma"), parsed.getContent());
+        assertFalse(parsed.getContent().contains("Delta | epsilon | zeta"), parsed.getContent());
     }
 
     @Test

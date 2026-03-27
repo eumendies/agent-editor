@@ -27,11 +27,11 @@ public class PlanningAgentDefinition implements AgentDefinition {
     @Override
     public Decision decide(AgentRunContext context) {
         // 兼容统一 runtime：当 planner 被当作普通 agent 运行时，返回可展示的计划文本。
-        PlanResult plan = createPlan(context.request().document(), context.request().instruction());
-        String result = plan.steps().stream()
-                .map(step -> step.order() + ". " + step.instruction())
+        PlanResult plan = createPlan(context.getRequest().getDocument(), context.getRequest().getInstruction());
+        String result = plan.getSteps().stream()
+                .map(step -> step.getOrder() + ". " + step.getInstruction())
                 .reduce((left, right) -> left + "\n" + right)
-                .orElse(context.request().instruction());
+                .orElse(context.getRequest().getInstruction());
         return new Decision.Complete(result, "planning complete");
     }
 
@@ -42,7 +42,7 @@ public class PlanningAgentDefinition implements AgentDefinition {
         }
 
         try {
-            PlanningResponse response = planningAiService.plan(document.content(), instruction);
+            PlanningResponse response = planningAiService.plan(document.getContent(), instruction);
             return toPlanResult(response, instruction);
         } catch (RuntimeException exception) {
             return fallbackPlan(instruction);
@@ -50,17 +50,17 @@ public class PlanningAgentDefinition implements AgentDefinition {
     }
 
     private PlanResult toPlanResult(PlanningResponse response, String fallbackInstruction) {
-        if (response == null || response.steps() == null || response.steps().isEmpty()) {
+        if (response == null || response.getSteps() == null || response.getSteps().isEmpty()) {
             return fallbackPlan(fallbackInstruction);
         }
 
         List<PlanStep> steps = new java.util.ArrayList<>();
         int nextOrder = 1;
-        for (PlanningResponse.Step step : response.steps()) {
-            if (step == null || step.instruction() == null || step.instruction().isBlank()) {
+        for (PlanningResponse.Step step : response.getSteps()) {
+            if (step == null || step.getInstruction() == null || step.getInstruction().isBlank()) {
                 continue;
             }
-            steps.add(new PlanStep(nextOrder++, step.instruction().trim()));
+            steps.add(new PlanStep(nextOrder++, step.getInstruction().trim()));
         }
 
         if (steps.isEmpty()) {

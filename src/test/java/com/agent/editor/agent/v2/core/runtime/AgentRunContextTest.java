@@ -40,12 +40,12 @@ class AgentRunContextTest {
                 List.of()
         );
 
-        assertSame(request, context.request());
-        assertEquals(2, context.iteration());
-        assertEquals("draft body", context.currentContent());
-        assertSame(memory, context.memory());
-        assertEquals(ExecutionStage.RUNNING, context.stage());
-        assertTrue(context.toolSpecifications().isEmpty());
+        assertSame(request, context.getRequest());
+        assertEquals(2, context.getIteration());
+        assertEquals("draft body", context.getCurrentContent());
+        assertSame(memory, context.getMemory());
+        assertEquals(ExecutionStage.RUNNING, context.getStage());
+        assertTrue(context.getToolSpecifications().isEmpty());
     }
 
     @Test
@@ -74,11 +74,11 @@ class AgentRunContextTest {
                 .advance("final draft")
                 .markCompleted();
 
-        assertEquals(1, updated.iteration());
-        assertEquals("final draft", updated.currentContent());
-        assertEquals(ExecutionStage.COMPLETED, updated.stage());
-        ChatTranscriptMemory memory = (ChatTranscriptMemory) updated.memory();
-        assertEquals(1, memory.messages().size());
+        assertEquals(1, updated.getIteration());
+        assertEquals("final draft", updated.getCurrentContent());
+        assertEquals(ExecutionStage.COMPLETED, updated.getStage());
+        ChatTranscriptMemory memory = (ChatTranscriptMemory) updated.getMemory();
+        assertEquals(1, memory.getMessages().size());
     }
 
     @Test

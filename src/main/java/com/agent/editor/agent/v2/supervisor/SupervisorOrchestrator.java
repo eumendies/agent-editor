@@ -55,25 +55,25 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
 
     @Override
     public TaskResult execute(TaskRequest request) {
-        String currentContent = request.document().content();
+        String currentContent = request.getDocument().getContent();
         AgentRunContext conversationState = new AgentRunContext(
                 null,
                 0,
                 currentContent,
-                request.memory(),
+                request.getMemory(),
                 ExecutionStage.RUNNING,
                 null,
                 List.of()
         );
         List<WorkerResult> workerResults = new ArrayList<>();
         // 混合 supervisor 允许 worker 重复调度，因此预算至少覆盖“一轮 worker 池 + 一次额外重试 + 最终收口”。
-        int dispatchBudget = Math.max(request.maxIterations() + 1, workerRegistry.all().size() + 2);
+        int dispatchBudget = Math.max(request.getMaxIterations() + 1, workerRegistry.all().size() + 2);
 
         for (int i = 0; i < dispatchBudget; i++) {
             SupervisorDecision decision = supervisorAgent.decide(new SupervisorContext(
-                    request.taskId(),
-                    request.sessionId(),
-                    request.instruction(),
+                    request.getTaskId(),
+                    request.getSessionId(),
+                    request.getInstruction(),
                     currentContent,
                     workerRegistry.all(),
                     workerResults
@@ -81,83 +81,83 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
 
             if (decision instanceof SupervisorDecision.AssignWorker assignWorker) {
                 // supervisor 只决定“谁来做、做什么”，具体执行仍然完全复用单 agent runtime。
-                WorkerDefinition worker = workerRegistry.get(assignWorker.workerId());
+                WorkerDefinition worker = workerRegistry.get(assignWorker.getWorkerId());
                 if (worker == null) {
-                    throw new IllegalArgumentException("Unknown worker: " + assignWorker.workerId());
+                    throw new IllegalArgumentException("Unknown worker: " + assignWorker.getWorkerId());
                 }
 
                 // supervisor 只下发子任务，真正的执行仍然复用统一 runtime。
                 eventPublisher.publish(new ExecutionEvent(
                         EventType.WORKER_SELECTED,
-                        request.taskId(),
-                        worker.workerId()
+                        request.getTaskId(),
+                        worker.getWorkerId()
                 ));
                 traceCollector.collect(new TraceRecord(
                         UUID.randomUUID().toString(),
-                        request.taskId(),
+                        request.getTaskId(),
                         Instant.now(),
                         TraceCategory.ORCHESTRATION_DECISION,
                         "supervisor.worker.assigned",
-                        request.agentType(),
-                        worker.workerId(),
+                        request.getAgentType(),
+                        worker.getWorkerId(),
                         i,
                         Map.of(
-                                "workerId", worker.workerId(),
-                                "instruction", assignWorker.instruction(),
-                                "reasoning", assignWorker.reasoning(),
-                                "allowedTools", worker.allowedTools()
+                                "workerId", worker.getWorkerId(),
+                                "instruction", assignWorker.getInstruction(),
+                                "reasoning", assignWorker.getReasoning(),
+                                "allowedTools", worker.getAllowedTools()
                         )
                 ));
 
                 ExecutionResult result = executionRuntime.run(
-                        worker.agentDefinition(),
+                        worker.getAgentDefinition(),
                         new ExecutionRequest(
-                                request.taskId(),
-                                request.sessionId(),
+                                request.getTaskId(),
+                                request.getSessionId(),
                                 AgentType.REACT,
                                 new DocumentSnapshot(
-                                        request.document().documentId(),
-                                        request.document().title(),
+                                        request.getDocument().getDocumentId(),
+                                        request.getDocument().getTitle(),
                                         currentContent
                                 ),
-                                assignWorker.instruction(),
-                                request.maxIterations(),
-                                worker.workerId(),
-                                worker.allowedTools()
+                                assignWorker.getInstruction(),
+                                request.getMaxIterations(),
+                                worker.getWorkerId(),
+                                worker.getAllowedTools()
                         ),
                         buildWorkerRunContext(conversationState, currentContent)
                 );
 
                 // worker 执行完后，最新文档内容会回灌给 supervisor，供下一轮继续分派。
-                currentContent = result.finalContent();
-                conversationState = appendWorkerSummary(conversationState, worker.workerId(), result.finalMessage())
+                currentContent = result.getFinalContent();
+                conversationState = appendWorkerSummary(conversationState, worker.getWorkerId(), result.getFinalMessage())
                         .withCurrentContent(currentContent)
                         .withStage(ExecutionStage.RUNNING);
                 workerResults.add(new WorkerResult(
-                        worker.workerId(),
+                        worker.getWorkerId(),
                         TaskStatus.COMPLETED,
-                        result.finalMessage(),
-                        result.finalContent()
+                        result.getFinalMessage(),
+                        result.getFinalContent()
                 ));
 
                 eventPublisher.publish(new ExecutionEvent(
                         EventType.WORKER_COMPLETED,
-                        request.taskId(),
-                        worker.workerId() + ": " + result.finalMessage()
+                        request.getTaskId(),
+                        worker.getWorkerId() + ": " + result.getFinalMessage()
                 ));
                 traceCollector.collect(new TraceRecord(
                         UUID.randomUUID().toString(),
-                        request.taskId(),
+                        request.getTaskId(),
                         Instant.now(),
                         TraceCategory.ORCHESTRATION_DECISION,
                         "supervisor.worker.completed",
-                        request.agentType(),
-                        worker.workerId(),
+                        request.getAgentType(),
+                        worker.getWorkerId(),
                         i,
                         Map.of(
-                                "workerId", worker.workerId(),
-                                "summary", result.finalMessage(),
-                                "content", result.finalContent()
+                                "workerId", worker.getWorkerId(),
+                                "summary", result.getFinalMessage(),
+                                "content", result.getFinalContent()
                         )
                 ));
                 continue;
@@ -167,25 +167,25 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                 // 最终内容以 supervisor 的收口结果为准，而不是某个 worker 的局部输出。
                 eventPublisher.publish(new ExecutionEvent(
                         EventType.SUPERVISOR_COMPLETED,
-                        request.taskId(),
-                        complete.summary()
+                        request.getTaskId(),
+                        complete.getSummary()
                 ));
                 traceCollector.collect(new TraceRecord(
                         UUID.randomUUID().toString(),
-                        request.taskId(),
+                        request.getTaskId(),
                         Instant.now(),
                         TraceCategory.ORCHESTRATION_DECISION,
                         "supervisor.completed",
-                        request.agentType(),
+                        request.getAgentType(),
                         null,
                         i,
                         Map.of(
-                                "summary", complete.summary(),
-                                "finalContent", complete.finalContent(),
-                                "reasoning", complete.reasoning()
+                                "summary", complete.getSummary(),
+                                "finalContent", complete.getFinalContent(),
+                                "reasoning", complete.getReasoning()
                         )
                 ));
-                return new TaskResult(TaskStatus.COMPLETED, complete.finalContent(), conversationState.memory());
+                return new TaskResult(TaskStatus.COMPLETED, complete.getFinalContent(), conversationState.getMemory());
             }
         }
 
@@ -196,11 +196,11 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
     private AgentRunContext buildWorkerRunContext(AgentRunContext conversationState, String currentContent) {
         return new AgentRunContext(
                 null,
-                conversationState.iteration(),
+                conversationState.getIteration(),
                 currentContent,
-                conversationState.memory(),
+                conversationState.getMemory(),
                 ExecutionStage.RUNNING,
-                conversationState.pendingReason(),
+                conversationState.getPendingReason(),
                 List.of()
         );
     }

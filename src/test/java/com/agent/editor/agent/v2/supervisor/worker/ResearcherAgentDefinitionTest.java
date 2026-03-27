@@ -81,8 +81,8 @@ class ResearcherAgentDefinitionTest {
         ))));
 
         Decision.ToolCalls toolCalls = assertInstanceOf(Decision.ToolCalls.class, decision);
-        assertEquals(1, toolCalls.calls().size());
-        assertEquals("retrieveKnowledge", toolCalls.calls().get(0).name());
+        assertEquals(1, toolCalls.getCalls().size());
+        assertEquals("retrieveKnowledge", toolCalls.getCalls().get(0).getName());
     }
 
     @Test

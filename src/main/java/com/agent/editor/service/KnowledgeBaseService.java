@@ -52,15 +52,15 @@ public class KnowledgeBaseService {
         if (parser != null && splitter != null && repository != null) {
             ParsedKnowledgeDocument parsed = parser.parse(file);
             List<KnowledgeChunk> chunks = splitter.split(
-                    document.id(),
-                    document.fileName(),
-                    parsed.content(),
-                    Map.of("category", category, "documentType", parsed.documentType())
+                    document.getId(),
+                    document.getFileName(),
+                    parsed.getContent(),
+                    Map.of("category", category, "documentType", parsed.getDocumentType())
             );
             List<KnowledgeChunk> chunksToPersist = embeddingService == null
                     ? chunks
                     : chunks.stream()
-                    .map(chunk -> chunk.withEmbedding(embeddingService.embed(chunk.chunkText())))
+                    .map(chunk -> chunk.withEmbedding(embeddingService.embed(chunk.getChunkText())))
                     .toList();
             repository.saveAll(chunksToPersist);
         }

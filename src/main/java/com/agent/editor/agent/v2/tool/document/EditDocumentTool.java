@@ -28,8 +28,8 @@ public class EditDocumentTool implements ToolHandler {
 
     @Override
     public ToolResult execute(ToolInvocation invocation, ToolContext context) {
-        EditDocumentArguments arguments = ToolArgumentDecoder.decode(invocation.arguments(), EditDocumentArguments.class, name());
-        String content = arguments.content();
+        EditDocumentArguments arguments = ToolArgumentDecoder.decode(invocation.getArguments(), EditDocumentArguments.class, name());
+        String content = arguments.getContent();
         if (content == null || content.isEmpty()) {
             return new ToolResult("No content provided to edit the document.");
         }

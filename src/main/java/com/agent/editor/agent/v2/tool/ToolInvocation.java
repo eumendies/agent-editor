@@ -1,4 +1,14 @@
 package com.agent.editor.agent.v2.tool;
 
-public record ToolInvocation(String toolName, String arguments) {
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ToolInvocation {
+
+    private String toolName;
+    private String arguments;
 }

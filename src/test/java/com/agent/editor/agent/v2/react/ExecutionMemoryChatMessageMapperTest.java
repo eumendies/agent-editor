@@ -9,6 +9,7 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
+import lombok.Data;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -72,6 +73,7 @@ class ExecutionMemoryChatMessageMapperTest {
         assertTrue(mapper.toChatMessages(new UnsupportedExecutionMemory()).isEmpty());
     }
 
-    private record UnsupportedExecutionMemory() implements ExecutionMemory {
+    @Data
+    private static class UnsupportedExecutionMemory implements ExecutionMemory {
     }
 }

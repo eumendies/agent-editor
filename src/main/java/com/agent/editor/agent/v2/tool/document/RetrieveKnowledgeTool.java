@@ -40,13 +40,13 @@ public class RetrieveKnowledgeTool implements ToolHandler {
     @Override
     public ToolResult execute(ToolInvocation invocation, ToolContext context) {
         RetrieveKnowledgeArguments arguments = ToolArgumentDecoder.decode(
-                invocation.arguments(),
+                invocation.getArguments(),
                 RetrieveKnowledgeArguments.class,
                 name()
         );
         try {
             return new ToolResult(OBJECT_MAPPER.writeValueAsString(
-                    retrievalService.retrieve(arguments.query(), arguments.documentIds(), arguments.topK())
+                    retrievalService.retrieve(arguments.getQuery(), arguments.getDocumentIds(), arguments.getTopK())
             ));
         } catch (Exception exception) {
             throw new IllegalArgumentException("Failed to serialize tool result for " + name(), exception);

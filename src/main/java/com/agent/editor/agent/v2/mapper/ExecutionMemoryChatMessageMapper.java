@@ -16,40 +16,44 @@ public class ExecutionMemoryChatMessageMapper {
             return List.of();
         }
 
-        return transcriptMemory.messages().stream()
+        return transcriptMemory.getMessages().stream()
                 .map(this::toChatMessage)
                 .toList();
     }
 
     public dev.langchain4j.data.message.ChatMessage toChatMessage(ChatMessage message) {
         if (message instanceof ChatMessage.SystemChatMessage systemMessage) {
-            return SystemMessage.from(systemMessage.text());
+            return SystemMessage.from(systemMessage.getText());
         }
         if (message instanceof ChatMessage.UserChatMessage userMessage) {
-            return UserMessage.from(userMessage.text());
+            return UserMessage.from(userMessage.getText());
         }
         if (message instanceof ChatMessage.AiChatMessage aiMessage) {
-            return AiMessage.from(aiMessage.text());
+            return AiMessage.from(aiMessage.getText());
         }
         if (message instanceof ChatMessage.AiToolCallChatMessage aiToolCallMessage) {
             return AiMessage.from(
-                    aiToolCallMessage.text(),
-                    aiToolCallMessage.toolCalls().stream()
+                    aiToolCallMessage.getText(),
+                    aiToolCallMessage.getToolCalls().stream()
                             .map(this::toToolExecutionRequest)
                             .toList()
             );
         }
         if (message instanceof ChatMessage.ToolExecutionResultChatMessage toolMessage) {
-            return ToolExecutionResultMessage.from(toolMessage.id(), toolMessage.name(), toolMessage.text());
+            return ToolExecutionResultMessage.from(
+                    toolMessage.getId(),
+                    toolMessage.getName(),
+                    toolMessage.getText()
+            );
         }
         throw new IllegalStateException("Unsupported execution message type: " + message.getClass().getSimpleName());
     }
 
     private ToolExecutionRequest toToolExecutionRequest(ToolCall toolCall) {
         return ToolExecutionRequest.builder()
-                .id(toolCall.id())
-                .name(toolCall.name())
-                .arguments(toolCall.arguments())
+                .id(toolCall.getId())
+                .name(toolCall.getName())
+                .arguments(toolCall.getArguments())
                 .build();
     }
 }

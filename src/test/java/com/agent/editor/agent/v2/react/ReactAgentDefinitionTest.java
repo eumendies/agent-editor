@@ -54,17 +54,17 @@ class ReactAgentDefinitionTest {
         Decision decision = definition.decide(context());
 
         Decision.Complete complete = assertInstanceOf(Decision.Complete.class, decision);
-        assertEquals("final answer", complete.result());
+        assertEquals("final answer", complete.getResult());
         assertNotNull(chatModel.lastRequest);
         assertEquals(2, chatModel.lastRequest.messages().size());
         assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
         UserMessage userMessage = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
         assertEquals("rewrite this", userMessage.singleText());
         assertTrue(traceStore.getByTaskId("task-1").stream().anyMatch(trace ->
-                trace.category() == TraceCategory.MODEL_REQUEST
-                        && "react.model.request".equals(trace.stage())
-                        && trace.payload().get("userPrompt").toString().contains("body")
-                        && trace.payload().get("userPrompt").toString().contains("rewrite this")
+                trace.getCategory() == TraceCategory.MODEL_REQUEST
+                        && "react.model.request".equals(trace.getStage())
+                        && trace.getPayload().get("userPrompt").toString().contains("body")
+                        && trace.getPayload().get("userPrompt").toString().contains("rewrite this")
         ));
     }
 
@@ -86,9 +86,9 @@ class ReactAgentDefinitionTest {
         Decision decision = definition.decide(context());
 
         Decision.ToolCalls toolCalls = assertInstanceOf(Decision.ToolCalls.class, decision);
-        assertEquals(1, toolCalls.calls().size());
-        assertEquals("editDocument", toolCalls.calls().get(0).name());
-        assertEquals("{\"content\":\"new body\"}", toolCalls.calls().get(0).arguments());
+        assertEquals(1, toolCalls.getCalls().size());
+        assertEquals("editDocument", toolCalls.getCalls().get(0).getName());
+        assertEquals("{\"content\":\"new body\"}", toolCalls.getCalls().get(0).getArguments());
     }
 
     @Test
@@ -151,7 +151,7 @@ class ReactAgentDefinitionTest {
         ));
 
         Decision.Complete complete = assertInstanceOf(Decision.Complete.class, decision);
-        assertEquals("final answer", complete.result());
+        assertEquals("final answer", complete.getResult());
         assertEquals(5, chatModel.lastRequest.messages().size());
         UserMessage transcriptStep = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
         assertTrue(transcriptStep.singleText().contains("inspect headings"));
@@ -182,15 +182,15 @@ class ReactAgentDefinitionTest {
 
         var traces = traceStore.getByTaskId("task-1");
         assertTrue(traces.stream().anyMatch(trace ->
-                trace.category() == TraceCategory.MODEL_REQUEST
-                        && "react.model.request".equals(trace.stage())
-                        && trace.payload().containsKey("systemPrompt")
-                        && trace.payload().containsKey("userPrompt")
+                trace.getCategory() == TraceCategory.MODEL_REQUEST
+                        && "react.model.request".equals(trace.getStage())
+                        && trace.getPayload().containsKey("systemPrompt")
+                        && trace.getPayload().containsKey("userPrompt")
         ));
         assertTrue(traces.stream().anyMatch(trace ->
-                trace.category() == TraceCategory.MODEL_RESPONSE
-                        && "react.model.response".equals(trace.stage())
-                        && "final answer".equals(trace.payload().get("rawText"))
+                trace.getCategory() == TraceCategory.MODEL_RESPONSE
+                        && "react.model.response".equals(trace.getStage())
+                        && "final answer".equals(trace.getPayload().get("rawText"))
         ));
     }
 
@@ -214,8 +214,8 @@ class ReactAgentDefinitionTest {
 
         assertInstanceOf(Decision.ToolCalls.class, decision);
         assertTrue(traceStore.getByTaskId("task-1").stream().anyMatch(trace ->
-                trace.category() == TraceCategory.MODEL_RESPONSE
-                        && trace.payload().containsKey("rawText")
+                trace.getCategory() == TraceCategory.MODEL_RESPONSE
+                        && trace.getPayload().containsKey("rawText")
         ));
     }
 

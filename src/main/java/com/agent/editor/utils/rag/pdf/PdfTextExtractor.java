@@ -64,15 +64,15 @@ class PdfTextExtractor extends PDFTextStripper {
     private List<PdfTextLine> mergeFragmentsIntoLines() {
         List<PdfTextLine> sorted = fragments.stream()
                 .sorted((left, right) -> {
-                    int pageCompare = Integer.compare(left.pageIndex(), right.pageIndex());
+                    int pageCompare = Integer.compare(left.getPageIndex(), right.getPageIndex());
                     if (pageCompare != 0) {
                         return pageCompare;
                     }
-                    int yCompare = Float.compare(left.y(), right.y());
+                    int yCompare = Float.compare(left.getY(), right.getY());
                     if (yCompare != 0) {
                         return yCompare;
                     }
-                    return Float.compare(left.x(), right.x());
+                    return Float.compare(left.getX(), right.getX());
                 })
                 .toList();
 
@@ -94,26 +94,26 @@ class PdfTextExtractor extends PDFTextStripper {
     }
 
     private boolean shouldMerge(PdfTextLine previous, PdfTextLine current) {
-        if (previous.pageIndex() != current.pageIndex()) {
+        if (previous.getPageIndex() != current.getPageIndex()) {
             return false;
         }
-        if (Math.abs(previous.y() - current.y()) > SAME_LINE_TOLERANCE) {
+        if (Math.abs(previous.getY() - current.getY()) > SAME_LINE_TOLERANCE) {
             return false;
         }
-        float previousEnd = previous.x() + previous.width();
-        float gap = current.x() - previousEnd;
+        float previousEnd = previous.getX() + previous.getWidth();
+        float gap = current.getX() - previousEnd;
         return gap >= 0 && gap <= WORD_GAP_TOLERANCE;
     }
 
     private PdfTextLine merge(PdfTextLine previous, PdfTextLine current) {
-        float endX = Math.max(previous.x() + previous.width(), current.x() + current.width());
+        float endX = Math.max(previous.getX() + previous.getWidth(), current.getX() + current.getWidth());
         return new PdfTextLine(
-                previous.pageIndex(),
-                previous.pageWidth(),
-                previous.x(),
-                previous.y(),
-                endX - previous.x(),
-                previous.text() + " " + current.text()
+                previous.getPageIndex(),
+                previous.getPageWidth(),
+                previous.getX(),
+                previous.getY(),
+                endX - previous.getX(),
+                previous.getText() + " " + current.getText()
         );
     }
 }

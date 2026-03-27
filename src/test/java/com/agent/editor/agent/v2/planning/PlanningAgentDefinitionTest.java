@@ -37,9 +37,9 @@ class PlanningAgentDefinitionTest {
                 "Improve this document"
         );
 
-        assertEquals(3, result.steps().size());
-        assertEquals(new PlanStep(1, "Review structure"), result.steps().get(0));
-        assertEquals(new PlanStep(3, "Polish tone"), result.steps().get(2));
+        assertEquals(3, result.getSteps().size());
+        assertEquals(new PlanStep(1, "Review structure"), result.getSteps().get(0));
+        assertEquals(new PlanStep(3, "Polish tone"), result.getSteps().get(2));
     }
 
     @Test
@@ -53,8 +53,8 @@ class PlanningAgentDefinitionTest {
 
         PlanningResponse response = planningAiService.plan("body", "Improve this document");
 
-        assertEquals(2, response.steps().size());
-        assertEquals("Review structure", response.steps().get(0).instruction());
+        assertEquals(2, response.getSteps().size());
+        assertEquals("Review structure", response.getSteps().get(0).getInstruction());
         assertInstanceOf(ChatRequest.class, chatModel.lastRequest);
     }
 
@@ -67,7 +67,7 @@ class PlanningAgentDefinitionTest {
                 "Improve this document"
         );
 
-        assertEquals(List.of(new PlanStep(1, "Improve this document")), result.steps());
+        assertEquals(List.of(new PlanStep(1, "Improve this document")), result.getSteps());
     }
 
     @Test
@@ -80,7 +80,7 @@ class PlanningAgentDefinitionTest {
                 "Improve this document"
         );
 
-        assertEquals(List.of(new PlanStep(1, "Improve this document")), result.steps());
+        assertEquals(List.of(new PlanStep(1, "Improve this document")), result.getSteps());
     }
 
     @Test
@@ -94,7 +94,7 @@ class PlanningAgentDefinitionTest {
                 "Improve this document"
         );
 
-        assertEquals(List.of(new PlanStep(1, "Improve this document")), result.steps());
+        assertEquals(List.of(new PlanStep(1, "Improve this document")), result.getSteps());
     }
 
     private static final class RecordingChatModel implements ChatModel {

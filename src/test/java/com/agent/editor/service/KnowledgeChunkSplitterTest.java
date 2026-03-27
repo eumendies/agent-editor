@@ -24,9 +24,9 @@ class KnowledgeChunkSplitterTest {
         List<KnowledgeChunk> chunks = splitter.split("doc-1", "resume.md", content, Map.of("category", "resume"));
 
         assertEquals(2, chunks.size());
-        assertEquals(0, chunks.get(0).chunkIndex());
-        assertEquals("项目经历", chunks.get(0).heading());
-        assertEquals("实习经历", chunks.get(1).heading());
+        assertEquals(0, chunks.get(0).getChunkIndex());
+        assertEquals("项目经历", chunks.get(0).getHeading());
+        assertEquals("实习经历", chunks.get(1).getHeading());
     }
 
     @Test
@@ -45,8 +45,8 @@ class KnowledgeChunkSplitterTest {
         List<KnowledgeChunk> chunks = splitter.split("doc-1", "resume.md", content, Map.of("category", "resume"));
 
         assertEquals(2, chunks.size());
-        assertEquals("项目经历 > Agent Editor", chunks.get(0).heading());
-        assertEquals("项目经历 > 智能检索", chunks.get(1).heading());
+        assertEquals("项目经历 > Agent Editor", chunks.get(0).getHeading());
+        assertEquals("项目经历 > 智能检索", chunks.get(1).getHeading());
     }
 
     @Test
@@ -63,8 +63,8 @@ class KnowledgeChunkSplitterTest {
         List<KnowledgeChunk> chunks = splitter.split("doc-1", "resume.md", content, Map.of("category", "resume"));
 
         assertTrue(chunks.size() > 1);
-        assertTrue(chunks.stream().allMatch(chunk -> "项目经历 > Agent Editor".equals(chunk.heading())));
-        assertTrue(chunks.stream().allMatch(chunk -> chunk.chunkText().length() <= 60));
+        assertTrue(chunks.stream().allMatch(chunk -> "项目经历 > Agent Editor".equals(chunk.getHeading())));
+        assertTrue(chunks.stream().allMatch(chunk -> chunk.getChunkText().length() <= 60));
     }
 
     @Test
@@ -81,8 +81,8 @@ class KnowledgeChunkSplitterTest {
         List<KnowledgeChunk> chunks = splitter.split("doc-1", "resume.md", content, Map.of());
 
         assertEquals(1, chunks.size());
-        assertEquals("项目经历 > Agent Editor > 检索增强", chunks.get(0).heading());
-        assertTrue(chunks.get(0).chunkText().startsWith("### 检索增强"));
+        assertEquals("项目经历 > Agent Editor > 检索增强", chunks.get(0).getHeading());
+        assertTrue(chunks.get(0).getChunkText().startsWith("### 检索增强"));
     }
 
     @Test
@@ -93,7 +93,7 @@ class KnowledgeChunkSplitterTest {
         List<KnowledgeChunk> chunks = splitter.split("doc-1", "notes.md", "纯正文内容纯正文内容纯正文内容纯正文内容", Map.of());
 
         assertFalse(chunks.isEmpty());
-        assertTrue(chunks.stream().allMatch(chunk -> chunk.heading() == null));
+        assertTrue(chunks.stream().allMatch(chunk -> chunk.getHeading() == null));
     }
 
     @Test
@@ -111,8 +111,8 @@ class KnowledgeChunkSplitterTest {
         List<KnowledgeChunk> chunks = splitter.split("doc-1", "resume.md", content, Map.of());
 
         assertEquals(2, chunks.size());
-        assertEquals("项目经历", chunks.get(0).heading());
-        assertEquals("项目经历 > Agent Editor", chunks.get(1).heading());
+        assertEquals("项目经历", chunks.get(0).getHeading());
+        assertEquals("项目经历 > Agent Editor", chunks.get(1).getHeading());
     }
 
     @Test
@@ -123,6 +123,6 @@ class KnowledgeChunkSplitterTest {
         List<KnowledgeChunk> chunks = splitter.split("doc-1", "notes.txt", "纯正文内容纯正文内容纯正文内容纯正文内容", Map.of());
 
         assertFalse(chunks.isEmpty());
-        assertNull(chunks.get(0).heading());
+        assertNull(chunks.get(0).getHeading());
     }
 }

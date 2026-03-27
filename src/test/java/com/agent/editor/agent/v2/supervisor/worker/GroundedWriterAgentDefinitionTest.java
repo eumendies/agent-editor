@@ -76,7 +76,7 @@ class GroundedWriterAgentDefinitionTest {
         Decision decision = definition.decide(context(List.of(editDocumentTool())));
 
         Decision.ToolCalls toolCalls = assertInstanceOf(Decision.ToolCalls.class, decision);
-        assertEquals("editDocument", toolCalls.calls().get(0).name());
+        assertEquals("editDocument", toolCalls.getCalls().get(0).getName());
     }
 
     private AgentRunContext context(List<ToolSpecification> toolSpecifications) {

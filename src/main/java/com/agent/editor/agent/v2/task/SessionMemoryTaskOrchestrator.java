@@ -15,18 +15,18 @@ public class SessionMemoryTaskOrchestrator implements TaskOrchestrator {
 
     @Override
     public TaskResult execute(TaskRequest request) {
-        ChatTranscriptMemory memory = sessionMemoryStore.load(request.sessionId());
+        ChatTranscriptMemory memory = sessionMemoryStore.load(request.getSessionId());
         TaskResult result = delegate.execute(new TaskRequest(
-                request.taskId(),
-                request.sessionId(),
-                request.agentType(),
-                request.document(),
-                request.instruction(),
-                request.maxIterations(),
+                request.getTaskId(),
+                request.getSessionId(),
+                request.getAgentType(),
+                request.getDocument(),
+                request.getInstruction(),
+                request.getMaxIterations(),
                 memory
         ));
-        if (result.memory() instanceof ChatTranscriptMemory transcriptMemory) {
-            sessionMemoryStore.save(request.sessionId(), transcriptMemory);
+        if (result.getMemory() instanceof ChatTranscriptMemory transcriptMemory) {
+            sessionMemoryStore.save(request.getSessionId(), transcriptMemory);
         }
         return result;
     }

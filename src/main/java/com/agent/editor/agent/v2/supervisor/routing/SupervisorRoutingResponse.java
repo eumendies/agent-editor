@@ -1,11 +1,18 @@
 package com.agent.editor.agent.v2.supervisor.routing;
 
-record SupervisorRoutingResponse(
-        SupervisorAction action,
-        String workerId,
-        String instruction,
-        String summary,
-        String finalContent,
-        String reasoning
-) {
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+class SupervisorRoutingResponse {
+
+    private SupervisorAction action;
+    private String workerId;
+    private String instruction;
+    private String summary;
+    private String finalContent;
+    private String reasoning;
 }

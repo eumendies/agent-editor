@@ -60,14 +60,14 @@ public class EvidenceReviewerAgentDefinition implements AgentDefinition {
                 "reviewer.model.request",
                 Map.of(
                         "systemPrompt", systemPrompt,
-                        "memoryMessages", context.state().memory(),
-                        "toolSpecifications", context.toolSpecifications().stream().map(spec -> spec.name()).toList()
+                        "memoryMessages", context.state().getMemory(),
+                        "toolSpecifications", context.getToolSpecifications().stream().map(spec -> spec.name()).toList()
                 )
         ));
 
         ChatResponse response = chatModel.chat(ChatRequest.builder()
                 .messages(buildMessages(context, systemPrompt))
-                .toolSpecifications(context.toolSpecifications())
+                .toolSpecifications(context.getToolSpecifications())
                 .build());
 
         AiMessage aiMessage = response.aiMessage();
@@ -112,7 +112,7 @@ public class EvidenceReviewerAgentDefinition implements AgentDefinition {
     private List<ChatMessage> buildMessages(AgentRunContext context, String systemPrompt) {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt));
-        messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().memory()));
+        messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().getMemory()));
         return messages;
     }
 
@@ -126,13 +126,13 @@ public class EvidenceReviewerAgentDefinition implements AgentDefinition {
                                     Map<String, Object> payload) {
         return new TraceRecord(
                 UUID.randomUUID().toString(),
-                context.request().taskId(),
+                context.getRequest().getTaskId(),
                 Instant.now(),
                 category,
                 stage,
                 type(),
-                context.request().workerId(),
-                context.state().iteration(),
+                context.getRequest().getWorkerId(),
+                context.state().getIteration(),
                 payload
         );
     }

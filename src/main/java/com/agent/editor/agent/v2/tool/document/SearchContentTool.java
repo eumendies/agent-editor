@@ -28,9 +28,9 @@ public class SearchContentTool implements ToolHandler {
 
     @Override
     public ToolResult execute(ToolInvocation invocation, ToolContext context) {
-        SearchContentArguments arguments = ToolArgumentDecoder.decode(invocation.arguments(), SearchContentArguments.class, name());
-        String pattern = arguments.pattern() == null ? "" : arguments.pattern();
-        String content = context.currentContent() == null ? "" : context.currentContent();
+        SearchContentArguments arguments = ToolArgumentDecoder.decode(invocation.getArguments(), SearchContentArguments.class, name());
+        String pattern = arguments.getPattern() == null ? "" : arguments.getPattern();
+        String content = context.getCurrentContent() == null ? "" : context.getCurrentContent();
         boolean found = !pattern.isEmpty() && content.toLowerCase().contains(pattern.toLowerCase());
         return new ToolResult("Search for '" + pattern + "': " + (found ? "Found" : "Not found"));
     }

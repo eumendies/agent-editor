@@ -10,7 +10,7 @@ public class WorkerRegistry {
     private final Map<String, WorkerDefinition> workers = new LinkedHashMap<>();
 
     public void register(WorkerDefinition workerDefinition) {
-        workers.put(workerDefinition.workerId(), workerDefinition);
+        workers.put(workerDefinition.getWorkerId(), workerDefinition);
     }
 
     public WorkerDefinition get(String workerId) {

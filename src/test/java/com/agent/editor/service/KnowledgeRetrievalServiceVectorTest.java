@@ -40,7 +40,7 @@ class KnowledgeRetrievalServiceVectorTest {
         List<RetrievedKnowledgeChunk> results = service.retrieve("streaming project", null, null);
 
         assertEquals(1, results.size());
-        assertEquals(0.92, results.get(0).score());
+        assertEquals(0.92, results.get(0).getScore());
         verify(embeddingService).embed("streaming project");
         verify(repository).searchHybrid(eq("streaming project"), any(), isNull(), eq(5));
     }

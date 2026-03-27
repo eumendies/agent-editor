@@ -53,7 +53,7 @@ public class MilvusKnowledgeChunkRepository implements KnowledgeChunkRepository 
         }
 
         milvusClient.upsert(UpsertReq.builder()
-                .collectionName(properties.collectionName())
+                .collectionName(properties.getCollectionName())
                 .data(chunks.stream().map(this::toRow).toList())
                 .build());
     }
@@ -63,7 +63,7 @@ public class MilvusKnowledgeChunkRepository implements KnowledgeChunkRepository 
         int candidateTopK = Math.max(topK * 3, 20);
         try {
             SearchResp response = milvusClient.hybridSearch(HybridSearchReq.builder()
-                    .collectionName(properties.collectionName())
+                    .collectionName(properties.getCollectionName())
                     .searchRequests(List.of(
                             AnnSearchReq.builder()
                                     .vectorFieldName(EMBEDDING)
@@ -92,7 +92,7 @@ public class MilvusKnowledgeChunkRepository implements KnowledgeChunkRepository 
     @Override
     public List<RetrievedKnowledgeChunk> searchByVector(float[] queryVector, List<String> documentIds, int topK) {
         SearchResp response = milvusClient.search(SearchReq.builder()
-                .collectionName(properties.collectionName())
+                .collectionName(properties.getCollectionName())
                 .annsField(EMBEDDING)
                 .metricType(IndexParam.MetricType.COSINE)
                 .topK(topK)
@@ -114,24 +114,24 @@ public class MilvusKnowledgeChunkRepository implements KnowledgeChunkRepository 
     private JsonObject toRow(KnowledgeChunk chunk) {
         JsonObject row = new JsonObject();
         row.addProperty(ID, chunkId(chunk));
-        row.addProperty(DOCUMENT_ID, chunk.documentId());
-        row.addProperty(FILE_NAME, chunk.fileName());
-        row.addProperty(CHUNK_INDEX, chunk.chunkIndex());
-        if (chunk.heading() != null) {
-            row.addProperty(HEADING, chunk.heading());
+        row.addProperty(DOCUMENT_ID, chunk.getDocumentId());
+        row.addProperty(FILE_NAME, chunk.getFileName());
+        row.addProperty(CHUNK_INDEX, chunk.getChunkIndex());
+        if (chunk.getHeading() != null) {
+            row.addProperty(HEADING, chunk.getHeading());
         }
-        row.addProperty(CHUNK_TEXT, chunk.chunkText());
+        row.addProperty(CHUNK_TEXT, chunk.getChunkText());
         row.addProperty(FULL_TEXT, buildFullText(chunk));
-        chunk.metadata().forEach(row::addProperty);
-        row.add(EMBEDDING, toJsonArray(chunk.embedding()));
+        chunk.getMetadata().forEach(row::addProperty);
+        row.add(EMBEDDING, toJsonArray(chunk.getEmbedding()));
         return row;
     }
 
     private String buildFullText(KnowledgeChunk chunk) {
-        if (chunk.heading() == null || chunk.heading().isBlank()) {
-            return chunk.chunkText();
+        if (chunk.getHeading() == null || chunk.getHeading().isBlank()) {
+            return chunk.getChunkText();
         }
-        return chunk.heading() + "\n" + chunk.chunkText();
+        return chunk.getHeading() + "\n" + chunk.getChunkText();
     }
 
     private JsonArray toJsonArray(float[] embedding) {
@@ -171,7 +171,7 @@ public class MilvusKnowledgeChunkRepository implements KnowledgeChunkRepository 
     }
 
     private String chunkId(KnowledgeChunk chunk) {
-        return chunk.documentId() + "#" + chunk.chunkIndex();
+        return chunk.getDocumentId() + "#" + chunk.getChunkIndex();
     }
 
     private String quote(String value) {

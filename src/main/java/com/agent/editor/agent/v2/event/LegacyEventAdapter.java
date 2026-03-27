@@ -13,31 +13,31 @@ import java.util.UUID;
 public class LegacyEventAdapter {
 
     public AgentStep toStep(ExecutionEvent event, int stepNumber) {
-        AgentStepType stepType = toStepType(event.type());
-        AgentStep step = new AgentStep(UUID.randomUUID().toString(), event.taskId(), stepNumber, stepType);
+        AgentStepType stepType = toStepType(event.getType());
+        AgentStep step = new AgentStep(UUID.randomUUID().toString(), event.getTaskId(), stepNumber, stepType);
 
         // 旧前端是“一个大 step 对象 + 若干展示字段”，这里按事件类型把 message 投影到不同字段。
         switch (stepType) {
-            case ACTION -> step.setAction(event.message());
-            case OBSERVATION -> step.setObservation(event.message());
+            case ACTION -> step.setAction(event.getMessage());
+            case OBSERVATION -> step.setObservation(event.getMessage());
             case RESULT, COMPLETED -> {
-                step.setResult(event.message());
+                step.setResult(event.getMessage());
                 step.setFinal(stepType == AgentStepType.COMPLETED);
             }
-            case ERROR -> step.setError(event.message());
-            default -> step.setThought(event.message());
+            case ERROR -> step.setError(event.getMessage());
+            default -> step.setThought(event.getMessage());
         }
 
         return step;
     }
 
     public WebSocketMessage toWebSocketMessage(ExecutionEvent event) {
-        return switch (event.type()) {
-            case TASK_COMPLETED -> WebSocketMessage.completed(event.taskId(), event.message());
-            case SUPERVISOR_COMPLETED -> WebSocketMessage.completed(event.taskId(), event.message());
-            case TASK_FAILED, TOOL_FAILED -> WebSocketMessage.error(event.taskId(), event.message());
+        return switch (event.getType()) {
+            case TASK_COMPLETED -> WebSocketMessage.completed(event.getTaskId(), event.getMessage());
+            case SUPERVISOR_COMPLETED -> WebSocketMessage.completed(event.getTaskId(), event.getMessage());
+            case TASK_FAILED, TOOL_FAILED -> WebSocketMessage.error(event.getTaskId(), event.getMessage());
             // 其余中间态一律按 step 事件推送，保持旧页面的消费方式不变。
-            default -> WebSocketMessage.step(event.taskId(), toStepType(event.type()), event.message());
+            default -> WebSocketMessage.step(event.getTaskId(), toStepType(event.getType()), event.getMessage());
         };
     }
 

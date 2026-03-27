@@ -55,8 +55,8 @@ class ReflexionOrchestratorTest {
                 3
         ));
 
-        assertEquals(TaskStatus.COMPLETED, result.status());
-        assertEquals("body -> actor-pass-1", result.finalContent());
+        assertEquals(TaskStatus.COMPLETED, result.getStatus());
+        assertEquals("body -> actor-pass-1", result.getFinalContent());
         assertEquals(1, runtime.actorStates.size());
         assertEquals(1, runtime.criticStates.size());
         assertEquals(List.of("editDocument", "searchContent"), runtime.actorAllowedTools.get(0));
@@ -93,21 +93,21 @@ class ReflexionOrchestratorTest {
                 ))
         ));
 
-        assertEquals(TaskStatus.COMPLETED, result.status());
-        assertEquals("body -> actor-pass-1 -> actor-pass-2", result.finalContent());
+        assertEquals(TaskStatus.COMPLETED, result.getStatus());
+        assertEquals("body -> actor-pass-1 -> actor-pass-2", result.getFinalContent());
         assertEquals(2, runtime.actorStates.size());
         assertEquals(2, runtime.criticStates.size());
-        ChatTranscriptMemory firstActorMemory = (ChatTranscriptMemory) runtime.actorStates.get(0).memory();
-        assertTrue(firstActorMemory.messages().stream().anyMatch(message -> "previous turn".equals(message.text())));
-        ChatTranscriptMemory secondActorMemory = (ChatTranscriptMemory) runtime.actorStates.get(1).memory();
-        assertTrue(secondActorMemory.messages().stream().anyMatch(message ->
+        ChatTranscriptMemory firstActorMemory = (ChatTranscriptMemory) runtime.actorStates.get(0).getMemory();
+        assertTrue(firstActorMemory.getMessages().stream().anyMatch(message -> "previous turn".equals(message.getText())));
+        ChatTranscriptMemory secondActorMemory = (ChatTranscriptMemory) runtime.actorStates.get(1).getMemory();
+        assertTrue(secondActorMemory.getMessages().stream().anyMatch(message ->
                 message instanceof ChatMessage.UserChatMessage userMessage
-                        && userMessage.text().contains("\"verdict\":\"REVISE\"")
-                        && userMessage.text().contains("\"feedback\":\"Tighten the introduction\"")
-                        && userMessage.text().contains("\"reasoning\":\"too long\"")
+                        && userMessage.getText().contains("\"verdict\":\"REVISE\"")
+                        && userMessage.getText().contains("\"feedback\":\"Tighten the introduction\"")
+                        && userMessage.getText().contains("\"reasoning\":\"too long\"")
         ));
-        assertEquals(0, runtime.criticStates.get(0).iteration());
-        assertEquals(0, runtime.criticStates.get(1).iteration());
+        assertEquals(0, runtime.criticStates.get(0).getIteration());
+        assertEquals(0, runtime.criticStates.get(1).getIteration());
     }
 
     @Test
@@ -137,8 +137,8 @@ class ReflexionOrchestratorTest {
                 2
         ));
 
-        assertEquals(TaskStatus.COMPLETED, result.status());
-        assertEquals("body -> actor-pass-1 -> actor-pass-2", result.finalContent());
+        assertEquals(TaskStatus.COMPLETED, result.getStatus());
+        assertEquals("body -> actor-pass-1 -> actor-pass-2", result.getFinalContent());
         assertEquals(2, runtime.actorStates.size());
         assertEquals(2, runtime.criticStates.size());
     }
@@ -173,20 +173,20 @@ class ReflexionOrchestratorTest {
 
         var traces = traceStore.getByTaskId("task-reflex-4");
         assertTrue(traces.stream().anyMatch(trace ->
-                trace.category() == TraceCategory.ORCHESTRATION_DECISION
-                        && "reflexion.actor.started".equals(trace.stage())
+                trace.getCategory() == TraceCategory.ORCHESTRATION_DECISION
+                        && "reflexion.actor.started".equals(trace.getStage())
         ));
         assertTrue(traces.stream().anyMatch(trace ->
-                trace.category() == TraceCategory.ORCHESTRATION_DECISION
-                        && "reflexion.critic.completed".equals(trace.stage())
+                trace.getCategory() == TraceCategory.ORCHESTRATION_DECISION
+                        && "reflexion.critic.completed".equals(trace.getStage())
         ));
         assertTrue(traces.stream().anyMatch(trace ->
-                trace.category() == TraceCategory.ORCHESTRATION_DECISION
-                        && "reflexion.revise".equals(trace.stage())
+                trace.getCategory() == TraceCategory.ORCHESTRATION_DECISION
+                        && "reflexion.revise".equals(trace.getStage())
         ));
         assertTrue(traces.stream().anyMatch(trace ->
-                trace.category() == TraceCategory.ORCHESTRATION_DECISION
-                        && "reflexion.pass".equals(trace.stage())
+                trace.getCategory() == TraceCategory.ORCHESTRATION_DECISION
+                        && "reflexion.pass".equals(trace.getStage())
         ));
     }
 
@@ -206,14 +206,14 @@ class ReflexionOrchestratorTest {
 
         @Override
         public Decision decide(AgentRunContext context) {
-            ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) context.state().memory();
-            long critiqueCount = transcriptMemory.messages().stream()
+            ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) context.state().getMemory();
+            long critiqueCount = transcriptMemory.getMessages().stream()
                     .filter(ChatMessage.UserChatMessage.class::isInstance)
                     .map(ChatMessage.UserChatMessage.class::cast)
-                    .filter(message -> message.text().startsWith("Reflection critique"))
+                    .filter(message -> message.getText().startsWith("Reflection critique"))
                     .count();
             long round = critiqueCount + 1;
-            return new Decision.Complete(context.state().currentContent() + " -> actor-pass-" + round, "actor done");
+            return new Decision.Complete(context.state().getCurrentContent() + " -> actor-pass-" + round, "actor done");
         }
     }
 
@@ -228,28 +228,28 @@ class ReflexionOrchestratorTest {
         public ExecutionResult run(AgentDefinition definition, ExecutionRequest request, AgentRunContext initialState) {
             if (definition instanceof ReflexionCriticDefinition criticDefinition) {
                 criticStates.add(initialState);
-                criticAllowedTools.add(request.allowedTools());
+                criticAllowedTools.add(request.getAllowedTools());
                 Decision.Complete complete = (Decision.Complete) criticDefinition.decide(
                         initialState.withRequest(request).withToolSpecifications(List.of())
                 );
-                return new ExecutionResult(complete.result(), initialState.currentContent(), initialState.markCompleted());
+                return new ExecutionResult(complete.getResult(), initialState.getCurrentContent(), initialState.markCompleted());
             }
 
             actorStates.add(initialState);
-            actorAllowedTools.add(request.allowedTools());
+            actorAllowedTools.add(request.getAllowedTools());
             Decision.Complete complete = (Decision.Complete) definition.decide(
                     initialState.withRequest(request).withToolSpecifications(List.of())
             );
             return new ExecutionResult(
-                    complete.result(),
-                    complete.result(),
-                    initialState.withCurrentContent(complete.result()).markCompleted()
+                    complete.getResult(),
+                    complete.getResult(),
+                    initialState.withCurrentContent(complete.getResult()).markCompleted()
             );
         }
 
         @Override
         public ExecutionResult run(AgentDefinition definition, ExecutionRequest request) {
-            return run(definition, request, new AgentRunContext(0, request.document().content()));
+            return run(definition, request, new AgentRunContext(0, request.getDocument().getContent()));
         }
     }
 

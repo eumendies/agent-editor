@@ -21,7 +21,7 @@ public class SessionMemoryQueryService {
         ChatTranscriptMemory memory = sessionMemoryStore.load(sessionId);
         SessionMemoryResponse response = new SessionMemoryResponse();
         response.setSessionId(sessionId);
-        response.setMessages(memory.messages().stream()
+        response.setMessages(memory.getMessages().stream()
                 .map(this::toMessageResponse)
                 .toList());
         response.setMessageCount(response.getMessages().size());
@@ -30,7 +30,7 @@ public class SessionMemoryQueryService {
 
     private SessionMemoryMessageResponse toMessageResponse(ChatMessage message) {
         SessionMemoryMessageResponse response = new SessionMemoryMessageResponse();
-        response.setText(message.text());
+        response.setText(message.getText());
 
         if (message instanceof ChatMessage.UserChatMessage) {
             response.setType("USER");
@@ -42,12 +42,12 @@ public class SessionMemoryQueryService {
         }
         if (message instanceof ChatMessage.AiToolCallChatMessage aiToolCallMessage) {
             response.setType("AI_TOOL_CALL");
-            response.setToolCalls(aiToolCallMessage.toolCalls().stream()
+            response.setToolCalls(aiToolCallMessage.getToolCalls().stream()
                     .map(toolCall -> {
                         SessionMemoryToolCallResponse toolCallResponse = new SessionMemoryToolCallResponse();
-                        toolCallResponse.setToolCallId(toolCall.id());
-                        toolCallResponse.setToolName(toolCall.name());
-                        toolCallResponse.setArguments(toolCall.arguments());
+                        toolCallResponse.setToolCallId(toolCall.getId());
+                        toolCallResponse.setToolName(toolCall.getName());
+                        toolCallResponse.setArguments(toolCall.getArguments());
                         return toolCallResponse;
                     })
                     .toList());
@@ -55,9 +55,9 @@ public class SessionMemoryQueryService {
         }
         if (message instanceof ChatMessage.ToolExecutionResultChatMessage toolResultMessage) {
             response.setType("TOOL_RESULT");
-            response.setToolCallId(toolResultMessage.id());
-            response.setToolName(toolResultMessage.name());
-            response.setArguments(toolResultMessage.argument());
+            response.setToolCallId(toolResultMessage.getId());
+            response.setToolName(toolResultMessage.getName());
+            response.setArguments(toolResultMessage.getArgument());
             return response;
         }
         throw new IllegalStateException("Unsupported chat message type: " + message.getClass().getSimpleName());

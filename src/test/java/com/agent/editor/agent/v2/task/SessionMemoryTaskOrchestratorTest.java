@@ -43,14 +43,14 @@ class SessionMemoryTaskOrchestratorTest {
                 null
         ));
 
-        ChatTranscriptMemory loadedMemory = assertInstanceOf(ChatTranscriptMemory.class, delegate.lastRequest.memory());
-        assertEquals(1, loadedMemory.messages().size());
-        assertEquals("previous turn", loadedMemory.messages().get(0).text());
-        assertEquals("rewritten", result.finalContent());
+        ChatTranscriptMemory loadedMemory = assertInstanceOf(ChatTranscriptMemory.class, delegate.lastRequest.getMemory());
+        assertEquals(1, loadedMemory.getMessages().size());
+        assertEquals("previous turn", loadedMemory.getMessages().get(0).getText());
+        assertEquals("rewritten", result.getFinalContent());
 
         ChatTranscriptMemory savedMemory = store.load("session-1");
-        assertEquals(2, savedMemory.messages().size());
-        assertEquals("new answer", savedMemory.messages().get(1).text());
+        assertEquals(2, savedMemory.getMessages().size());
+        assertEquals("new answer", savedMemory.getMessages().get(1).getText());
     }
 
     private static final class RecordingOrchestrator implements TaskOrchestrator {

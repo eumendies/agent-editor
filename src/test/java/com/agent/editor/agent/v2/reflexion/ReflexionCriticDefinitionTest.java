@@ -40,9 +40,9 @@ class ReflexionCriticDefinitionTest {
         Decision decision = definition.decide(context());
 
         Decision.Complete complete = assertInstanceOf(Decision.Complete.class, decision);
-        ReflexionCritique critique = definition.parseCritique(complete.result());
-        assertEquals(ReflexionVerdict.PASS, critique.verdict());
-        assertEquals("Looks good", critique.feedback());
+        ReflexionCritique critique = definition.parseCritique(complete.getResult());
+        assertEquals(ReflexionVerdict.PASS, critique.getVerdict());
+        assertEquals("Looks good", critique.getFeedback());
     }
 
     @Test
@@ -57,11 +57,11 @@ class ReflexionCriticDefinitionTest {
         ReflexionCritique critique = definition.parseCritique(assertInstanceOf(
                 Decision.Complete.class,
                 definition.decide(context())
-        ).result());
+        ).getResult());
 
-        assertEquals(ReflexionVerdict.REVISE, critique.verdict());
-        assertEquals("Tighten the introduction", critique.feedback());
-        assertEquals("The opening is too long", critique.reasoning());
+        assertEquals(ReflexionVerdict.REVISE, critique.getVerdict());
+        assertEquals("Tighten the introduction", critique.getFeedback());
+        assertEquals("The opening is too long", critique.getReasoning());
     }
 
     @Test
@@ -73,7 +73,7 @@ class ReflexionCriticDefinitionTest {
                 new DefaultTraceCollector(new InMemoryTraceStore())
         );
 
-        String rawCritique = assertInstanceOf(Decision.Complete.class, definition.decide(context())).result();
+        String rawCritique = assertInstanceOf(Decision.Complete.class, definition.decide(context())).getResult();
 
         assertThrows(IllegalArgumentException.class, () -> definition.parseCritique(rawCritique));
     }

@@ -18,9 +18,9 @@ public class RoutingTaskOrchestrator implements TaskOrchestrator {
 
     @Override
     public TaskResult execute(TaskRequest request) {
-        TaskOrchestrator delegate = delegates.get(request.agentType());
+        TaskOrchestrator delegate = delegates.get(request.getAgentType());
         if (delegate == null) {
-            throw new IllegalArgumentException("No orchestrator configured for " + request.agentType());
+            throw new IllegalArgumentException("No orchestrator configured for " + request.getAgentType());
         }
         return delegate.execute(request);
     }

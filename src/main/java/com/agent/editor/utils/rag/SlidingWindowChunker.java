@@ -30,16 +30,16 @@ public class SlidingWindowChunker {
         if (normalized.isBlank()) {
             return;
         }
-        if (normalized.length() <= properties.chunkSize()) {
+        if (normalized.length() <= properties.getChunkSize()) {
             addChunk(result, chunkIndex, documentId, fileName, heading, normalized, metadata);
             return;
         }
 
         // overlap 被限制在 [0, chunkSize) 内，避免出现不前进或越界的窗口。
-        int overlap = Math.max(0, Math.min(properties.chunkOverlap(), properties.chunkSize() - 1));
+        int overlap = Math.max(0, Math.min(properties.getChunkOverlap(), properties.getChunkSize() - 1));
         int start = 0;
         while (start < normalized.length()) {
-            int end = Math.min(normalized.length(), start + properties.chunkSize());
+            int end = Math.min(normalized.length(), start + properties.getChunkSize());
             String chunkText = normalized.substring(start, end).trim();
             if (!chunkText.isBlank()) {
                 addChunk(result, chunkIndex, documentId, fileName, heading, chunkText, metadata);

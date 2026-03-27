@@ -5,6 +5,8 @@ import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.memory.ExecutionMemory;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import dev.langchain4j.agent.tool.ToolSpecification;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 import java.util.Objects;
@@ -12,15 +14,33 @@ import java.util.Objects;
 /**
  * 单个 agent run 的完整上下文，统一承载请求、运行态和本轮可见工具。
  */
-public record AgentRunContext(
-        ExecutionRequest request,
-        int iteration,
-        String currentContent,
-        ExecutionMemory memory,
-        ExecutionStage stage,
-        String pendingReason,
-        List<ToolSpecification> toolSpecifications
-) {
+@Data
+@NoArgsConstructor
+public class AgentRunContext {
+
+    private ExecutionRequest request;
+    private int iteration;
+    private String currentContent;
+    private ExecutionMemory memory = new ChatTranscriptMemory(List.of());
+    private ExecutionStage stage = ExecutionStage.RUNNING;
+    private String pendingReason;
+    private List<ToolSpecification> toolSpecifications = List.of();
+
+    public AgentRunContext(ExecutionRequest request,
+                           int iteration,
+                           String currentContent,
+                           ExecutionMemory memory,
+                           ExecutionStage stage,
+                           String pendingReason,
+                           List<ToolSpecification> toolSpecifications) {
+        this.request = request;
+        this.iteration = iteration;
+        this.currentContent = currentContent;
+        setMemory(memory);
+        setStage(stage);
+        this.pendingReason = pendingReason;
+        setToolSpecifications(toolSpecifications);
+    }
 
     public AgentRunContext(int iteration, String currentContent) {
         this(null, iteration, currentContent, new ChatTranscriptMemory(List.of()), ExecutionStage.RUNNING, null, List.of());
@@ -34,10 +54,16 @@ public record AgentRunContext(
         this(null, iteration, currentContent, memory, stage, pendingReason, List.of());
     }
 
-    public AgentRunContext {
-        Objects.requireNonNull(memory, "memory must not be null");
-        Objects.requireNonNull(stage, "stage must not be null");
-        toolSpecifications = List.copyOf(toolSpecifications);
+    public void setMemory(ExecutionMemory memory) {
+        this.memory = Objects.requireNonNull(memory, "memory must not be null");
+    }
+
+    public void setStage(ExecutionStage stage) {
+        this.stage = Objects.requireNonNull(stage, "stage must not be null");
+    }
+
+    public void setToolSpecifications(List<ToolSpecification> toolSpecifications) {
+        this.toolSpecifications = toolSpecifications == null ? List.of() : List.copyOf(toolSpecifications);
     }
 
     // 兼容现有调用点，后续再删掉这一层“上下文里套上下文”的过渡接口。
@@ -85,7 +111,7 @@ public record AgentRunContext(
             throw new IllegalStateException("Execution memory does not support transcript append: "
                     + memory.getClass().getSimpleName());
         }
-        List<ChatMessage> merged = new java.util.ArrayList<>(transcriptMemory.messages());
+        List<ChatMessage> merged = new java.util.ArrayList<>(transcriptMemory.getMessages());
         merged.addAll(messages);
         return new AgentRunContext(
                 request,
@@ -97,5 +123,4 @@ public record AgentRunContext(
                 toolSpecifications
         );
     }
-
 }

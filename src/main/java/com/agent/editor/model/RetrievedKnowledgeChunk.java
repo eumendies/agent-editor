@@ -1,11 +1,18 @@
 package com.agent.editor.model;
 
-public record RetrievedKnowledgeChunk(
-        String documentId,
-        String fileName,
-        int chunkIndex,
-        String heading,
-        String chunkText,
-        double score
-) {
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class RetrievedKnowledgeChunk {
+
+    private String documentId;
+    private String fileName;
+    private int chunkIndex;
+    private String heading;
+    private String chunkText;
+    private double score;
 }

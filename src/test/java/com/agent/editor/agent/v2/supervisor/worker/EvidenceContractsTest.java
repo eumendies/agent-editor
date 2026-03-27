@@ -33,8 +33,8 @@ class EvidenceContractsTest {
                 }
                 """, EvidencePackage.class);
 
-        assertEquals(List.of("online performance"), evidence.uncoveredPoints());
-        assertEquals(1, evidence.chunks().size());
+        assertEquals(List.of("online performance"), evidence.getUncoveredPoints());
+        assertEquals(1, evidence.getChunks().size());
     }
 
     @Test
@@ -51,10 +51,10 @@ class EvidenceContractsTest {
                 }
                 """, ReviewerFeedback.class);
 
-        assertEquals(ReviewerVerdict.REVISE, feedback.verdict());
-        assertFalse(feedback.instructionSatisfied());
-        assertFalse(feedback.evidenceGrounded());
-        assertEquals(List.of("Latency improved by 40%"), feedback.unsupportedClaims());
-        assertEquals(List.of("Explain project value"), feedback.missingRequirements());
+        assertEquals(ReviewerVerdict.REVISE, feedback.getVerdict());
+        assertFalse(feedback.isInstructionSatisfied());
+        assertFalse(feedback.isEvidenceGrounded());
+        assertEquals(List.of("Latency improved by 40%"), feedback.getUnsupportedClaims());
+        assertEquals(List.of("Explain project value"), feedback.getMissingRequirements());
     }
 }

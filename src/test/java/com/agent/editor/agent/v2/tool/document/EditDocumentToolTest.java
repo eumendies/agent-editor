@@ -19,8 +19,8 @@ class EditDocumentToolTest {
                 new ToolContext("task-1", "original")
         );
 
-        assertEquals("Document content edited successfully.", result.message());
-        assertEquals("rewritten", result.updatedContent());
+        assertEquals("Document content edited successfully.", result.getMessage());
+        assertEquals("rewritten", result.getUpdatedContent());
         assertEquals("editDocument", tool.specification().name());
     }
 
@@ -33,8 +33,8 @@ class EditDocumentToolTest {
                 new ToolContext("task-1", "original")
         );
 
-        assertEquals("No content provided to edit the document.", result.message());
-        assertEquals(null, result.updatedContent());
+        assertEquals("No content provided to edit the document.", result.getMessage());
+        assertEquals(null, result.getUpdatedContent());
     }
 
     @Test

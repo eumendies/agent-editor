@@ -34,7 +34,7 @@ class RetrieveKnowledgeToolTest {
                 new ToolContext("task-1", null)
         );
 
-        assertTrue(result.message().contains("\"fileName\":\"resume.md\""));
-        assertTrue(result.message().contains("\"score\":2.0"));
+        assertTrue(result.getMessage().contains("\"fileName\":\"resume.md\""));
+        assertTrue(result.getMessage().contains("\"score\":2.0"));
     }
 }

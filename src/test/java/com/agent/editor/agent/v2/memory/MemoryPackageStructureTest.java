@@ -24,6 +24,6 @@ class MemoryPackageStructureTest {
         ExecutionMemory loaded = store.load("session-1");
 
         ChatTranscriptMemory transcriptMemory = assertInstanceOf(ChatTranscriptMemory.class, loaded);
-        assertEquals("hello", transcriptMemory.messages().get(0).text());
+        assertEquals("hello", transcriptMemory.getMessages().get(0).getText());
     }
 }

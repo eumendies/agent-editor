@@ -16,10 +16,10 @@ class DecisionTest {
         ToolCall call = new ToolCall("editDocument", "{\"content\":\"hi\"}");
         Decision.ToolCalls decision = new Decision.ToolCalls(List.of(call), "need to edit");
 
-        assertEquals(1, decision.calls().size());
-        assertNotNull(decision.calls().get(0).id());
-        assertEquals("editDocument", decision.calls().get(0).name());
-        assertEquals("need to edit", decision.reasoning());
+        assertEquals(1, decision.getCalls().size());
+        assertNotNull(decision.getCalls().get(0).getId());
+        assertEquals("editDocument", decision.getCalls().get(0).getName());
+        assertEquals("need to edit", decision.getReasoning());
     }
 
     @Test
@@ -35,8 +35,8 @@ class DecisionTest {
                 "The ending repeats earlier points"
         );
 
-        assertEquals(ReflexionVerdict.REVISE, critique.verdict());
-        assertEquals("Tighten the conclusion", critique.feedback());
-        assertEquals("The ending repeats earlier points", critique.reasoning());
+        assertEquals(ReflexionVerdict.REVISE, critique.getVerdict());
+        assertEquals("Tighten the conclusion", critique.getFeedback());
+        assertEquals("The ending repeats earlier points", critique.getReasoning());
     }
 }

@@ -29,7 +29,7 @@ class RoutingTaskOrchestratorTest {
                 5
         ));
 
-        assertEquals("planned", result.finalContent());
+        assertEquals("planned", result.getFinalContent());
         assertEquals(0, react.invocations);
         assertEquals(1, planning.invocations);
     }

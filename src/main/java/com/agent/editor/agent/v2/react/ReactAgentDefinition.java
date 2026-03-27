@@ -64,14 +64,14 @@ public class ReactAgentDefinition implements AgentDefinition {
                 Map.of(
                         "systemPrompt", systemPrompt,
                         "userPrompt", userPrompt,
-                        "memoryMessages", context.state().memory(),
-                        "toolSpecifications", context.toolSpecifications().stream().map(spec -> spec.name()).toList()
+                        "memoryMessages", context.state().getMemory(),
+                        "toolSpecifications", context.getToolSpecifications().stream().map(spec -> spec.name()).toList()
                 )
         ));
 
         ChatResponse response = chatModel.chat(ChatRequest.builder()
                 .messages(buildMessages(context, systemPrompt, userPrompt))
-                .toolSpecifications(context.toolSpecifications())
+                .toolSpecifications(context.getToolSpecifications())
                 .build());
 
         AiMessage aiMessage = response.aiMessage();
@@ -120,9 +120,9 @@ public class ReactAgentDefinition implements AgentDefinition {
 
     private String buildUserPrompt(AgentRunContext context) {
         // prompt 总是优先使用当前执行态里的文档内容，而不是请求初始快照。
-        String currentContent = context.state().currentContent() != null
-                ? context.state().currentContent()
-                : context.request().document().content();
+        String currentContent = context.state().getCurrentContent() != null
+                ? context.state().getCurrentContent()
+                : context.getRequest().getDocument().getContent();
         return """
                 Document:
                 %s
@@ -131,14 +131,14 @@ public class ReactAgentDefinition implements AgentDefinition {
                 %s
                 """.formatted(
                 currentContent,
-                context.request().instruction()
+                context.getRequest().getInstruction()
         );
     }
 
     private List<ChatMessage> buildMessages(AgentRunContext context, String systemPrompt, String userPrompt) {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt));
-        messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().memory()));
+        messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().getMemory()));
         // messages.add(UserMessage.from(userPrompt));
         return messages;
     }
@@ -153,13 +153,13 @@ public class ReactAgentDefinition implements AgentDefinition {
                                     Map<String, Object> payload) {
         return new TraceRecord(
                 UUID.randomUUID().toString(),
-                context.request().taskId(),
+                context.getRequest().getTaskId(),
                 Instant.now(),
                 category,
                 stage,
                 type(),
-                context.request().workerId(),
-                context.state().iteration(),
+                context.getRequest().getWorkerId(),
+                context.state().getIteration(),
                 payload
         );
     }

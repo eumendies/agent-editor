@@ -6,7 +6,6 @@ import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.*;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.RecordComponent;
 import java.util.Arrays;
 import java.util.List;
 
@@ -26,9 +25,9 @@ class ExecutionRequestTest {
                 6
         );
 
-        assertEquals("task-1", request.taskId());
-        assertEquals(AgentType.REACT, request.agentType());
-        assertEquals("body", request.document().content());
+        assertEquals("task-1", request.getTaskId());
+        assertEquals(AgentType.REACT, request.getAgentType());
+        assertEquals("body", request.getDocument().getContent());
     }
 
     @Test
@@ -43,15 +42,10 @@ class ExecutionRequestTest {
                 List.of()
         );
 
-        assertEquals(2, state.iteration());
-        assertEquals("body", state.currentContent());
-        assertEquals(ExecutionStage.RUNNING, state.stage());
-        assertEquals(
-                List.of("request", "iteration", "currentContent", "memory", "stage", "pendingReason", "toolSpecifications"),
-                Arrays.stream(AgentRunContext.class.getRecordComponents())
-                        .map(RecordComponent::getName)
-                        .toList()
-        );
+        assertEquals(2, state.getIteration());
+        assertEquals("body", state.getCurrentContent());
+        assertEquals(ExecutionStage.RUNNING, state.getStage());
+        assertTrue(state.getToolSpecifications().isEmpty());
     }
 
     @Test
@@ -75,15 +69,15 @@ class ExecutionRequestTest {
                 .appendMemory(new ChatMessage.UserChatMessage("step 1"))
                 .advance("updated body");
 
-        assertEquals(1, state.iteration());
-        assertEquals("body", state.currentContent());
-        assertEquals(2, next.iteration());
-        assertEquals("updated body", next.currentContent());
-        assertEquals(ExecutionStage.RUNNING, next.stage());
-        ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) next.memory();
-        assertTrue(transcriptMemory.messages().stream().anyMatch(message ->
+        assertEquals(1, state.getIteration());
+        assertEquals("body", state.getCurrentContent());
+        assertEquals(2, next.getIteration());
+        assertEquals("updated body", next.getCurrentContent());
+        assertEquals(ExecutionStage.RUNNING, next.getStage());
+        ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) next.getMemory();
+        assertTrue(transcriptMemory.getMessages().stream().anyMatch(message ->
                 message instanceof ChatMessage.UserChatMessage userMessage
-                        && userMessage.text().contains("step 1")
+                        && userMessage.getText().contains("step 1")
         ));
     }
 }

@@ -26,8 +26,8 @@ public class ReActAgentOrchestrator implements TaskOrchestrator {
         AgentRunContext initialState = new AgentRunContext(
                 null,
                 0,
-                request.document().content(),
-                request.memory(),
+                request.getDocument().getContent(),
+                request.getMemory(),
                 ExecutionStage.RUNNING,
                 null,
                 java.util.List.of()
@@ -35,15 +35,15 @@ public class ReActAgentOrchestrator implements TaskOrchestrator {
         ExecutionResult result = runtime.run(
                 agentDefinition,
                 new ExecutionRequest(
-                        request.taskId(),
-                        request.sessionId(),
-                        request.agentType(),
-                        request.document(),
-                        request.instruction(),
-                        request.maxIterations()
+                        request.getTaskId(),
+                        request.getSessionId(),
+                        request.getAgentType(),
+                        request.getDocument(),
+                        request.getInstruction(),
+                        request.getMaxIterations()
                 ),
                 initialState
         );
-        return new TaskResult(TaskStatus.COMPLETED, result.finalContent(), result.finalState().memory());
+        return new TaskResult(TaskStatus.COMPLETED, result.getFinalContent(), result.getFinalState().getMemory());
     }
 }

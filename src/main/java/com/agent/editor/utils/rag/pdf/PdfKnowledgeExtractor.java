@@ -37,7 +37,7 @@ public class PdfKnowledgeExtractor {
 
         Map<Integer, List<PdfTextLine>> pages = extracted.stream()
                 .collect(Collectors.groupingBy(
-                        PdfTextLine::pageIndex,
+                        PdfTextLine::getPageIndex,
                         LinkedHashMap::new,
                         Collectors.toList()
                 ));
@@ -63,7 +63,7 @@ public class PdfKnowledgeExtractor {
 
     private int visibleCharacterCount(List<PdfTextLine> lines) {
         return lines.stream()
-                .map(PdfTextLine::text)
+                .map(PdfTextLine::getText)
                 .map(text -> text.replaceAll("\\s+", ""))
                 .mapToInt(String::length)
                 .sum();
@@ -72,7 +72,7 @@ public class PdfKnowledgeExtractor {
     private boolean isNoisePage(List<PdfTextLine> pageLines) {
         String pageText = joinInNaturalOrder(pageLines).toLowerCase(Locale.ROOT);
         long dottedLines = pageLines.stream()
-                .map(PdfTextLine::text)
+                .map(PdfTextLine::getText)
                 .filter(text -> text.contains("...."))
                 .count();
         return (pageText.contains("contents") || pageText.contains("目录")) && dottedLines > 0;
@@ -99,8 +99,8 @@ public class PdfKnowledgeExtractor {
     private String formatTable(List<PdfTextLine> pageLines) {
         return groupRows(pageLines).stream()
                 .map(row -> row.stream()
-                        .sorted(Comparator.comparing(PdfTextLine::x))
-                        .map(PdfTextLine::text)
+                        .sorted(Comparator.comparing(PdfTextLine::getX))
+                        .map(PdfTextLine::getText)
                         .collect(Collectors.joining(" | ")))
                 .collect(Collectors.joining("\n"));
     }
@@ -109,7 +109,7 @@ public class PdfKnowledgeExtractor {
         if (pageLines.size() < 4) {
             return false;
         }
-        float pageWidth = pageLines.get(0).pageWidth();
+        float pageWidth = pageLines.get(0).getPageWidth();
         float midpoint = pageWidth / 2.0f;
         List<PdfTextLine> left = pageLines.stream()
                 .filter(line -> line.centerX() < midpoint)
@@ -120,39 +120,39 @@ public class PdfKnowledgeExtractor {
         if (left.size() < 2 || right.size() < 2) {
             return false;
         }
-        float leftMax = left.stream().map(PdfTextLine::x).max(Float::compare).orElse(0.0f);
-        float rightMin = right.stream().map(PdfTextLine::x).min(Float::compare).orElse(pageWidth);
+        float leftMax = left.stream().map(PdfTextLine::getX).max(Float::compare).orElse(0.0f);
+        float rightMin = right.stream().map(PdfTextLine::getX).min(Float::compare).orElse(pageWidth);
         // 只有左右文本带之间留白足够明显时，才按双栏重排。
         return rightMin - leftMax > COLUMN_GAP;
     }
 
     private String formatDoubleColumn(List<PdfTextLine> pageLines) {
-        float midpoint = pageLines.get(0).pageWidth() / 2.0f;
+        float midpoint = pageLines.get(0).getPageWidth() / 2.0f;
         List<PdfTextLine> left = pageLines.stream()
                 .filter(line -> line.centerX() < midpoint)
-                .sorted(Comparator.comparing(PdfTextLine::y).thenComparing(PdfTextLine::x))
+                .sorted(Comparator.comparing(PdfTextLine::getY).thenComparing(PdfTextLine::getX))
                 .toList();
         List<PdfTextLine> right = pageLines.stream()
                 .filter(line -> line.centerX() >= midpoint)
-                .sorted(Comparator.comparing(PdfTextLine::y).thenComparing(PdfTextLine::x))
+                .sorted(Comparator.comparing(PdfTextLine::getY).thenComparing(PdfTextLine::getX))
                 .toList();
         List<String> ordered = new ArrayList<>();
         // 阅读顺序固定为“左列从上到下，再右列从上到下”。
-        left.forEach(line -> ordered.add(line.text()));
-        right.forEach(line -> ordered.add(line.text()));
+        left.forEach(line -> ordered.add(line.getText()));
+        right.forEach(line -> ordered.add(line.getText()));
         return String.join("\n", ordered);
     }
 
     private String joinInNaturalOrder(List<PdfTextLine> pageLines) {
         return pageLines.stream()
-                .sorted(Comparator.comparing(PdfTextLine::y).thenComparing(PdfTextLine::x))
-                .map(PdfTextLine::text)
+                .sorted(Comparator.comparing(PdfTextLine::getY).thenComparing(PdfTextLine::getX))
+                .map(PdfTextLine::getText)
                 .collect(Collectors.joining("\n"));
     }
 
     private List<List<PdfTextLine>> groupRows(List<PdfTextLine> pageLines) {
         List<PdfTextLine> sorted = pageLines.stream()
-                .sorted(Comparator.comparing(PdfTextLine::y).thenComparing(PdfTextLine::x))
+                .sorted(Comparator.comparing(PdfTextLine::getY).thenComparing(PdfTextLine::getX))
                 .toList();
         List<List<PdfTextLine>> rows = new ArrayList<>();
         for (PdfTextLine line : sorted) {
@@ -162,7 +162,7 @@ public class PdfKnowledgeExtractor {
             }
             List<PdfTextLine> currentRow = rows.get(rows.size() - 1);
             // y 坐标足够接近就视为同一行，供表格格式化复用。
-            if (Math.abs(currentRow.get(0).y() - line.y()) <= ROW_TOLERANCE) {
+            if (Math.abs(currentRow.get(0).getY() - line.getY()) <= ROW_TOLERANCE) {
                 currentRow.add(line);
             } else {
                 rows.add(new ArrayList<>(List.of(line)));

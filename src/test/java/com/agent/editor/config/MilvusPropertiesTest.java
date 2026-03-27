@@ -19,9 +19,9 @@ class MilvusPropertiesTest {
 
     @Test
     void shouldBindMilvusProperties() {
-        assertEquals("localhost", milvusProperties.host());
-        assertEquals(19530, milvusProperties.port());
-        assertEquals("knowledge_chunks", milvusProperties.collectionName());
-        assertEquals(1024, milvusProperties.embeddingDimension());
+        assertEquals("localhost", milvusProperties.getHost());
+        assertEquals(19530, milvusProperties.getPort());
+        assertEquals("knowledge_chunks", milvusProperties.getCollectionName());
+        assertEquals(1024, milvusProperties.getEmbeddingDimension());
     }
 }

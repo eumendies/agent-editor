@@ -1,4 +1,14 @@
 package com.agent.editor.agent.v2.core.runtime;
 
-public record ExecutionStateSnapshot(int iteration, int maxIterations) {
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExecutionStateSnapshot {
+
+    private int iteration;
+    private int maxIterations;
 }

@@ -43,7 +43,7 @@ public class MarkdownKnowledgeChunkSplitter {
             return;
         }
 
-        if (!document.leadingContent().isBlank()) {
+        if (!document.getLeadingContent().isBlank()) {
             // 处理第一个标题前的前置说明，这部分没有稳定 heading，单独作为无标题 chunk 落库。
             slidingWindowChunker.appendChunks(
                     result,
@@ -51,15 +51,15 @@ public class MarkdownKnowledgeChunkSplitter {
                     documentId,
                     fileName,
                     null,
-                    document.leadingContent(),
+                    document.getLeadingContent(),
                     metadata
             );
         }
-        if (document.sections().isEmpty()) {
+        if (document.getSections().isEmpty()) {
             slidingWindowChunker.appendChunks(result, chunkIndex, documentId, fileName, null, content, metadata);
             return;
         }
-        for (MarkdownSectionNode section : document.sections()) {
+        for (MarkdownSectionNode section : document.getSections()) {
             appendSectionChunks(result, chunkIndex, documentId, fileName, section, List.of(), metadata);
         }
     }
@@ -72,11 +72,11 @@ public class MarkdownKnowledgeChunkSplitter {
                                      List<String> headingPath,
                                      Map<String, String> metadata) {
         List<String> currentPath = new ArrayList<>(headingPath);
-        currentPath.add(section.headingText());
+        currentPath.add(section.getHeadingText());
         String sectionText = section.fullText();
         String heading = String.join(" > ", currentPath);
 
-        if (sectionText.length() <= properties.chunkSize()) {
+        if (sectionText.length() <= properties.getChunkSize()) {
             result.add(new KnowledgeChunk(
                     documentId,
                     chunkIndex.getAndIncrement(),
@@ -88,7 +88,7 @@ public class MarkdownKnowledgeChunkSplitter {
             return;
         }
         // 父章节超限时，先保留当前章节自己的前言，再继续递归子章节，避免父级介绍信息丢失。
-        if (!section.introText().equals(section.headingLine()) && !section.introText().isBlank()) {
+        if (!section.introText().equals(section.getHeadingLine()) && !section.introText().isBlank()) {
             slidingWindowChunker.appendChunks(
                     result,
                     chunkIndex,
@@ -99,9 +99,9 @@ public class MarkdownKnowledgeChunkSplitter {
                     metadata
             );
         }
-        if (!section.children().isEmpty()) {
+        if (!section.getChildren().isEmpty()) {
             // 有子章节时优先继续按结构下钻，不生成一个覆盖整棵子树的大 chunk，减少父子内容重复。
-            for (MarkdownSectionNode child : section.children()) {
+            for (MarkdownSectionNode child : section.getChildren()) {
                 appendSectionChunks(result, chunkIndex, documentId, fileName, child, currentPath, metadata);
             }
             return;

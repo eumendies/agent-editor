@@ -23,7 +23,7 @@ public class KnowledgeRetrievalService {
     }
 
     public List<RetrievedKnowledgeChunk> retrieve(String query, List<String> documentIds, Integer topK) {
-        int limit = topK == null || topK <= 0 ? properties.askTopK() : topK;
+        int limit = topK == null || topK <= 0 ? properties.getAskTopK() : topK;
         if (query == null || query.isBlank()) {
             return List.of();
         }

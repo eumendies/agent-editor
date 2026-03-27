@@ -89,14 +89,14 @@ public class ReflexionCriticDefinition implements AgentDefinition {
                 Map.of(
                         "systemPrompt", systemPrompt,
                         "userPrompt", userPrompt,
-                        "memoryMessages", context.state().memory(),
-                        "toolSpecifications", context.toolSpecifications().stream().map(spec -> spec.name()).toList()
+                        "memoryMessages", context.state().getMemory(),
+                        "toolSpecifications", context.getToolSpecifications().stream().map(spec -> spec.name()).toList()
                 )
         ));
 
         ChatResponse response = chatModel.chat(ChatRequest.builder()
                 .messages(buildMessages(context, systemPrompt, userPrompt))
-                .toolSpecifications(context.toolSpecifications())
+                .toolSpecifications(context.getToolSpecifications())
                 .responseFormat(ResponseFormat.builder()
                         .type(ResponseFormatType.JSON)
                         .jsonSchema(REFLEXION_CRITIQUE_SCHEMA)
@@ -136,7 +136,7 @@ public class ReflexionCriticDefinition implements AgentDefinition {
         try {
             // critic 与 orchestrator 之间只通过结构化 verdict 交互，避免靠自然语言猜测流程分支。
             ReflexionCritique critique = objectMapper.readValue(rawText, ReflexionCritique.class);
-            if (critique.verdict() == null) {
+            if (critique.getVerdict() == null) {
                 throw new IllegalArgumentException("Critique verdict is required");
             }
             return critique;
@@ -166,15 +166,15 @@ public class ReflexionCriticDefinition implements AgentDefinition {
                 Instruction:
                 %s
                 """.formatted(
-                context.state().currentContent(),
-                context.request().instruction()
+                context.state().getCurrentContent(),
+                context.getRequest().getInstruction()
         );
     }
 
     private List<ChatMessage> buildMessages(AgentRunContext context, String systemPrompt, String userPrompt) {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt));
-        messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().memory()));
+        messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().getMemory()));
         messages.add(UserMessage.from(userPrompt));
         return messages;
     }
@@ -185,13 +185,13 @@ public class ReflexionCriticDefinition implements AgentDefinition {
                                     Map<String, Object> payload) {
         return new TraceRecord(
                 UUID.randomUUID().toString(),
-                context.request().taskId(),
+                context.getRequest().getTaskId(),
                 Instant.now(),
                 category,
                 stage,
                 type(),
-                context.request().workerId(),
-                context.state().iteration(),
+                context.getRequest().getWorkerId(),
+                context.state().getIteration(),
                 payload
         );
     }

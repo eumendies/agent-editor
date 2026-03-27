@@ -18,7 +18,7 @@ class AnalyzeDocumentToolTest {
                 new ToolContext("task-1", "one two\nthree")
         );
 
-        assertEquals("Words: 3, Lines: 2, Chars: 13", result.message());
-        assertEquals(null, result.updatedContent());
+        assertEquals("Words: 3, Lines: 2, Chars: 13", result.getMessage());
+        assertEquals(null, result.getUpdatedContent());
     }
 }

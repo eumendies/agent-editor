@@ -54,10 +54,10 @@ class MilvusKnowledgeChunkRepositoryTest {
         );
 
         assertEquals(1, results.size());
-        assertEquals("resume.md", results.get(0).fileName());
-        assertEquals("项目经历", results.get(0).heading());
-        assertEquals("Spring Boot 项目经验", results.get(0).chunkText());
-        assertTrue(results.get(0).score() > 0);
+        assertEquals("resume.md", results.get(0).getFileName());
+        assertEquals("项目经历", results.get(0).getHeading());
+        assertEquals("Spring Boot 项目经验", results.get(0).getChunkText());
+        assertTrue(results.get(0).getScore() > 0);
 
         ArgumentCaptor<HybridSearchReq> requestCaptor = ArgumentCaptor.forClass(HybridSearchReq.class);
         verify(milvusClient).hybridSearch(requestCaptor.capture());

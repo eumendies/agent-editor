@@ -16,7 +16,7 @@ public class InMemoryTraceStore implements TraceStore {
 
     @Override
     public void append(TraceRecord record) {
-        tracesByTask.computeIfAbsent(record.taskId(), ignored -> Collections.synchronizedList(new ArrayList<>()))
+        tracesByTask.computeIfAbsent(record.getTaskId(), ignored -> Collections.synchronizedList(new ArrayList<>()))
                 .add(record);
     }
 

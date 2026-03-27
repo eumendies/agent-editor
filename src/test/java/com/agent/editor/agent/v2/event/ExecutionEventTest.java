@@ -10,8 +10,8 @@ class ExecutionEventTest {
     void shouldCreateEventWithTypeAndTaskId() {
         ExecutionEvent event = new ExecutionEvent(EventType.TASK_STARTED, "task-1", "started");
 
-        assertEquals(EventType.TASK_STARTED, event.type());
-        assertEquals("task-1", event.taskId());
-        assertEquals("started", event.message());
+        assertEquals(EventType.TASK_STARTED, event.getType());
+        assertEquals("task-1", event.getTaskId());
+        assertEquals("started", event.getMessage());
     }
 }

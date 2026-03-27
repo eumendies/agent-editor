@@ -44,7 +44,7 @@ public class MilvusConfig {
     @ConditionalOnMissingBean
     public MilvusClientV2 milvusClientV2(MilvusProperties properties) {
         return new MilvusClientV2(ConnectConfig.builder()
-                .uri("http://" + properties.host() + ":" + properties.port())
+                .uri("http://" + properties.getHost() + ":" + properties.getPort())
                 .build());
     }
 
@@ -60,15 +60,15 @@ public class MilvusConfig {
                                                         MilvusProperties properties) {
         return () -> {
             if (!milvusClient.hasCollection(HasCollectionReq.builder()
-                    .collectionName(properties.collectionName())
+                    .collectionName(properties.getCollectionName())
                     .build())) {
                 milvusClient.createCollection(CreateCollectionReq.builder()
-                        .collectionName(properties.collectionName())
+                        .collectionName(properties.getCollectionName())
                         .description(COLLECTION_DESCRIPTION)
                         .collectionSchema(buildSchema(properties))
                         .build());
                 milvusClient.createIndex(CreateIndexReq.builder()
-                        .collectionName(properties.collectionName())
+                        .collectionName(properties.getCollectionName())
                         .indexParams(List.of(
                                 IndexParam.builder()
                                         .fieldName(EMBEDDING_FIELD)
@@ -89,7 +89,7 @@ public class MilvusConfig {
             }
 
             milvusClient.loadCollection(LoadCollectionReq.builder()
-                    .collectionName(properties.collectionName())
+                    .collectionName(properties.getCollectionName())
                     .build());
         };
     }
@@ -123,7 +123,7 @@ public class MilvusConfig {
         schema.addField(AddFieldReq.builder()
                 .fieldName(EMBEDDING_FIELD)
                 .dataType(DataType.FloatVector)
-                .dimension(properties.embeddingDimension())
+                .dimension(properties.getEmbeddingDimension())
                 .build());
         schema.addFunction(CreateCollectionReq.Function.builder()
                 .name(BM25_FUNCTION_NAME)

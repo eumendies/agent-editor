@@ -19,7 +19,7 @@ public class TaskQueryService {
     private final Map<String, List<ExecutionEvent>> taskEvents = new ConcurrentHashMap<>();
 
     public void save(TaskState state) {
-        taskStates.put(state.taskId(), state);
+        taskStates.put(state.getTaskId(), state);
     }
 
     public TaskState findById(String taskId) {
@@ -27,7 +27,7 @@ public class TaskQueryService {
     }
 
     public void appendEvent(ExecutionEvent event) {
-        taskEvents.computeIfAbsent(event.taskId(), ignored -> new ArrayList<>()).add(event);
+        taskEvents.computeIfAbsent(event.getTaskId(), ignored -> new ArrayList<>()).add(event);
     }
 
     public List<ExecutionEvent> getEvents(String taskId) {

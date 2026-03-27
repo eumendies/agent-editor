@@ -17,8 +17,8 @@ class KnowledgeBaseServiceTest {
 
         KnowledgeDocument document = service.upload(file, "resume");
 
-        assertEquals("resume.md", document.fileName());
-        assertEquals("resume", document.category());
-        assertEquals("PENDING", document.status());
+        assertEquals("resume.md", document.getFileName());
+        assertEquals("resume", document.getCategory());
+        assertEquals("PENDING", document.getStatus());
     }
 }

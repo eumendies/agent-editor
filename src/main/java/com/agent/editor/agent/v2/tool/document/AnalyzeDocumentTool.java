@@ -25,7 +25,7 @@ public class AnalyzeDocumentTool implements ToolHandler {
 
     @Override
     public ToolResult execute(ToolInvocation invocation, ToolContext context) {
-        String content = context.currentContent() == null ? "" : context.currentContent();
+        String content = context.getCurrentContent() == null ? "" : context.getCurrentContent();
         int words = content.isBlank() ? 0 : content.trim().split("\\s+").length;
         int lines = content.isEmpty() ? 0 : content.split("\n", -1).length;
         return new ToolResult("Words: " + words + ", Lines: " + lines + ", Chars: " + content.length());

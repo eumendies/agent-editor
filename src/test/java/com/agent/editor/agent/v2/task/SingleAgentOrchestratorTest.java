@@ -47,12 +47,12 @@ class SingleAgentOrchestratorTest {
 
         TaskResult result = orchestrator.execute(request);
 
-        assertEquals(TaskStatus.COMPLETED, result.status());
-        assertEquals("body", result.finalContent());
-        ChatTranscriptMemory memory = (ChatTranscriptMemory) result.memory();
-        assertTrue(memory.messages().stream().anyMatch(message -> "previous turn".equals(message.text())));
-        assertTrue(memory.messages().stream().anyMatch(message -> "finish".equals(message.text())));
-        assertTrue(memory.messages().stream().anyMatch(message -> "done".equals(message.text())));
+        assertEquals(TaskStatus.COMPLETED, result.getStatus());
+        assertEquals("body", result.getFinalContent());
+        ChatTranscriptMemory memory = (ChatTranscriptMemory) result.getMemory();
+        assertTrue(memory.getMessages().stream().anyMatch(message -> "previous turn".equals(message.getText())));
+        assertTrue(memory.getMessages().stream().anyMatch(message -> "finish".equals(message.getText())));
+        assertTrue(memory.getMessages().stream().anyMatch(message -> "done".equals(message.getText())));
     }
 
     private static final class StubAgentDefinition implements AgentDefinition {

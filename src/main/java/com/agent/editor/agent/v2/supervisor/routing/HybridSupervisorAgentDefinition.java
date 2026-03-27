@@ -35,11 +35,11 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
     public SupervisorDecision decide(SupervisorContext context) {
         ReviewerFeedback reviewerFeedback = latestReviewerFeedback(context);
         if (reviewerFeedback != null
-                && reviewerFeedback.verdict() == ReviewerVerdict.PASS
-                && reviewerFeedback.instructionSatisfied()
-                && reviewerFeedback.evidenceGrounded()) {
+                && reviewerFeedback.getVerdict() == ReviewerVerdict.PASS
+                && reviewerFeedback.isInstructionSatisfied()
+                && reviewerFeedback.isEvidenceGrounded()) {
             return new SupervisorDecision.Complete(
-                    context.currentContent(),
+                    context.getCurrentContent(),
                     summarize(context),
                     "reviewer approved completion"
             );
@@ -47,7 +47,7 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
 
         if (shouldStopForNoProgress(context)) {
             return new SupervisorDecision.Complete(
-                    context.currentContent(),
+                    context.getCurrentContent(),
                     summarize(context),
                     "no progress detected"
             );
@@ -57,7 +57,7 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
         List<WorkerDefinition> candidates = selectCandidates(context);
         if (candidates.isEmpty()) {
             return new SupervisorDecision.Complete(
-                    context.currentContent(),
+                    context.getCurrentContent(),
                     summarize(context),
                     "no candidate workers remain"
             );
@@ -65,25 +65,25 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
 
         SupervisorRoutingResponse routingResponse = requestModelDecision(context, candidates);
         if (routingResponse != null) {
-            if (routingResponse.action() == SupervisorAction.COMPLETE) {
+            if (routingResponse.getAction() == SupervisorAction.COMPLETE) {
                 return new SupervisorDecision.Complete(
-                        firstNonBlank(routingResponse.finalContent(), context.currentContent()),
-                        firstNonBlank(routingResponse.summary(), summarize(context)),
-                        firstNonBlank(routingResponse.reasoning(), "model requested completion")
+                        firstNonBlank(routingResponse.getFinalContent(), context.getCurrentContent()),
+                        firstNonBlank(routingResponse.getSummary(), summarize(context)),
+                        firstNonBlank(routingResponse.getReasoning(), "model requested completion")
                 );
             }
 
-            if (routingResponse.action() == SupervisorAction.ASSIGN_WORKER) {
+            if (routingResponse.getAction() == SupervisorAction.ASSIGN_WORKER) {
                 // 模型只能选择候选集合内的 worker，越界结果直接视为无效输出。
                 WorkerDefinition selectedWorker = candidates.stream()
-                        .filter(worker -> worker.workerId().equals(routingResponse.workerId()))
+                        .filter(worker -> worker.getWorkerId().equals(routingResponse.getWorkerId()))
                         .findFirst()
                         .orElse(null);
                 if (selectedWorker != null) {
                     return new SupervisorDecision.AssignWorker(
-                            selectedWorker.workerId(),
-                            firstNonBlank(routingResponse.instruction(), buildFallbackInstruction(selectedWorker, context)),
-                            firstNonBlank(routingResponse.reasoning(), "model selected candidate")
+                            selectedWorker.getWorkerId(),
+                            firstNonBlank(routingResponse.getInstruction(), buildFallbackInstruction(selectedWorker, context)),
+                            firstNonBlank(routingResponse.getReasoning(), "model selected candidate")
                     );
                 }
             }
@@ -91,7 +91,7 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
 
         WorkerDefinition fallbackWorker = candidates.get(0);
         return new SupervisorDecision.AssignWorker(
-                fallbackWorker.workerId(),
+                fallbackWorker.getWorkerId(),
                 buildFallbackInstruction(fallbackWorker, context),
                 "rule-based fallback"
         );
@@ -105,29 +105,29 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
 
     private List<WorkerDefinition> selectCandidates(SupervisorContext context) {
         String demotedWorkerId = consecutiveWorkerId(context);
-        List<WorkerDefinition> allowedWorkers = context.availableWorkers().stream()
-                .filter(worker -> !worker.workerId().equals(demotedWorkerId))
+        List<WorkerDefinition> allowedWorkers = context.getAvailableWorkers().stream()
+                .filter(worker -> !worker.getWorkerId().equals(demotedWorkerId))
                 .toList();
         if (allowedWorkers.isEmpty()) {
             return List.of();
         }
 
         ArrayList<WorkerDefinition> ordered = new ArrayList<>();
-        if (context.workerResults().isEmpty()) {
+        if (context.getWorkerResults().isEmpty()) {
             addRemaining(ordered, allowedWorkers);
             return List.copyOf(ordered);
         }
 
-        WorkerResult latest = context.workerResults().get(context.workerResults().size() - 1);
-        if ("reviewer".equals(latest.workerId())) {
-            ReviewerFeedback reviewerFeedback = parseReviewerFeedback(latest.summary());
+        WorkerResult latest = context.getWorkerResults().get(context.getWorkerResults().size() - 1);
+        if ("reviewer".equals(latest.getWorkerId())) {
+            ReviewerFeedback reviewerFeedback = parseReviewerFeedback(latest.getSummary());
             if (reviewerFeedback != null) {
                 // reviewer 只报告问题类型，不直接命令下一跳；是否重新 research 仍由 supervisor 控制。
-                if (!reviewerFeedback.evidenceGrounded()) {
+                if (!reviewerFeedback.isEvidenceGrounded()) {
                     addByCapability(ordered, allowedWorkers, "research");
                     addByCapability(ordered, allowedWorkers, "write");
-                } else if (!reviewerFeedback.instructionSatisfied()
-                        || !reviewerFeedback.missingRequirements().isEmpty()) {
+                } else if (!reviewerFeedback.isInstructionSatisfied()
+                        || !reviewerFeedback.getMissingRequirements().isEmpty()) {
                     addByCapability(ordered, allowedWorkers, "write");
                 }
             }
@@ -138,28 +138,28 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
     }
 
     private boolean shouldStopForNoProgress(SupervisorContext context) {
-        if (context.workerResults().size() < 2) {
+        if (context.getWorkerResults().size() < 2) {
             return false;
         }
 
-        WorkerResult latest = context.workerResults().get(context.workerResults().size() - 1);
-        WorkerResult previous = context.workerResults().get(context.workerResults().size() - 2);
-        return Objects.equals(latest.updatedContent(), context.currentContent())
-                && Objects.equals(previous.updatedContent(), context.currentContent())
-                && Objects.equals(latest.updatedContent(), previous.updatedContent())
-                && Objects.equals(latest.summary(), previous.summary());
+        WorkerResult latest = context.getWorkerResults().get(context.getWorkerResults().size() - 1);
+        WorkerResult previous = context.getWorkerResults().get(context.getWorkerResults().size() - 2);
+        return Objects.equals(latest.getUpdatedContent(), context.getCurrentContent())
+                && Objects.equals(previous.getUpdatedContent(), context.getCurrentContent())
+                && Objects.equals(latest.getUpdatedContent(), previous.getUpdatedContent())
+                && Objects.equals(latest.getSummary(), previous.getSummary());
     }
 
     private String consecutiveWorkerId(SupervisorContext context) {
-        if (context.workerResults().size() < 2) {
+        if (context.getWorkerResults().size() < 2) {
             return null;
         }
 
-        WorkerResult latest = context.workerResults().get(context.workerResults().size() - 1);
-        WorkerResult previous = context.workerResults().get(context.workerResults().size() - 2);
-        if (latest.workerId().equals(previous.workerId())) {
+        WorkerResult latest = context.getWorkerResults().get(context.getWorkerResults().size() - 1);
+        WorkerResult previous = context.getWorkerResults().get(context.getWorkerResults().size() - 2);
+        if (latest.getWorkerId().equals(previous.getWorkerId())) {
             // 若重复调用2次, 下一次不再调用该worker
-            return latest.workerId();
+            return latest.getWorkerId();
         }
         return null;
     }
@@ -171,10 +171,10 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
 
         try {
             return routingAiService.route(
-                    context.originalInstruction(),
-                    context.currentContent(),
+                    context.getOriginalInstruction(),
+                    context.getCurrentContent(),
                     renderCandidates(candidates),
-                    renderWorkerResults(context.workerResults())
+                    renderWorkerResults(context.getWorkerResults())
             );
         } catch (RuntimeException ignored) {
             return null;
@@ -183,10 +183,10 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
 
     private String renderCandidates(List<WorkerDefinition> candidates) {
         return candidates.stream()
-                .map(worker -> worker.workerId()
-                        + " | role=" + worker.role()
-                        + " | description=" + worker.description()
-                        + " | capabilities=" + String.join(", ", worker.capabilities()))
+                .map(worker -> worker.getWorkerId()
+                        + " | role=" + worker.getRole()
+                        + " | description=" + worker.getDescription()
+                        + " | capabilities=" + String.join(", ", worker.getCapabilities()))
                 .reduce((left, right) -> left + "\n" + right)
                 .orElse("No candidate workers");
     }
@@ -196,21 +196,21 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
             return "No worker steps executed";
         }
         return workerResults.stream()
-                .map(result -> result.workerId() + ": " + result.summary())
+                .map(result -> result.getWorkerId() + ": " + result.getSummary())
                 .reduce((left, right) -> left + "\n" + right)
                 .orElse("No worker steps executed");
     }
 
     private String buildFallbackInstruction(WorkerDefinition worker, SupervisorContext context) {
-        return worker.role() + ": " + worker.description() + "\nTask: " + context.originalInstruction();
+        return worker.getRole() + ": " + worker.getDescription() + "\nTask: " + context.getOriginalInstruction();
     }
 
     private String summarize(SupervisorContext context) {
-        if (context.workerResults().isEmpty()) {
+        if (context.getWorkerResults().isEmpty()) {
             return "No worker steps executed";
         }
-        return context.workerResults().stream()
-                .map(result -> result.workerId() + ": " + result.summary())
+        return context.getWorkerResults().stream()
+                .map(result -> result.getWorkerId() + ": " + result.getSummary())
                 .reduce((left, right) -> left + "\n" + right)
                 .orElse("No worker steps executed");
     }
@@ -223,14 +223,14 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
     }
 
     private ReviewerFeedback latestReviewerFeedback(SupervisorContext context) {
-        if (context.workerResults().isEmpty()) {
+        if (context.getWorkerResults().isEmpty()) {
             return null;
         }
-        WorkerResult latest = context.workerResults().get(context.workerResults().size() - 1);
-        if (!"reviewer".equals(latest.workerId())) {
+        WorkerResult latest = context.getWorkerResults().get(context.getWorkerResults().size() - 1);
+        if (!"reviewer".equals(latest.getWorkerId())) {
             return null;
         }
-        return parseReviewerFeedback(latest.summary());
+        return parseReviewerFeedback(latest.getSummary());
     }
 
     private ReviewerFeedback parseReviewerFeedback(String summary) {
@@ -248,7 +248,7 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
                                  List<WorkerDefinition> allowedWorkers,
                                  String capability) {
         allowedWorkers.stream()
-                .filter(worker -> worker.capabilities().contains(capability))
+                .filter(worker -> worker.getCapabilities().contains(capability))
                 .forEach(worker -> addIfAbsent(ordered, worker));
     }
 

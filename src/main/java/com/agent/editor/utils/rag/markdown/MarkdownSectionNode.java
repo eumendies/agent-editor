@@ -1,23 +1,48 @@
 package com.agent.editor.utils.rag.markdown;
 
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.ArrayList;
 import java.util.List;
 
 // 一个章节节点只保存本标题、直属正文和子章节，是否展开整棵子树由调用方决定。
-public record MarkdownSectionNode(
-        String headingText,
-        int headingLevel,
-        String headingLine,
-        String bodyText,
-        List<MarkdownSectionNode> children
-) {
+@Data
+@NoArgsConstructor
+public class MarkdownSectionNode {
 
-    public MarkdownSectionNode {
-        // 在节点层做一次规范化，确保树遍历时拿到的都是稳定字符串和不可变 children。
-        headingText = headingText == null ? "" : headingText.trim();
-        headingLine = headingLine == null ? "" : headingLine.trim();
-        bodyText = bodyText == null ? "" : bodyText.trim();
-        children = children == null ? List.of() : List.copyOf(children);
+    private String headingText = "";
+    private int headingLevel;
+    private String headingLine = "";
+    private String bodyText = "";
+    private List<MarkdownSectionNode> children = List.of();
+
+    public MarkdownSectionNode(String headingText,
+                               int headingLevel,
+                               String headingLine,
+                               String bodyText,
+                               List<MarkdownSectionNode> children) {
+        setHeadingText(headingText);
+        this.headingLevel = headingLevel;
+        setHeadingLine(headingLine);
+        setBodyText(bodyText);
+        setChildren(children);
+    }
+
+    public void setHeadingText(String headingText) {
+        this.headingText = headingText == null ? "" : headingText.trim();
+    }
+
+    public void setHeadingLine(String headingLine) {
+        this.headingLine = headingLine == null ? "" : headingLine.trim();
+    }
+
+    public void setBodyText(String bodyText) {
+        this.bodyText = bodyText == null ? "" : bodyText.trim();
+    }
+
+    public void setChildren(List<MarkdownSectionNode> children) {
+        this.children = children == null ? List.of() : List.copyOf(children);
     }
 
     public String fullText() {

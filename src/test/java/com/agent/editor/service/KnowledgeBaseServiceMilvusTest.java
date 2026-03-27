@@ -47,10 +47,10 @@ class KnowledgeBaseServiceMilvusTest {
         ArgumentCaptor<List<KnowledgeChunk>> chunksCaptor = ArgumentCaptor.forClass(List.class);
         verify(repository).saveAll(chunksCaptor.capture());
         assertEquals(1, chunksCaptor.getValue().size());
-        assertEquals("resume.md", chunksCaptor.getValue().get(0).fileName());
-        assertEquals("resume", chunksCaptor.getValue().get(0).metadata().get("category"));
-        assertEquals("markdown", chunksCaptor.getValue().get(0).metadata().get("documentType"));
-        assertArrayEquals(new float[]{0.1f, 0.2f, 0.3f}, chunksCaptor.getValue().get(0).embedding());
+        assertEquals("resume.md", chunksCaptor.getValue().get(0).getFileName());
+        assertEquals("resume", chunksCaptor.getValue().get(0).getMetadata().get("category"));
+        assertEquals("markdown", chunksCaptor.getValue().get(0).getMetadata().get("documentType"));
+        assertArrayEquals(new float[]{0.1f, 0.2f, 0.3f}, chunksCaptor.getValue().get(0).getEmbedding());
     }
 
     @Test
@@ -79,8 +79,8 @@ class KnowledgeBaseServiceMilvusTest {
 
         ArgumentCaptor<List<KnowledgeChunk>> chunksCaptor = ArgumentCaptor.forClass(List.class);
         verify(repository).saveAll(chunksCaptor.capture());
-        assertEquals("项目经历 > Agent Editor", chunksCaptor.getValue().get(0).heading());
+        assertEquals("项目经历 > Agent Editor", chunksCaptor.getValue().get(0).getHeading());
         assertTrue(chunksCaptor.getValue().stream()
-                .allMatch(chunk -> "项目经历 > Agent Editor".equals(chunk.heading())));
+                .allMatch(chunk -> "项目经历 > Agent Editor".equals(chunk.getHeading())));
     }
 }

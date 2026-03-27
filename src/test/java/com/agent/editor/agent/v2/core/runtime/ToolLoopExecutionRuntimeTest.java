@@ -45,18 +45,18 @@ class ToolLoopExecutionRuntimeTest {
 
         ExecutionResult result = runtime.run(agent, request);
 
-        assertEquals("done", result.finalMessage());
-        assertEquals("body", result.finalContent());
-        assertEquals(ExecutionStage.COMPLETED, result.finalState().stage());
-        assertEquals("body", result.finalState().currentContent());
-        ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) result.finalState().memory();
-        assertEquals(2, transcriptMemory.messages().size());
+        assertEquals("done", result.getFinalMessage());
+        assertEquals("body", result.getFinalContent());
+        assertEquals(ExecutionStage.COMPLETED, result.getFinalState().getStage());
+        assertEquals("body", result.getFinalState().getCurrentContent());
+        ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) result.getFinalState().getMemory();
+        assertEquals(2, transcriptMemory.getMessages().size());
         ChatMessage.UserChatMessage userMessage =
-                (ChatMessage.UserChatMessage) transcriptMemory.messages().get(0);
+                (ChatMessage.UserChatMessage) transcriptMemory.getMessages().get(0);
         ChatMessage.AiChatMessage aiMessage =
-                (ChatMessage.AiChatMessage) transcriptMemory.messages().get(1);
-        assertEquals("finish", userMessage.text());
-        assertEquals("done", aiMessage.text());
+                (ChatMessage.AiChatMessage) transcriptMemory.getMessages().get(1);
+        assertEquals("finish", userMessage.getText());
+        assertEquals("done", aiMessage.getText());
     }
 
     @Test
@@ -80,8 +80,8 @@ class ToolLoopExecutionRuntimeTest {
 
         ExecutionResult result = runtime.run(agent, request);
 
-        assertEquals("updated", result.finalMessage());
-        assertEquals("body world", result.finalContent());
+        assertEquals("updated", result.getFinalMessage());
+        assertEquals("body world", result.getFinalContent());
     }
 
     @Test
@@ -130,8 +130,8 @@ class ToolLoopExecutionRuntimeTest {
 
         ExecutionResult result = runtime.run(new MultiStepToolAgentDefinition(), request);
 
-        assertEquals("used two tools", result.finalMessage());
-        assertEquals("body world world", result.finalContent());
+        assertEquals("used two tools", result.getFinalMessage());
+        assertEquals("body world world", result.getFinalContent());
     }
 
     @Test
@@ -156,17 +156,17 @@ class ToolLoopExecutionRuntimeTest {
         runtime.run(new ToolUsingAgentDefinition(), request);
 
         var traces = traceStore.getByTaskId("task-5");
-        assertTrue(traces.stream().anyMatch(trace -> trace.category() == TraceCategory.STATE_SNAPSHOT));
+        assertTrue(traces.stream().anyMatch(trace -> trace.getCategory() == TraceCategory.STATE_SNAPSHOT));
         assertTrue(traces.stream().anyMatch(trace ->
-                trace.category() == TraceCategory.TOOL_INVOCATION
-                        && "appendText".equals(trace.payload().get("toolName"))
-                        && "{\"suffix\":\" world\"}".equals(trace.payload().get("arguments"))
+                trace.getCategory() == TraceCategory.TOOL_INVOCATION
+                        && "appendText".equals(trace.getPayload().get("toolName"))
+                        && "{\"suffix\":\" world\"}".equals(trace.getPayload().get("arguments"))
         ));
         assertTrue(traces.stream().anyMatch(trace ->
-                trace.category() == TraceCategory.TOOL_RESULT
-                        && "appendText".equals(trace.payload().get("toolName"))
-                        && "hello world".equals(trace.payload().get("message"))
-                        && "body world".equals(trace.payload().get("updatedContent"))
+                trace.getCategory() == TraceCategory.TOOL_RESULT
+                        && "appendText".equals(trace.getPayload().get("toolName"))
+                        && "hello world".equals(trace.getPayload().get("message"))
+                        && "body world".equals(trace.getPayload().get("updatedContent"))
         ));
     }
 
@@ -193,9 +193,9 @@ class ToolLoopExecutionRuntimeTest {
 
         assertEquals(2, agent.seenIteration);
         assertEquals("resumed body", agent.seenContent);
-        assertEquals("resumed", result.finalMessage());
-        assertEquals("resumed body", result.finalContent());
-        assertEquals(ExecutionStage.COMPLETED, result.finalState().stage());
+        assertEquals("resumed", result.getFinalMessage());
+        assertEquals("resumed body", result.getFinalContent());
+        assertEquals(ExecutionStage.COMPLETED, result.getFinalState().getStage());
     }
 
     @Test
@@ -230,34 +230,34 @@ class ToolLoopExecutionRuntimeTest {
 
         ExecutionResult result = runtime.run(new ToolUsingAgentDefinition(), request, initialState);
 
-        ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) result.finalState().memory();
-        assertTrue(transcriptMemory.messages().stream().anyMatch(message ->
+        ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) result.getFinalState().getMemory();
+        assertTrue(transcriptMemory.getMessages().stream().anyMatch(message ->
                 message instanceof ChatMessage.UserChatMessage userMessage
-                        && userMessage.text().contains("plan step 1")
+                        && userMessage.getText().contains("plan step 1")
         ));
-        assertTrue(transcriptMemory.messages().stream().anyMatch(message ->
+        assertTrue(transcriptMemory.getMessages().stream().anyMatch(message ->
                 message instanceof ChatMessage.AiChatMessage aiMessage
-                        && aiMessage.text().contains("thinking")
+                        && aiMessage.getText().contains("thinking")
         ));
-        assertTrue(transcriptMemory.messages().stream().anyMatch(message ->
+        assertTrue(transcriptMemory.getMessages().stream().anyMatch(message ->
                 message instanceof ChatMessage.UserChatMessage userMessage
-                        && userMessage.text().contains("use tool")
+                        && userMessage.getText().contains("use tool")
         ));
-        ChatMessage.AiToolCallChatMessage toolCallMessage = transcriptMemory.messages().stream()
+        ChatMessage.AiToolCallChatMessage toolCallMessage = transcriptMemory.getMessages().stream()
                 .filter(ChatMessage.AiToolCallChatMessage.class::isInstance)
                 .map(ChatMessage.AiToolCallChatMessage.class::cast)
                 .findFirst()
                 .orElseThrow();
-        assertEquals("need tool", toolCallMessage.text());
-        assertEquals(1, toolCallMessage.toolCalls().size());
-        assertEquals("appendText", toolCallMessage.toolCalls().get(0).name());
-        assertEquals("{\"suffix\":\" world\"}", toolCallMessage.toolCalls().get(0).arguments());
-        assertTrue(transcriptMemory.messages().stream().anyMatch(message ->
+        assertEquals("need tool", toolCallMessage.getText());
+        assertEquals(1, toolCallMessage.getToolCalls().size());
+        assertEquals("appendText", toolCallMessage.getToolCalls().get(0).getName());
+        assertEquals("{\"suffix\":\" world\"}", toolCallMessage.getToolCalls().get(0).getArguments());
+        assertTrue(transcriptMemory.getMessages().stream().anyMatch(message ->
                 message instanceof ChatMessage.ToolExecutionResultChatMessage toolMessage
-                        && toolMessage.id() != null
-                        && "appendText".equals(toolMessage.name())
-                        && "{\"suffix\":\" world\"}".equals(toolMessage.argument())
-                        && toolMessage.text().contains("hello world")
+                        && toolMessage.getId() != null
+                        && "appendText".equals(toolMessage.getName())
+                        && "{\"suffix\":\" world\"}".equals(toolMessage.getArgument())
+                        && toolMessage.getText().contains("hello world")
         ));
     }
 
@@ -299,7 +299,7 @@ class ToolLoopExecutionRuntimeTest {
 
         @Override
         public ToolResult execute(ToolInvocation invocation, ToolContext context) {
-            return new ToolResult("hello world", context.currentContent() + " world");
+            return new ToolResult("hello world", context.getCurrentContent() + " world");
         }
 
         @Override
@@ -343,15 +343,15 @@ class ToolLoopExecutionRuntimeTest {
 
         @Override
         public Decision decide(AgentRunContext context) {
-            seenIteration = context.state().iteration();
-            seenContent = context.state().currentContent();
+            seenIteration = context.state().getIteration();
+            seenContent = context.state().getCurrentContent();
             return new Decision.Complete("resumed", "resumed execution");
         }
     }
 
     private static long toolResultCount(AgentRunContext context) {
-        ChatTranscriptMemory memory = (ChatTranscriptMemory) context.memory();
-        return memory.messages().stream()
+        ChatTranscriptMemory memory = (ChatTranscriptMemory) context.getMemory();
+        return memory.getMessages().stream()
                 .filter(ChatMessage.ToolExecutionResultChatMessage.class::isInstance)
                 .count();
     }

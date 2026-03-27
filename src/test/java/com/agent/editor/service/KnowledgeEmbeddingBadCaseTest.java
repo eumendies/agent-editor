@@ -3,6 +3,8 @@ package com.agent.editor.service;
 import com.agent.editor.AiEditorApplication;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.env.Environment;
@@ -48,16 +50,16 @@ class KnowledgeEmbeddingBadCaseTest {
                         candidate,
                         cosineSimilarity(queryVector, knowledgeEmbeddingService.embed(candidate))
                 ))
-                .sorted(Comparator.comparingDouble(ScoredCandidate::score).reversed())
+                .sorted(Comparator.comparingDouble(ScoredCandidate::getScore).reversed())
                 .toList();
 
         assertEquals(candidates.size(), rankedCandidates.size());
         for (int i = 1; i < rankedCandidates.size(); i++) {
-            assertTrue(rankedCandidates.get(i - 1).score() >= rankedCandidates.get(i).score());
+            assertTrue(rankedCandidates.get(i - 1).getScore() >= rankedCandidates.get(i).getScore());
         }
 
         System.out.println("query: " + query);
-        rankedCandidates.forEach(candidate -> System.out.printf("%.6f | %s%n", candidate.score(), candidate.text()));
+        rankedCandidates.forEach(candidate -> System.out.printf("%.6f | %s%n", candidate.getScore(), candidate.getText()));
     }
 
     private double cosineSimilarity(float[] left, float[] right) {
@@ -81,6 +83,11 @@ class KnowledgeEmbeddingBadCaseTest {
     }
 
     // 手工 bad case 分析更关注排序输出，保留最小结构即可。
-    private record ScoredCandidate(String text, double score) {
+    @Getter
+    @AllArgsConstructor
+    private static class ScoredCandidate {
+
+        private final String text;
+        private final double score;
     }
 }

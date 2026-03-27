@@ -68,12 +68,12 @@ public class TaskApplicationService {
         ));
 
         // orchestrator 只返回最终产物，真正的文档持久化和 diff 记录仍然在应用层统一处理。
-        if (result.finalContent() != null) {
-            documentService.updateDocument(document.getId(), result.finalContent());
-            diffService.recordDiff(document.getId(), originalContent, result.finalContent());
+        if (result.getFinalContent() != null) {
+            documentService.updateDocument(document.getId(), result.getFinalContent());
+            diffService.recordDiff(document.getId(), originalContent, result.getFinalContent());
         }
 
-        taskQueryService.save(new TaskState(taskId, result.status(), result.finalContent()));
+        taskQueryService.save(new TaskState(taskId, result.getStatus(), result.getFinalContent()));
         return buildResponse(taskId, document.getId(), result);
     }
 
@@ -84,9 +84,9 @@ public class TaskApplicationService {
         }
 
         AgentTaskResponse response = new AgentTaskResponse();
-        response.setTaskId(state.taskId());
-        response.setStatus(state.status().name());
-        response.setFinalResult(state.finalContent());
+        response.setTaskId(state.getTaskId());
+        response.setStatus(state.getStatus().name());
+        response.setFinalResult(state.getFinalContent());
         return response;
     }
 
@@ -112,8 +112,8 @@ public class TaskApplicationService {
         AgentTaskResponse response = new AgentTaskResponse();
         response.setTaskId(taskId);
         response.setDocumentId(documentId);
-        response.setStatus(result.status().name());
-        response.setFinalResult(result.finalContent());
+        response.setStatus(result.getStatus().name());
+        response.setFinalResult(result.getFinalContent());
         response.setStartTime(LocalDateTime.now());
         response.setEndTime(LocalDateTime.now());
         return response;

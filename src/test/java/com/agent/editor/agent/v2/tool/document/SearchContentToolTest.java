@@ -19,8 +19,8 @@ class SearchContentToolTest {
                 new ToolContext("task-1", "hello agent")
         );
 
-        assertEquals("Search for 'agent': Found", result.message());
-        assertEquals(null, result.updatedContent());
+        assertEquals("Search for 'agent': Found", result.getMessage());
+        assertEquals(null, result.getUpdatedContent());
     }
 
     @Test
@@ -32,8 +32,8 @@ class SearchContentToolTest {
                 new ToolContext("task-1", "hello agent")
         );
 
-        assertEquals("Search for '': Not found", result.message());
-        assertEquals(null, result.updatedContent());
+        assertEquals("Search for '': Not found", result.getMessage());
+        assertEquals(null, result.getUpdatedContent());
     }
 
     @Test

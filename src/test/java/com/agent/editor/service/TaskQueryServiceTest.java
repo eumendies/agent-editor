@@ -18,7 +18,7 @@ class TaskQueryServiceTest {
 
         TaskState stored = service.findById("task-1");
         assertNotNull(stored);
-        assertEquals(TaskStatus.COMPLETED, stored.status());
-        assertEquals("final text", stored.finalContent());
+        assertEquals(TaskStatus.COMPLETED, stored.getStatus());
+        assertEquals("final text", stored.getFinalContent());
     }
 }
