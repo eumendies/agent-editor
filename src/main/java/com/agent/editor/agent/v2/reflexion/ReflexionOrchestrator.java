@@ -12,14 +12,7 @@ import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
-import com.agent.editor.agent.v2.trace.TraceCategory;
-import com.agent.editor.agent.v2.trace.TraceCollector;
-import com.agent.editor.agent.v2.trace.TraceRecord;
-
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 public class ReflexionOrchestrator implements TaskOrchestrator {
 
@@ -30,18 +23,15 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
     private final AgentDefinition actorDefinition;
     private final ReflexionCriticDefinition criticDefinition;
     private final EventPublisher eventPublisher;
-    private final TraceCollector traceCollector;
 
     public ReflexionOrchestrator(ExecutionRuntime runtime,
                                  AgentDefinition actorDefinition,
                                  ReflexionCriticDefinition criticDefinition,
-                                 EventPublisher eventPublisher,
-                                 TraceCollector traceCollector) {
+                                 EventPublisher eventPublisher) {
         this.runtime = runtime;
         this.actorDefinition = actorDefinition;
         this.criticDefinition = criticDefinition;
         this.eventPublisher = eventPublisher;
-        this.traceCollector = traceCollector;
     }
 
     @Override
@@ -59,12 +49,6 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
         String currentContent = request.getDocument().getContent();
 
         for (int round = 1; round <= request.getMaxIterations(); round++) {
-            traceCollector.collect(traceRecord(
-                    request,
-                    "reflexion.actor.started",
-                    round,
-                    Map.of("content", currentContent)
-            ));
             ExecutionResult actorResult = runtime.run(
                     actorDefinition,
                     actorRequest(request, currentContent),
@@ -72,25 +56,6 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
             );
             actorState = actorResult.getFinalState();
             currentContent = actorResult.getFinalContent();
-            traceCollector.collect(traceRecord(
-                    request,
-                    "reflexion.actor.completed",
-                    round,
-                    Map.of(
-                            "summary", actorResult.getFinalMessage(),
-                            "content", currentContent
-                    )
-            ));
-
-            traceCollector.collect(traceRecord(
-                    request,
-                    "reflexion.critic.started",
-                    round,
-                    Map.of(
-                            "content", currentContent,
-                            "actorSummary", actorResult.getFinalMessage()
-                    )
-            ));
             ExecutionResult criticResult = runtime.run(
                     criticDefinition,
                     criticRequest(request, currentContent, actorResult.getFinalMessage()),
@@ -98,27 +63,7 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
                     new AgentRunContext(0, currentContent)
             );
             ReflexionCritique critique = criticDefinition.parseCritique(criticResult.getFinalMessage());
-            traceCollector.collect(traceRecord(
-                    request,
-                    "reflexion.critic.completed",
-                    round,
-                    Map.of(
-                            "verdict", critique.getVerdict().name(),
-                            "feedback", critique.getFeedback(),
-                            "reasoning", critique.getReasoning()
-                    )
-            ));
             if (critique.getVerdict() == ReflexionVerdict.PASS) {
-                traceCollector.collect(traceRecord(
-                        request,
-                        "reflexion.pass",
-                        round,
-                        Map.of(
-                                "feedback", critique.getFeedback(),
-                                "reasoning", critique.getReasoning(),
-                                "content", currentContent
-                        )
-                ));
                 return new TaskResult(TaskStatus.COMPLETED, currentContent, actorState.getMemory());
             }
 
@@ -126,23 +71,8 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
                     // critique 作为新的 user message 回灌给 actor，下一轮由 actor 自己决定如何修正。
                     .appendMemory(new ChatMessage.UserChatMessage(formatCritique(round, critique)))
                     .withStage(ExecutionStage.RUNNING);
-            traceCollector.collect(traceRecord(
-                    request,
-                    "reflexion.revise",
-                    round,
-                    Map.of(
-                            "feedback", critique.getFeedback(),
-                            "reasoning", critique.getReasoning()
-                    )
-            ));
         }
 
-        traceCollector.collect(traceRecord(
-                request,
-                "reflexion.max.rounds.reached",
-                request.getMaxIterations(),
-                Map.of("content", currentContent)
-        ));
         return new TaskResult(TaskStatus.COMPLETED, currentContent, actorState.getMemory());
     }
 
@@ -198,20 +128,4 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
                 .replace("\"", "\\\"");
     }
 
-    private TraceRecord traceRecord(TaskRequest request,
-                                    String stage,
-                                    int round,
-                                    Map<String, Object> payload) {
-        return new TraceRecord(
-                UUID.randomUUID().toString(),
-                request.getTaskId(),
-                Instant.now(),
-                TraceCategory.ORCHESTRATION_DECISION,
-                stage,
-                request.getAgentType(),
-                null,
-                round,
-                payload
-        );
-    }
 }

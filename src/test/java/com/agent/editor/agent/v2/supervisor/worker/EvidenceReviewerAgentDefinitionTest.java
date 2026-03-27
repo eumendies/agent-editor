@@ -8,8 +8,6 @@ import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
-import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -29,10 +27,7 @@ class EvidenceReviewerAgentDefinitionTest {
 
     @Test
     void shouldReportReactType() {
-        EvidenceReviewerAgentDefinition definition = new EvidenceReviewerAgentDefinition(
-                null,
-                new DefaultTraceCollector(new InMemoryTraceStore())
-        );
+        EvidenceReviewerAgentDefinition definition = new EvidenceReviewerAgentDefinition(null);
 
         assertEquals(AgentType.REACT, definition.type());
     }
@@ -44,10 +39,7 @@ class EvidenceReviewerAgentDefinitionTest {
                         {"verdict":"PASS","instructionSatisfied":true,"evidenceGrounded":true,"unsupportedClaims":[],"missingRequirements":[],"feedback":"ok","reasoning":"complete"}
                         """))
                 .build());
-        EvidenceReviewerAgentDefinition definition = new EvidenceReviewerAgentDefinition(
-                chatModel,
-                new DefaultTraceCollector(new InMemoryTraceStore())
-        );
+        EvidenceReviewerAgentDefinition definition = new EvidenceReviewerAgentDefinition(chatModel);
 
         definition.decide(context(List.of(searchContentTool(), analyzeDocumentTool())));
 
@@ -67,10 +59,7 @@ class EvidenceReviewerAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("need one more verification step", List.of(toolRequest)))
                 .build());
-        EvidenceReviewerAgentDefinition definition = new EvidenceReviewerAgentDefinition(
-                chatModel,
-                new DefaultTraceCollector(new InMemoryTraceStore())
-        );
+        EvidenceReviewerAgentDefinition definition = new EvidenceReviewerAgentDefinition(chatModel);
 
         Decision decision = definition.decide(context(List.of(analyzeDocumentTool())));
 

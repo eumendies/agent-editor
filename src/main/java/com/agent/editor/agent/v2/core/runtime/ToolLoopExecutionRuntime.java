@@ -8,9 +8,6 @@ import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
-import com.agent.editor.agent.v2.trace.TraceCategory;
-import com.agent.editor.agent.v2.trace.TraceCollector;
-import com.agent.editor.agent.v2.trace.TraceRecord;
 import com.agent.editor.agent.v2.tool.ToolContext;
 import com.agent.editor.agent.v2.tool.ToolHandler;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
@@ -19,11 +16,8 @@ import com.agent.editor.agent.v2.tool.ToolResult;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 /**
  * 需要工具循环的单 agent 执行器。
@@ -33,12 +27,10 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
 
     private final ToolRegistry toolRegistry;
     private final EventPublisher eventPublisher;
-    private final TraceCollector traceCollector;
 
-    public ToolLoopExecutionRuntime(ToolRegistry toolRegistry, EventPublisher eventPublisher, TraceCollector traceCollector) {
+    public ToolLoopExecutionRuntime(ToolRegistry toolRegistry, EventPublisher eventPublisher) {
         this.toolRegistry = toolRegistry;
         this.eventPublisher = eventPublisher;
-        this.traceCollector = traceCollector;
     }
 
     @Override
@@ -57,17 +49,6 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
                 .appendMemory(new ChatMessage.UserChatMessage(request.getInstruction()));
         while (state.getIteration() < request.getMaxIterations() && state.getStage() != com.agent.editor.agent.v2.core.state.ExecutionStage.COMPLETED) {
             eventPublisher.publish(new ExecutionEvent(EventType.ITERATION_STARTED, request.getTaskId(), "iteration " + state.getIteration()));
-            traceCollector.collect(traceRecord(
-                    request,
-                    state.getIteration(),
-                    TraceCategory.STATE_SNAPSHOT,
-                    "runtime.iteration.started",
-                    Map.of(
-                            "currentContent", state.getCurrentContent(),
-                            "toolResults", extractToolResultMessages(state),
-                            "maxIterations", request.getMaxIterations()
-                    )
-            ));
 
             // worker 运行时只暴露被允许的工具列表，避免异构 worker 越权调用别的能力。
             Decision decision = definition.decide(state);
@@ -122,18 +103,6 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
         String updatedContent = currentContent;
         for (ToolCall call : calls) {
             eventPublisher.publish(new ExecutionEvent(EventType.TOOL_CALLED, taskId, call.getName()));
-            traceCollector.collect(traceRecord(
-                    request,
-                    iteration,
-                    TraceCategory.TOOL_INVOCATION,
-                    "runtime.tool.invocation",
-                    Map.of(
-                            "toolName", call.getName(),
-                            "toolCallId", call.getId(),
-                            "arguments", call.getArguments(),
-                            "currentContent", updatedContent
-                    )
-            ));
 
             ToolHandler handler = toolRegistry.get(call.getName());
             // 这里同时做“是否存在”和“是否允许”两层校验，错误统一收敛成不可用工具。
@@ -148,18 +117,6 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
             if (result.getUpdatedContent() != null) {
                 updatedContent = result.getUpdatedContent();
             }
-            traceCollector.collect(traceRecord(
-                    request,
-                    iteration,
-                    TraceCategory.TOOL_RESULT,
-                    "runtime.tool.result",
-                    Map.of(
-                            "toolName", call.getName(),
-                            "toolCallId", call.getId(),
-                            "message", result.getMessage(),
-                            "updatedContent", updatedContent
-                    )
-            ));
             eventPublisher.publish(new ExecutionEvent(EventType.TOOL_SUCCEEDED, taskId, result.getMessage()));
         }
         return new ToolExecutionOutcome(executions, updatedContent);
@@ -196,32 +153,4 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
         return messages;
     }
 
-    private TraceRecord traceRecord(ExecutionRequest request,
-                                    int iteration,
-                                    TraceCategory category,
-                                    String stage,
-                                    Map<String, Object> payload) {
-        return new TraceRecord(
-                UUID.randomUUID().toString(),
-                request.getTaskId(),
-                Instant.now(),
-                category,
-                stage,
-                request.getAgentType(),
-                request.getWorkerId(),
-                iteration,
-                payload
-        );
-    }
-
-    private List<String> extractToolResultMessages(AgentRunContext state) {
-        if (!(state.getMemory() instanceof ChatTranscriptMemory transcriptMemory)) {
-            return List.of();
-        }
-        return transcriptMemory.getMessages().stream()
-                .filter(ChatMessage.ToolExecutionResultChatMessage.class::isInstance)
-                .map(ChatMessage.ToolExecutionResultChatMessage.class::cast)
-                .map(ChatMessage.ToolExecutionResultChatMessage::getText)
-                .toList();
-    }
 }

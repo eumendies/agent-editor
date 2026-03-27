@@ -8,8 +8,6 @@ import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
-import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -31,10 +29,7 @@ class ResearcherAgentDefinitionTest {
 
     @Test
     void shouldReportReactType() {
-        ResearcherAgentDefinition definition = new ResearcherAgentDefinition(
-                null,
-                new DefaultTraceCollector(new InMemoryTraceStore())
-        );
+        ResearcherAgentDefinition definition = new ResearcherAgentDefinition(null);
 
         assertEquals(AgentType.REACT, definition.type());
     }
@@ -46,10 +41,7 @@ class ResearcherAgentDefinitionTest {
                         {"queries":["agentic rag"],"evidenceSummary":"...", "limitations":"...", "uncoveredPoints":[], "chunks":[]}
                         """))
                 .build());
-        ResearcherAgentDefinition definition = new ResearcherAgentDefinition(
-                chatModel,
-                new DefaultTraceCollector(new InMemoryTraceStore())
-        );
+        ResearcherAgentDefinition definition = new ResearcherAgentDefinition(chatModel);
 
         definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("ground this answer")
@@ -71,10 +63,7 @@ class ResearcherAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("need evidence", List.of(toolRequest)))
                 .build());
-        ResearcherAgentDefinition definition = new ResearcherAgentDefinition(
-                chatModel,
-                new DefaultTraceCollector(new InMemoryTraceStore())
-        );
+        ResearcherAgentDefinition definition = new ResearcherAgentDefinition(chatModel);
 
         Decision decision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("ground this answer")
@@ -92,10 +81,7 @@ class ResearcherAgentDefinitionTest {
                         {"queries":["agentic rag"],"evidenceSummary":"...", "limitations":"...", "uncoveredPoints":[], "chunks":[]}
                         """))
                 .build());
-        ResearcherAgentDefinition definition = new ResearcherAgentDefinition(
-                chatModel,
-                new DefaultTraceCollector(new InMemoryTraceStore())
-        );
+        ResearcherAgentDefinition definition = new ResearcherAgentDefinition(chatModel);
 
         Decision decision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("initial grounding request"),

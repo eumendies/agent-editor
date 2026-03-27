@@ -6,9 +6,6 @@ import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
-import com.agent.editor.agent.v2.trace.TraceCategory;
-import com.agent.editor.agent.v2.trace.TraceCollector;
-import com.agent.editor.agent.v2.trace.TraceRecord;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -17,28 +14,21 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 public class EvidenceReviewerAgentDefinition implements AgentDefinition {
 
     private final ChatModel chatModel;
-    private final TraceCollector traceCollector;
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
 
-    public EvidenceReviewerAgentDefinition(ChatModel chatModel, TraceCollector traceCollector) {
-        this(chatModel, traceCollector, new ExecutionMemoryChatMessageMapper());
+    public EvidenceReviewerAgentDefinition(ChatModel chatModel) {
+        this(chatModel, new ExecutionMemoryChatMessageMapper());
     }
 
     EvidenceReviewerAgentDefinition(ChatModel chatModel,
-                                    TraceCollector traceCollector,
                                     ExecutionMemoryChatMessageMapper memoryChatMessageMapper) {
         this.chatModel = chatModel;
-        this.traceCollector = traceCollector;
         this.memoryChatMessageMapper = memoryChatMessageMapper;
     }
 
@@ -54,16 +44,6 @@ public class EvidenceReviewerAgentDefinition implements AgentDefinition {
         }
 
         String systemPrompt = buildSystemPrompt();
-        traceCollector.collect(traceRecord(
-                context,
-                TraceCategory.MODEL_REQUEST,
-                "reviewer.model.request",
-                Map.of(
-                        "systemPrompt", systemPrompt,
-                        "memoryMessages", context.state().getMemory(),
-                        "toolSpecifications", context.getToolSpecifications().stream().map(spec -> spec.name()).toList()
-                )
-        ));
 
         ChatResponse response = chatModel.chat(ChatRequest.builder()
                 .messages(buildMessages(context, systemPrompt))
@@ -71,21 +51,6 @@ public class EvidenceReviewerAgentDefinition implements AgentDefinition {
                 .build());
 
         AiMessage aiMessage = response.aiMessage();
-        Map<String, Object> responsePayload = new LinkedHashMap<>();
-        responsePayload.put("rawText", aiMessage.text());
-        responsePayload.put("toolCalls", aiMessage.toolExecutionRequests().stream()
-                .map(request -> Map.of(
-                        "name", request.name(),
-                        "arguments", request.arguments()
-                ))
-                .toList());
-        traceCollector.collect(traceRecord(
-                context,
-                TraceCategory.MODEL_RESPONSE,
-                "reviewer.model.response",
-                responsePayload
-        ));
-
         if (aiMessage.hasToolExecutionRequests()) {
             return new Decision.ToolCalls(
                     aiMessage.toolExecutionRequests().stream()
@@ -118,22 +83,5 @@ public class EvidenceReviewerAgentDefinition implements AgentDefinition {
 
     private ToolCall toToolCall(ToolExecutionRequest request) {
         return new ToolCall(request.id(), request.name(), request.arguments());
-    }
-
-    private TraceRecord traceRecord(AgentRunContext context,
-                                    TraceCategory category,
-                                    String stage,
-                                    Map<String, Object> payload) {
-        return new TraceRecord(
-                UUID.randomUUID().toString(),
-                context.getRequest().getTaskId(),
-                Instant.now(),
-                category,
-                stage,
-                type(),
-                context.getRequest().getWorkerId(),
-                context.state().getIteration(),
-                payload
-        );
     }
 }

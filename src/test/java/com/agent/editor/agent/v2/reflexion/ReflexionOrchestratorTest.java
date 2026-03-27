@@ -11,10 +11,6 @@ import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
-import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
-import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
-import com.agent.editor.agent.v2.trace.TraceCategory;
-import com.agent.editor.agent.v2.trace.TraceStore;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
 import dev.langchain4j.data.message.AiMessage;
@@ -42,8 +38,7 @@ class ReflexionOrchestratorTest {
                 criticWithResponses("""
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"done"}
                         """),
-                event -> {},
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                event -> {}
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -77,8 +72,7 @@ class ReflexionOrchestratorTest {
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"done"}
                         """
                 ),
-                event -> {},
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                event -> {}
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -124,8 +118,7 @@ class ReflexionOrchestratorTest {
                         {"verdict":"REVISE","feedback":"Round 2","reasoning":"continue"}
                         """
                 ),
-                event -> {},
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                event -> {}
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -144,9 +137,8 @@ class ReflexionOrchestratorTest {
     }
 
     @Test
-    void shouldEmitTraceStagesForReviseAndPassFlow() {
+    void shouldNotWriteTraceStagesForReviseAndPassFlow() {
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
-        TraceStore traceStore = new InMemoryTraceStore();
         ReflexionOrchestrator orchestrator = new ReflexionOrchestrator(
                 runtime,
                 new ActorAgentDefinition(),
@@ -158,8 +150,7 @@ class ReflexionOrchestratorTest {
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"done"}
                         """
                 ),
-                event -> {},
-                new DefaultTraceCollector(traceStore)
+                event -> {}
         );
 
         orchestrator.execute(new TaskRequest(
@@ -171,29 +162,13 @@ class ReflexionOrchestratorTest {
                 3
         ));
 
-        var traces = traceStore.getByTaskId("task-reflex-4");
-        assertTrue(traces.stream().anyMatch(trace ->
-                trace.getCategory() == TraceCategory.ORCHESTRATION_DECISION
-                        && "reflexion.actor.started".equals(trace.getStage())
-        ));
-        assertTrue(traces.stream().anyMatch(trace ->
-                trace.getCategory() == TraceCategory.ORCHESTRATION_DECISION
-                        && "reflexion.critic.completed".equals(trace.getStage())
-        ));
-        assertTrue(traces.stream().anyMatch(trace ->
-                trace.getCategory() == TraceCategory.ORCHESTRATION_DECISION
-                        && "reflexion.revise".equals(trace.getStage())
-        ));
-        assertTrue(traces.stream().anyMatch(trace ->
-                trace.getCategory() == TraceCategory.ORCHESTRATION_DECISION
-                        && "reflexion.pass".equals(trace.getStage())
-        ));
+        assertEquals(2, runtime.actorStates.size());
+        assertEquals(2, runtime.criticStates.size());
     }
 
     private ReflexionCriticDefinition criticWithResponses(String... responses) {
         return new ReflexionCriticDefinition(
-                new QueueChatModel(responses),
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                new QueueChatModel(responses)
         );
     }
 

@@ -7,7 +7,6 @@ import com.agent.editor.agent.v2.supervisor.worker.GroundedWriterAgentDefinition
 import com.agent.editor.agent.v2.supervisor.worker.ResearcherAgentDefinition;
 import com.agent.editor.agent.v2.supervisor.worker.WorkerDefinition;
 import com.agent.editor.agent.v2.supervisor.worker.WorkerRegistry;
-import com.agent.editor.agent.v2.trace.TraceCollector;
 import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,18 +22,18 @@ public class SupervisorAgentConfig {
     }
 
     @Bean
-    public ResearcherAgentDefinition researcherAgentDefinition(ChatModel chatModel, TraceCollector traceCollector) {
-        return new ResearcherAgentDefinition(chatModel, traceCollector);
+    public ResearcherAgentDefinition researcherAgentDefinition(ChatModel chatModel) {
+        return new ResearcherAgentDefinition(chatModel);
     }
 
     @Bean
-    public GroundedWriterAgentDefinition groundedWriterAgentDefinition(ChatModel chatModel, TraceCollector traceCollector) {
-        return new GroundedWriterAgentDefinition(chatModel, traceCollector);
+    public GroundedWriterAgentDefinition groundedWriterAgentDefinition(ChatModel chatModel) {
+        return new GroundedWriterAgentDefinition(chatModel);
     }
 
     @Bean
-    public EvidenceReviewerAgentDefinition evidenceReviewerAgentDefinition(ChatModel chatModel, TraceCollector traceCollector) {
-        return new EvidenceReviewerAgentDefinition(chatModel, traceCollector);
+    public EvidenceReviewerAgentDefinition evidenceReviewerAgentDefinition(ChatModel chatModel) {
+        return new EvidenceReviewerAgentDefinition(chatModel);
     }
 
     @Bean

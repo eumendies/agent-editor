@@ -15,9 +15,7 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
-import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
-import com.agent.editor.agent.v2.trace.TraceCategory;
 import com.agent.editor.agent.v2.trace.TraceStore;
 import org.junit.jupiter.api.Test;
 
@@ -44,8 +42,7 @@ class PlanningThenExecutionOrchestratorTest {
                 planner,
                 runtime,
                 new CompletingExecutionAgent(),
-                eventPublisher,
-                new DefaultTraceCollector(traceStore)
+                eventPublisher
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -63,11 +60,7 @@ class PlanningThenExecutionOrchestratorTest {
         assertEquals("body", runtime.requests().get(0).getDocument().getContent());
         assertEquals("body -> Add outline", runtime.requests().get(1).getDocument().getContent());
         assertEquals(EventType.PLAN_CREATED, eventPublisher.events().get(0).getType());
-        assertTrue(traceStore.getByTaskId("task-1").stream().anyMatch(trace ->
-                trace.getCategory() == TraceCategory.ORCHESTRATION_DECISION
-                        && "planning.plan.created".equals(trace.getStage())
-                        && trace.getPayload().containsKey("plan")
-        ));
+        assertTrue(traceStore.getByTaskId("task-1").isEmpty());
     }
 
     @Test
@@ -83,8 +76,7 @@ class PlanningThenExecutionOrchestratorTest {
                 planner,
                 runtime,
                 new CompletingExecutionAgent(),
-                event -> {},
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                event -> {}
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(

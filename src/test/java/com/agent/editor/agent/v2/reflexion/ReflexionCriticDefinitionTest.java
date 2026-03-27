@@ -7,8 +7,6 @@ import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.*;
-import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
-import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -33,8 +31,7 @@ class ReflexionCriticDefinitionTest {
         ReflexionCriticDefinition definition = new ReflexionCriticDefinition(
                 new RecordingChatModel("""
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"All key requirements are satisfied"}
-                        """),
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                        """)
         );
 
         Decision decision = definition.decide(context());
@@ -50,8 +47,7 @@ class ReflexionCriticDefinitionTest {
         ReflexionCriticDefinition definition = new ReflexionCriticDefinition(
                 new RecordingChatModel("""
                         {"verdict":"REVISE","feedback":"Tighten the introduction","reasoning":"The opening is too long"}
-                        """),
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                        """)
         );
 
         ReflexionCritique critique = definition.parseCritique(assertInstanceOf(
@@ -69,8 +65,7 @@ class ReflexionCriticDefinitionTest {
         ReflexionCriticDefinition definition = new ReflexionCriticDefinition(
                 new RecordingChatModel("""
                         {"verdict":"MAYBE","feedback":"unclear","reasoning":"invalid verdict"}
-                        """),
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                        """)
         );
 
         String rawCritique = assertInstanceOf(Decision.Complete.class, definition.decide(context())).getResult();
@@ -83,10 +78,7 @@ class ReflexionCriticDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel("""
                 {"verdict":"PASS","feedback":"Looks good","reasoning":"All key requirements are satisfied"}
                 """);
-        ReflexionCriticDefinition definition = new ReflexionCriticDefinition(
-                chatModel,
-                new DefaultTraceCollector(new InMemoryTraceStore())
-        );
+        ReflexionCriticDefinition definition = new ReflexionCriticDefinition(chatModel);
 
         definition.decide(new AgentRunContext(
                 new ExecutionRequest(
@@ -123,10 +115,7 @@ class ReflexionCriticDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel("""
                 {"verdict":"PASS","feedback":"Looks good","reasoning":"All key requirements are satisfied"}
                 """);
-        ReflexionCriticDefinition definition = new ReflexionCriticDefinition(
-                chatModel,
-                new DefaultTraceCollector(new InMemoryTraceStore())
-        );
+        ReflexionCriticDefinition definition = new ReflexionCriticDefinition(chatModel);
 
         definition.decide(context());
 

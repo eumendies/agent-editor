@@ -8,8 +8,6 @@ import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
-import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -30,10 +28,7 @@ class GroundedWriterAgentDefinitionTest {
 
     @Test
     void shouldReportReactType() {
-        GroundedWriterAgentDefinition definition = new GroundedWriterAgentDefinition(
-                null,
-                new DefaultTraceCollector(new InMemoryTraceStore())
-        );
+        GroundedWriterAgentDefinition definition = new GroundedWriterAgentDefinition(null);
 
         assertEquals(AgentType.REACT, definition.type());
     }
@@ -43,10 +38,7 @@ class GroundedWriterAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("Document updated"))
                 .build());
-        GroundedWriterAgentDefinition definition = new GroundedWriterAgentDefinition(
-                chatModel,
-                new DefaultTraceCollector(new InMemoryTraceStore())
-        );
+        GroundedWriterAgentDefinition definition = new GroundedWriterAgentDefinition(chatModel);
 
         definition.decide(context(List.of(editDocumentTool(), searchContentTool())));
 
@@ -68,10 +60,7 @@ class GroundedWriterAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("apply grounded draft", List.of(toolRequest)))
                 .build());
-        GroundedWriterAgentDefinition definition = new GroundedWriterAgentDefinition(
-                chatModel,
-                new DefaultTraceCollector(new InMemoryTraceStore())
-        );
+        GroundedWriterAgentDefinition definition = new GroundedWriterAgentDefinition(chatModel);
 
         Decision decision = definition.decide(context(List.of(editDocumentTool())));
 

@@ -5,9 +5,6 @@ import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
-import com.agent.editor.agent.v2.trace.TraceCategory;
-import com.agent.editor.agent.v2.trace.TraceCollector;
-import com.agent.editor.agent.v2.trace.TraceRecord;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,12 +21,8 @@ import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 public class ReflexionCriticDefinition implements AgentDefinition {
 
@@ -48,19 +41,16 @@ public class ReflexionCriticDefinition implements AgentDefinition {
             .build();
 
     private final ChatModel chatModel;
-    private final TraceCollector traceCollector;
     private final ObjectMapper objectMapper;
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
 
-    public ReflexionCriticDefinition(ChatModel chatModel, TraceCollector traceCollector) {
-        this(chatModel, traceCollector, new ExecutionMemoryChatMessageMapper());
+    public ReflexionCriticDefinition(ChatModel chatModel) {
+        this(chatModel, new ExecutionMemoryChatMessageMapper());
     }
 
     ReflexionCriticDefinition(ChatModel chatModel,
-                              TraceCollector traceCollector,
                               ExecutionMemoryChatMessageMapper memoryChatMessageMapper) {
         this.chatModel = chatModel;
-        this.traceCollector = traceCollector;
         this.memoryChatMessageMapper = memoryChatMessageMapper;
         this.objectMapper = new ObjectMapper()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -82,17 +72,6 @@ public class ReflexionCriticDefinition implements AgentDefinition {
 
         String systemPrompt = buildSystemPrompt();
         String userPrompt = buildUserPrompt(context);
-        traceCollector.collect(traceRecord(
-                context,
-                TraceCategory.MODEL_REQUEST,
-                "reflexion.critic.model.request",
-                Map.of(
-                        "systemPrompt", systemPrompt,
-                        "userPrompt", userPrompt,
-                        "memoryMessages", context.state().getMemory(),
-                        "toolSpecifications", context.getToolSpecifications().stream().map(spec -> spec.name()).toList()
-                )
-        ));
 
         ChatResponse response = chatModel.chat(ChatRequest.builder()
                 .messages(buildMessages(context, systemPrompt, userPrompt))
@@ -104,18 +83,6 @@ public class ReflexionCriticDefinition implements AgentDefinition {
                 .build());
 
         AiMessage aiMessage = response.aiMessage();
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("rawText", aiMessage.text());
-        payload.put("toolCalls", aiMessage.toolExecutionRequests().stream()
-                .map(request -> Map.of("name", request.name(), "arguments", request.arguments()))
-                .toList());
-        traceCollector.collect(traceRecord(
-                context,
-                TraceCategory.MODEL_RESPONSE,
-                "reflexion.critic.model.response",
-                payload
-        ));
-
         if (aiMessage.hasToolExecutionRequests()) {
             return new Decision.ToolCalls(
                     aiMessage.toolExecutionRequests().stream()
@@ -177,22 +144,5 @@ public class ReflexionCriticDefinition implements AgentDefinition {
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().getMemory()));
         messages.add(UserMessage.from(userPrompt));
         return messages;
-    }
-
-    private TraceRecord traceRecord(AgentRunContext context,
-                                    TraceCategory category,
-                                    String stage,
-                                    Map<String, Object> payload) {
-        return new TraceRecord(
-                UUID.randomUUID().toString(),
-                context.getRequest().getTaskId(),
-                Instant.now(),
-                category,
-                stage,
-                type(),
-                context.getRequest().getWorkerId(),
-                context.state().getIteration(),
-                payload
-        );
     }
 }

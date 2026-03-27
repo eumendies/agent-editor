@@ -21,7 +21,6 @@ import com.agent.editor.agent.v2.task.RoutingTaskOrchestrator;
 import com.agent.editor.agent.v2.react.ReActAgentOrchestrator;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.SessionMemoryTaskOrchestrator;
-import com.agent.editor.agent.v2.trace.TraceCollector;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
 import com.agent.editor.service.TaskQueryService;
 import com.agent.editor.websocket.WebSocketService;
@@ -47,9 +46,8 @@ public class TaskOrchestratorConfig {
 
     @Bean
     public ExecutionRuntime executionRuntime(ToolRegistry toolRegistry,
-                                             EventPublisher eventPublisher,
-                                             TraceCollector traceCollector) {
-        return new ToolLoopExecutionRuntime(toolRegistry, eventPublisher, traceCollector);
+                                             EventPublisher eventPublisher) {
+        return new ToolLoopExecutionRuntime(toolRegistry, eventPublisher);
     }
 
     @Bean
@@ -66,29 +64,25 @@ public class TaskOrchestratorConfig {
                                              ReflexionActorDefinition reflexionActorDefinition,
                                              ReflexionCriticDefinition reflexionCriticDefinition,
                                              SupervisorAgentDefinition supervisorAgentDefinition,
-                                             TraceCollector traceCollector,
                                              SessionMemoryStore sessionMemoryStore) {
         TaskOrchestrator reactOrchestrator = new ReActAgentOrchestrator(executionRuntime, reactAgentDefinition);
         TaskOrchestrator planningOrchestrator = new PlanningThenExecutionOrchestrator(
                 planningAgentDefinition,
                 executionRuntime,
                 reactAgentDefinition,
-                eventPublisher,
-                traceCollector
+                eventPublisher
         );
         TaskOrchestrator supervisorOrchestrator = new SupervisorOrchestrator(
                 supervisorAgentDefinition,
                 workerRegistry,
                 executionRuntime,
-                eventPublisher,
-                traceCollector
+                eventPublisher
         );
         TaskOrchestrator reflexionOrchestrator = new ReflexionOrchestrator(
                 executionRuntime,
                 reflexionActorDefinition,
                 reflexionCriticDefinition,
-                eventPublisher,
-                traceCollector
+                eventPublisher
         );
 
         return new SessionMemoryTaskOrchestrator(new RoutingTaskOrchestrator(Map.of(

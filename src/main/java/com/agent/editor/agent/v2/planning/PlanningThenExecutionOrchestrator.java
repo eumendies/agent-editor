@@ -17,14 +17,7 @@ import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
-import com.agent.editor.agent.v2.trace.TraceCategory;
-import com.agent.editor.agent.v2.trace.TraceCollector;
-import com.agent.editor.agent.v2.trace.TraceRecord;
-
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Map;
-import java.util.UUID;
 
 /**
  * 两阶段编排：先由 planner 拆任务，再把每个 plan step 交给执行 agent 串行落地。
@@ -35,18 +28,15 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
     private final ExecutionRuntime executionRuntime;
     private final AgentDefinition executionAgent;
     private final EventPublisher eventPublisher;
-    private final TraceCollector traceCollector;
 
     public PlanningThenExecutionOrchestrator(PlanningAgentDefinition planningAgent,
                                              ExecutionRuntime executionRuntime,
                                              AgentDefinition executionAgent,
-                                             EventPublisher eventPublisher,
-                                             TraceCollector traceCollector) {
+                                             EventPublisher eventPublisher) {
         this.planningAgent = planningAgent;
         this.executionRuntime = executionRuntime;
         this.executionAgent = executionAgent;
         this.eventPublisher = eventPublisher;
-        this.traceCollector = traceCollector;
     }
 
     @Override
@@ -57,20 +47,6 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
                 EventType.PLAN_CREATED,
                 request.getTaskId(),
                 "plan created with %d step(s)".formatted(plan.getSteps().size())
-        ));
-        traceCollector.collect(new TraceRecord(
-                UUID.randomUUID().toString(),
-                request.getTaskId(),
-                Instant.now(),
-                TraceCategory.ORCHESTRATION_DECISION,
-                "planning.plan.created",
-                request.getAgentType(),
-                null,
-                null,
-                Map.of(
-                        "plan", plan.getSteps().stream().map(step -> step.getOrder() + ". " + step.getInstruction()).toList(),
-                        "instruction", request.getInstruction()
-                )
         ));
 
         AgentRunContext currentState = new AgentRunContext(
@@ -84,21 +60,6 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
         );
         String currentContent = request.getDocument().getContent();
         for (PlanStep step : plan.getSteps()) {
-            traceCollector.collect(new TraceRecord(
-                    UUID.randomUUID().toString(),
-                    request.getTaskId(),
-                    Instant.now(),
-                    TraceCategory.ORCHESTRATION_DECISION,
-                    "planning.step.dispatch",
-                    request.getAgentType(),
-                    null,
-                    step.getOrder(),
-                    Map.of(
-                            "stepOrder", step.getOrder(),
-                            "stepInstruction", step.getInstruction(),
-                            "currentContent", currentContent
-                    )
-            ));
             AgentRunContext stepState = prepareStepState(currentState, step);
             // 每个步骤都基于上一步的文档内容继续执行，形成显式的阶段性产物传递。
             ExecutionResult result = executionRuntime.run(

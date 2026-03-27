@@ -8,10 +8,6 @@ import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
-import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
-import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
-import com.agent.editor.agent.v2.trace.TraceCategory;
-import com.agent.editor.agent.v2.trace.TraceStore;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -32,10 +28,7 @@ class ReactAgentDefinitionTest {
 
     @Test
     void shouldReportReactType() {
-        ReactAgentDefinition definition = new ReactAgentDefinition(
-                null,
-                new DefaultTraceCollector(new InMemoryTraceStore())
-        );
+        ReactAgentDefinition definition = new ReactAgentDefinition(null);
 
         assertEquals(AgentType.REACT, definition.type());
     }
@@ -45,11 +38,7 @@ class ReactAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("final answer"))
                 .build());
-        TraceStore traceStore = new InMemoryTraceStore();
-        ReactAgentDefinition definition = new ReactAgentDefinition(
-                chatModel,
-                new DefaultTraceCollector(traceStore)
-        );
+        ReactAgentDefinition definition = new ReactAgentDefinition(chatModel);
 
         Decision decision = definition.decide(context());
 
@@ -60,12 +49,7 @@ class ReactAgentDefinitionTest {
         assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
         UserMessage userMessage = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
         assertEquals("rewrite this", userMessage.singleText());
-        assertTrue(traceStore.getByTaskId("task-1").stream().anyMatch(trace ->
-                trace.getCategory() == TraceCategory.MODEL_REQUEST
-                        && "react.model.request".equals(trace.getStage())
-                        && trace.getPayload().get("userPrompt").toString().contains("body")
-                        && trace.getPayload().get("userPrompt").toString().contains("rewrite this")
-        ));
+        assertTrue(userMessage.singleText().contains("rewrite this"));
     }
 
     @Test
@@ -78,10 +62,7 @@ class ReactAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("need tool", java.util.List.of(toolRequest)))
                 .build());
-        ReactAgentDefinition definition = new ReactAgentDefinition(
-                chatModel,
-                new DefaultTraceCollector(new InMemoryTraceStore())
-        );
+        ReactAgentDefinition definition = new ReactAgentDefinition(chatModel);
 
         Decision decision = definition.decide(context());
 
@@ -96,10 +77,7 @@ class ReactAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("updated"))
                 .build());
-        ReactAgentDefinition definition = new ReactAgentDefinition(
-                chatModel,
-                new DefaultTraceCollector(new InMemoryTraceStore())
-        );
+        ReactAgentDefinition definition = new ReactAgentDefinition(chatModel);
 
         definition.decide(context());
 
@@ -118,10 +96,7 @@ class ReactAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("final answer"))
                 .build());
-        ReactAgentDefinition definition = new ReactAgentDefinition(
-                chatModel,
-                new DefaultTraceCollector(new InMemoryTraceStore())
-        );
+        ReactAgentDefinition definition = new ReactAgentDefinition(chatModel);
 
         Decision decision = definition.decide(new AgentRunContext(
                 new ExecutionRequest(
@@ -168,34 +143,7 @@ class ReactAgentDefinitionTest {
     }
 
     @Test
-    void shouldCaptureModelRequestAndResponseTrace() {
-        RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
-                .aiMessage(AiMessage.from("final answer"))
-                .build());
-        TraceStore traceStore = new InMemoryTraceStore();
-        ReactAgentDefinition definition = new ReactAgentDefinition(
-                chatModel,
-                new DefaultTraceCollector(traceStore)
-        );
-
-        definition.decide(context());
-
-        var traces = traceStore.getByTaskId("task-1");
-        assertTrue(traces.stream().anyMatch(trace ->
-                trace.getCategory() == TraceCategory.MODEL_REQUEST
-                        && "react.model.request".equals(trace.getStage())
-                        && trace.getPayload().containsKey("systemPrompt")
-                        && trace.getPayload().containsKey("userPrompt")
-        ));
-        assertTrue(traces.stream().anyMatch(trace ->
-                trace.getCategory() == TraceCategory.MODEL_RESPONSE
-                        && "react.model.response".equals(trace.getStage())
-                        && "final answer".equals(trace.getPayload().get("rawText"))
-        ));
-    }
-
-    @Test
-    void shouldHandleToolCallResponsesWithoutRawTextWhenTracing() {
+    void shouldHandleToolCallResponsesWithoutRawText() {
         ToolExecutionRequest toolRequest = ToolExecutionRequest.builder()
                 .id("tool-2")
                 .name("editDocument")
@@ -204,19 +152,11 @@ class ReactAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from(null, java.util.List.of(toolRequest)))
                 .build());
-        TraceStore traceStore = new InMemoryTraceStore();
-        ReactAgentDefinition definition = new ReactAgentDefinition(
-                chatModel,
-                new DefaultTraceCollector(traceStore)
-        );
+        ReactAgentDefinition definition = new ReactAgentDefinition(chatModel);
 
         Decision decision = assertDoesNotThrow(() -> definition.decide(context()));
 
         assertInstanceOf(Decision.ToolCalls.class, decision);
-        assertTrue(traceStore.getByTaskId("task-1").stream().anyMatch(trace ->
-                trace.getCategory() == TraceCategory.MODEL_RESPONSE
-                        && trace.getPayload().containsKey("rawText")
-        ));
     }
 
     private AgentRunContext context() {

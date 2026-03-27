@@ -10,8 +10,6 @@ import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.react.ReActAgentOrchestrator;
-import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
-import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
 import org.junit.jupiter.api.Test;
@@ -27,8 +25,7 @@ class SingleAgentOrchestratorTest {
     void shouldReturnTaskResultForSingleAgentExecution() {
         ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 new ToolRegistry(),
-                event -> {},
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                event -> {}
         );
         AgentDefinition agent = new StubAgentDefinition();
         ReActAgentOrchestrator orchestrator = new ReActAgentOrchestrator(runtime, agent);

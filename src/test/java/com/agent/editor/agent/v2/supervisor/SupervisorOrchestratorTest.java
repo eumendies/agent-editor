@@ -15,9 +15,7 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
-import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
-import com.agent.editor.agent.v2.trace.TraceCategory;
 import com.agent.editor.agent.v2.trace.TraceStore;
 import com.agent.editor.agent.v2.supervisor.worker.WorkerDefinition;
 import com.agent.editor.agent.v2.supervisor.worker.WorkerRegistry;
@@ -56,8 +54,7 @@ class SupervisorOrchestratorTest {
                 new ScriptedSupervisorAgentDefinition(),
                 workerRegistry,
                 runtime,
-                eventPublisher,
-                new DefaultTraceCollector(traceStore)
+                eventPublisher
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -78,16 +75,7 @@ class SupervisorOrchestratorTest {
         ), runtime.allowedTools());
         assertEquals(EventType.WORKER_SELECTED, eventPublisher.events().get(0).getType());
         assertEquals(EventType.SUPERVISOR_COMPLETED, eventPublisher.events().get(eventPublisher.events().size() - 1).getType());
-        assertTrue(traceStore.getByTaskId("task-1").stream().anyMatch(trace ->
-                trace.getCategory() == TraceCategory.ORCHESTRATION_DECISION
-                        && "supervisor.worker.assigned".equals(trace.getStage())
-                        && "analyzer".equals(trace.getPayload().get("workerId"))
-        ));
-        assertTrue(traceStore.getByTaskId("task-1").stream().anyMatch(trace ->
-                trace.getCategory() == TraceCategory.ORCHESTRATION_DECISION
-                        && "supervisor.completed".equals(trace.getStage())
-                        && "workers done".equals(trace.getPayload().get("summary"))
-        ));
+        assertTrue(traceStore.getByTaskId("task-1").isEmpty());
     }
 
     @Test
@@ -112,8 +100,7 @@ class SupervisorOrchestratorTest {
                 new ScriptedSupervisorAgentDefinition(),
                 workerRegistry,
                 new RecordingExecutionRuntime(),
-                event -> {},
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                event -> {}
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -146,8 +133,7 @@ class SupervisorOrchestratorTest {
                 supervisor,
                 workerRegistry,
                 runtime,
-                event -> {},
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                event -> {}
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -192,8 +178,7 @@ class SupervisorOrchestratorTest {
                 new ScriptedSupervisorAgentDefinition(),
                 workerRegistry,
                 runtime,
-                event -> {},
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                event -> {}
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -241,8 +226,7 @@ class SupervisorOrchestratorTest {
                 new ScriptedSupervisorAgentDefinition(),
                 workerRegistry,
                 runtime,
-                event -> {},
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                event -> {}
         );
 
         orchestrator.execute(new TaskRequest(

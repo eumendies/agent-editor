@@ -7,9 +7,7 @@ import com.agent.editor.agent.v2.core.agent.ToolCall;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.*;
-import com.agent.editor.agent.v2.trace.DefaultTraceCollector;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
-import com.agent.editor.agent.v2.trace.TraceCategory;
 import com.agent.editor.agent.v2.trace.TraceStore;
 import com.agent.editor.agent.v2.tool.ToolContext;
 import com.agent.editor.agent.v2.tool.ToolHandler;
@@ -31,8 +29,7 @@ class ToolLoopExecutionRuntimeTest {
         AgentDefinition agent = new CompletingAgentDefinition();
         ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 new ToolRegistry(),
-                event -> {},
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                event -> {}
         );
         ExecutionRequest request = new ExecutionRequest(
                 "task-1",
@@ -65,8 +62,7 @@ class ToolLoopExecutionRuntimeTest {
         registry.register(new AppendToolHandler());
         ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
-                event -> {},
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                event -> {}
         );
         AgentDefinition agent = new ToolUsingAgentDefinition();
         ExecutionRequest request = new ExecutionRequest(
@@ -90,8 +86,7 @@ class ToolLoopExecutionRuntimeTest {
         registry.register(new AppendToolHandler());
         ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
-                event -> {},
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                event -> {}
         );
         ExecutionRequest request = new ExecutionRequest(
                 "task-3",
@@ -116,8 +111,7 @@ class ToolLoopExecutionRuntimeTest {
         registry.register(new AppendToolHandler());
         ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
-                event -> {},
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                event -> {}
         );
         ExecutionRequest request = new ExecutionRequest(
                 "task-4",
@@ -135,14 +129,13 @@ class ToolLoopExecutionRuntimeTest {
     }
 
     @Test
-    void shouldCaptureRuntimeTraceForStateAndToolExecution() {
+    void shouldNotCaptureRuntimeTraceForStateAndToolExecution() {
         ToolRegistry registry = new ToolRegistry();
         registry.register(new AppendToolHandler());
         TraceStore traceStore = new InMemoryTraceStore();
         ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
-                event -> {},
-                new DefaultTraceCollector(traceStore)
+                event -> {}
         );
         ExecutionRequest request = new ExecutionRequest(
                 "task-5",
@@ -155,19 +148,7 @@ class ToolLoopExecutionRuntimeTest {
 
         runtime.run(new ToolUsingAgentDefinition(), request);
 
-        var traces = traceStore.getByTaskId("task-5");
-        assertTrue(traces.stream().anyMatch(trace -> trace.getCategory() == TraceCategory.STATE_SNAPSHOT));
-        assertTrue(traces.stream().anyMatch(trace ->
-                trace.getCategory() == TraceCategory.TOOL_INVOCATION
-                        && "appendText".equals(trace.getPayload().get("toolName"))
-                        && "{\"suffix\":\" world\"}".equals(trace.getPayload().get("arguments"))
-        ));
-        assertTrue(traces.stream().anyMatch(trace ->
-                trace.getCategory() == TraceCategory.TOOL_RESULT
-                        && "appendText".equals(trace.getPayload().get("toolName"))
-                        && "hello world".equals(trace.getPayload().get("message"))
-                        && "body world".equals(trace.getPayload().get("updatedContent"))
-        ));
+        assertTrue(traceStore.getByTaskId("task-5").isEmpty());
     }
 
     @Test
@@ -175,8 +156,7 @@ class ToolLoopExecutionRuntimeTest {
         ToolRegistry registry = new ToolRegistry();
         ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
-                event -> {},
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                event -> {}
         );
         RecordingStateAgentDefinition agent = new RecordingStateAgentDefinition();
         ExecutionRequest request = new ExecutionRequest(
@@ -204,8 +184,7 @@ class ToolLoopExecutionRuntimeTest {
         registry.register(new AppendToolHandler());
         ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 registry,
-                event -> {},
-                new DefaultTraceCollector(new InMemoryTraceStore())
+                event -> {}
         );
         ExecutionRequest request = new ExecutionRequest(
                 "task-7",
