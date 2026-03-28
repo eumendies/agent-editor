@@ -114,7 +114,8 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
         }
 
         ArrayList<ChatMessage> messages = new ArrayList<>(transcriptMemory.getMessages());
-        messages.add(new ChatMessage.UserChatMessage("Plan step %d: %s".formatted(step.getOrder(), step.getInstruction())));
+        // runtime中会负责将当前plan添加到memory里
+        // messages.add(new ChatMessage.UserChatMessage("Plan step %d: %s".formatted(step.getOrder(), step.getInstruction())));
         return new AgentRunContext(
                 state.getRequest(),
                 state.getIteration(),
