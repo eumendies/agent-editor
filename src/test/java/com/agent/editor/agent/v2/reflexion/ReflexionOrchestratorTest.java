@@ -2,7 +2,7 @@ package com.agent.editor.agent.v2.reflexion;
 
 import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
-import com.agent.editor.agent.v2.core.agent.Decision;
+import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
@@ -180,7 +180,7 @@ class ReflexionOrchestratorTest {
         }
 
         @Override
-        public Decision decide(AgentRunContext context) {
+        public ToolLoopDecision decide(AgentRunContext context) {
             ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) context.state().getMemory();
             long critiqueCount = transcriptMemory.getMessages().stream()
                     .filter(ChatMessage.UserChatMessage.class::isInstance)
@@ -188,7 +188,7 @@ class ReflexionOrchestratorTest {
                     .filter(message -> message.getText().startsWith("Reflection critique"))
                     .count();
             long round = critiqueCount + 1;
-            return new Decision.Complete(context.state().getCurrentContent() + " -> actor-pass-" + round, "actor done");
+            return new ToolLoopDecision.Complete(context.state().getCurrentContent() + " -> actor-pass-" + round, "actor done");
         }
     }
 
@@ -204,7 +204,7 @@ class ReflexionOrchestratorTest {
             if (definition instanceof ReflexionCritic criticDefinition) {
                 criticStates.add(initialState);
                 criticAllowedTools.add(request.getAllowedTools());
-                Decision.Complete complete = (Decision.Complete) criticDefinition.decide(
+                ToolLoopDecision.Complete complete = (ToolLoopDecision.Complete) criticDefinition.decide(
                         initialState.withRequest(request).withToolSpecifications(List.of())
                 );
                 return new ExecutionResult(complete.getResult(), initialState.getCurrentContent(), initialState.markCompleted());
@@ -212,7 +212,7 @@ class ReflexionOrchestratorTest {
 
             actorStates.add(initialState);
             actorAllowedTools.add(request.getAllowedTools());
-            Decision.Complete complete = (Decision.Complete) definition.decide(
+            ToolLoopDecision.Complete complete = (ToolLoopDecision.Complete) definition.decide(
                     initialState.withRequest(request).withToolSpecifications(List.of())
             );
             return new ExecutionResult(

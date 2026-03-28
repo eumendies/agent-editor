@@ -1,8 +1,10 @@
 package com.agent.editor.agent.v2.core.runtime;
 
 import com.agent.editor.agent.v2.core.agent.Agent;
-import com.agent.editor.agent.v2.core.agent.Decision;
+import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
+import com.agent.editor.agent.v2.core.agent.ToolLoopAgent;
+import com.agent.editor.agent.v2.core.exception.InCorrectAgentException;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
@@ -33,12 +35,22 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
     }
 
     @Override
-    public ExecutionResult run(Agent definition, ExecutionRequest request) {
-        return run(definition, request, new AgentRunContext(0, request.getDocument().getContent()).withRequest(request));
+    public ExecutionResult run(Agent agent, ExecutionRequest request) throws InCorrectAgentException {
+        if (!(agent instanceof ToolLoopAgent)) {
+            throw new InCorrectAgentException("ToolLoopExecutionRuntime require ToolLoopAgent type");
+        }
+        return runInternal((ToolLoopAgent) agent, request, new AgentRunContext(0, request.getDocument().getContent()).withRequest(request));
     }
 
     @Override
-    public ExecutionResult run(Agent definition, ExecutionRequest request, AgentRunContext initialContext) {
+    public ExecutionResult run(Agent agent, ExecutionRequest request, AgentRunContext initialContext) throws InCorrectAgentException {
+        if (!(agent instanceof ToolLoopAgent)) {
+            throw new InCorrectAgentException("ToolLoopExecutionRuntime require ToolLoopAgent type");
+        }
+        return runInternal((ToolLoopAgent) agent, request, initialContext);
+    }
+
+    public ExecutionResult runInternal(ToolLoopAgent agent, ExecutionRequest request, AgentRunContext initialContext) {
         eventPublisher.publish(new ExecutionEvent(EventType.TASK_STARTED, request.getTaskId(), "execution started"));
 
         // runtime 维护“本轮文档内容 + 工具结果历史”，每次决策都基于最新状态继续推进。
@@ -50,22 +62,20 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
             eventPublisher.publish(new ExecutionEvent(EventType.ITERATION_STARTED, request.getTaskId(), "iteration " + state.getIteration()));
 
             // worker 运行时只暴露被允许的工具列表，避免异构 worker 越权调用别的能力。
-            Decision decision = definition.decide(state);
+            ToolLoopDecision toolLoopDecision = agent.decide(state);
 
-            if (decision instanceof Decision.Complete complete) {
+            if (toolLoopDecision instanceof ToolLoopDecision.Complete complete) {
                 // Complete 表示 agent 明确结束，本轮状态里的 currentContent 就是最终文档内容。
-                eventPublisher.publish(new ExecutionEvent(EventType.TASK_COMPLETED, request.getTaskId(), complete.getResult()));
+                eventPublisher.publish(new ExecutionEvent(EventType.TASK_COMPLETED, request.getTaskId(), complete.getResult().toString()));
                 AgentRunContext completedState = state
-                        .appendMemory(new ChatMessage.AiChatMessage(complete.getResult()))
+                        .appendMemory(new ChatMessage.AiChatMessage(complete.getResult().toString()))
                         .markCompleted();
-                return new ExecutionResult(complete.getResult(), state.getCurrentContent(), completedState);
+                return new ExecutionResult(complete.getResult(), complete.getResult().toString(), state.getCurrentContent(), completedState);
             }
 
-            if (decision instanceof Decision.ToolCalls toolCalls) {
+            if (toolLoopDecision instanceof ToolLoopDecision.ToolCalls toolCalls) {
                 // ToolCalls 不会直接结束任务，runtime 会先执行工具，再把结果折回下一轮上下文。
                 ToolExecutionOutcome outcome = executeTools(
-                        request,
-                        state.getIteration(),
                         request.getTaskId(),
                         state.getCurrentContent(),
                         toolCalls.getCalls(),
@@ -77,27 +87,25 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
                 continue;
             }
 
-            if (decision instanceof Decision.Respond respond) {
+            if (toolLoopDecision instanceof ToolLoopDecision.Respond respond) {
                 // Respond 用在“不再调用工具，但也不需要额外完成语义”的轻量收口场景。
                 eventPublisher.publish(new ExecutionEvent(EventType.TASK_COMPLETED, request.getTaskId(), respond.getMessage()));
                 AgentRunContext completedState = state
                         .appendMemory(new ChatMessage.AiChatMessage(respond.getMessage()))
                         .markCompleted();
-                return new ExecutionResult(respond.getMessage(), state.getCurrentContent(), completedState);
+                return new ExecutionResult(null, respond.getMessage(), state.getCurrentContent(), completedState);
             }
 
-            throw new IllegalStateException("Unsupported decision type: " + decision.getClass().getSimpleName());
+            throw new IllegalStateException("Unsupported decision type: " + toolLoopDecision.getClass().getSimpleName());
         }
 
         throw new IllegalStateException("Execution terminated without completion");
     }
 
-    private ToolExecutionOutcome executeTools(ExecutionRequest request,
-                                             int iteration,
-                                             String taskId,
-                                             String currentContent,
-                                             List<ToolCall> calls,
-                                             List<String> allowedTools) {
+    private ToolExecutionOutcome executeTools(String taskId,
+                                              String currentContent,
+                                              List<ToolCall> calls,
+                                              List<String> allowedTools) {
         List<ToolExecutionRecord> executions = new ArrayList<>();
         String updatedContent = currentContent;
         for (ToolCall call : calls) {
@@ -137,7 +145,7 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
         private final ToolResult result;
     }
 
-    private List<ChatMessage> buildToolInteractionMessages(Decision.ToolCalls toolCalls, ToolExecutionOutcome outcome) {
+    private List<ChatMessage> buildToolInteractionMessages(ToolLoopDecision.ToolCalls toolCalls, ToolExecutionOutcome outcome) {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new ChatMessage.AiToolCallChatMessage(toolCalls.getReasoning(), toolCalls.getCalls()));
         messages.addAll(outcome.getExecutions().stream()

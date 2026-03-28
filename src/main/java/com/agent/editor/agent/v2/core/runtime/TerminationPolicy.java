@@ -1,7 +1,7 @@
 package com.agent.editor.agent.v2.core.runtime;
 
-import com.agent.editor.agent.v2.core.agent.Decision;
+import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 
 public interface TerminationPolicy {
-    boolean shouldTerminate(Decision decision, ExecutionStateSnapshot snapshot);
+    boolean shouldTerminate(ToolLoopDecision toolLoopDecision, ExecutionStateSnapshot snapshot);
 }

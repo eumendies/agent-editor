@@ -35,11 +35,11 @@ class DecisionTest {
     @Test
     void shouldExposeToolCallDecisionData() {
         ToolCall call = new ToolCall("editDocument", "{\"content\":\"hi\"}");
-        Decision.ToolCalls decision = new Decision.ToolCalls(List.of(call), "need to edit");
+        Decision.ToolCalls toolLoopDecision = new Decision.ToolCalls(List.of(call), "need to edit");
 
-        assertEquals(1, decision.calls().size());
-        assertEquals("editDocument", decision.calls().get(0).name());
-        assertEquals("need to edit", decision.reasoning());
+        assertEquals(1, toolLoopDecision.calls().size());
+        assertEquals("editDocument", toolLoopDecision.calls().get(0).name());
+        assertEquals("need to edit", toolLoopDecision.reasoning());
     }
 }
 ```
@@ -436,11 +436,11 @@ public class DefaultExecutionRuntime implements ExecutionRuntime {
 
     @Override
     public ExecutionResult run(AgentDefinition definition, ExecutionRequest request) {
-        Decision decision = definition.decide(null);
-        if (decision instanceof Decision.Complete complete) {
+        Decision toolLoopDecision = definition.decide(null);
+        if (toolLoopDecision instanceof Decision.Complete complete) {
             return new ExecutionResult(complete.result());
         }
-        throw new IllegalStateException("Unsupported decision");
+        throw new IllegalStateException("Unsupported toolLoopDecision");
     }
 }
 ```

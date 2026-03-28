@@ -77,7 +77,7 @@ src/main/java/com/agent/editor/
 
 ### REACT
 
-单 agent 直接运行。`ExecutionRuntime` 驱动 `decision -> tool call -> next decision` 循环，适合直接编辑、小任务和工具驱动场景。
+单 agent 直接运行。`ExecutionRuntime` 驱动 `toolLoopDecision -> tool call -> next toolLoopDecision` 循环，适合直接编辑、小任务和工具驱动场景。
 
 ### PLANNING
 

@@ -1,9 +1,7 @@
 package com.agent.editor.agent.v2.react;
 
-import com.agent.editor.agent.v2.core.agent.Agent;
-import com.agent.editor.agent.v2.core.agent.AgentType;
-import com.agent.editor.agent.v2.core.agent.Decision;
-import com.agent.editor.agent.v2.core.agent.ToolCall;
+import com.agent.editor.agent.v2.core.agent.*;
+import com.agent.editor.agent.v2.core.exception.NullChatModelException;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
@@ -17,7 +15,7 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ReactAgent implements Agent {
+public class ReactAgent implements ToolLoopAgent {
 
     private final ChatModel chatModel;
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
@@ -38,24 +36,23 @@ public class ReactAgent implements Agent {
     }
 
     @Override
-    public Decision decide(AgentRunContext context) {
+    public ToolLoopDecision decide(AgentRunContext context) throws NullChatModelException {
         if (chatModel == null) {
-            return new Decision.Complete("placeholder", "react stub");
+            throw new NullChatModelException("ChatModel of ReactAgent is not provided");
         }
 
         // ReAct 在 v2 里仍然是“单轮决策器”，真正的循环由 runtime 负责。
         String systemPrompt = buildSystemPrompt();
-        String userPrompt = buildUserPrompt(context);
 
         ChatResponse response = chatModel.chat(ChatRequest.builder()
-                .messages(buildMessages(context, systemPrompt, userPrompt))
+                .messages(buildMessages(context, systemPrompt))
                 .toolSpecifications(context.getToolSpecifications())
                 .build());
 
         AiMessage aiMessage = response.aiMessage();
         if (aiMessage.hasToolExecutionRequests()) {
             // 这里不直接执行工具，只把调用意图翻译成统一 Decision，由 runtime 接管后续步骤。
-            return new Decision.ToolCalls(
+            return new ToolLoopDecision.ToolCalls(
                     aiMessage.toolExecutionRequests().stream()
                             .map(this::toToolCall)
                             .toList(),
@@ -63,7 +60,7 @@ public class ReactAgent implements Agent {
             );
         }
 
-        return new Decision.Complete(aiMessage.text(), aiMessage.text());
+        return new ToolLoopDecision.Complete<String>(aiMessage.text(), aiMessage.text());
     }
 
     private String buildSystemPrompt() {
@@ -82,28 +79,12 @@ public class ReactAgent implements Agent {
                 """;
     }
 
-    private String buildUserPrompt(AgentRunContext context) {
-        // prompt 总是优先使用当前执行态里的文档内容，而不是请求初始快照。
-        String currentContent = context.state().getCurrentContent() != null
-                ? context.state().getCurrentContent()
-                : context.getRequest().getDocument().getContent();
-        return """
-                Document:
-                %s
-
-                Instruction:
-                %s
-                """.formatted(
-                currentContent,
-                context.getRequest().getInstruction()
-        );
-    }
-
-    private List<ChatMessage> buildMessages(AgentRunContext context, String systemPrompt, String userPrompt) {
+    private List<ChatMessage> buildMessages(AgentRunContext context, String systemPrompt) {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt));
+
+        // UserMessage保存在AgentRunContext的memory里
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().getMemory()));
-        // messages.add(UserMessage.from(userPrompt));
         return messages;
     }
 

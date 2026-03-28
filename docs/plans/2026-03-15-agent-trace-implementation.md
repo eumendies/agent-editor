@@ -143,7 +143,7 @@ Capture:
 - prompt payload before `chatModel.chat(...)`
 - raw AI output and tool calls after response
 
-Do not change existing decision semantics while adding trace.
+Do not change existing toolLoopDecision semantics while adding trace.
 
 **Step 4: Run test to verify it passes**
 

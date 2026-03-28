@@ -1,7 +1,7 @@
 package com.agent.editor.agent.v2.supervisor.worker;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
-import com.agent.editor.agent.v2.core.agent.Decision;
+import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
@@ -65,11 +65,11 @@ class ResearcherAgentTest {
                 .build());
         ResearcherAgent definition = new ResearcherAgent(chatModel);
 
-        Decision decision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
+        ToolLoopDecision toolLoopDecision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("ground this answer")
         ))));
 
-        Decision.ToolCalls toolCalls = assertInstanceOf(Decision.ToolCalls.class, decision);
+        ToolLoopDecision.ToolCalls toolCalls = assertInstanceOf(ToolLoopDecision.ToolCalls.class, toolLoopDecision);
         assertEquals(1, toolCalls.getCalls().size());
         assertEquals("retrieveKnowledge", toolCalls.getCalls().get(0).getName());
     }
@@ -83,7 +83,7 @@ class ResearcherAgentTest {
                 .build());
         ResearcherAgent definition = new ResearcherAgent(chatModel);
 
-        Decision decision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
+        ToolLoopDecision toolLoopDecision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("initial grounding request"),
                 new ChatMessage.ToolExecutionResultChatMessage(
                         "tool-1",
@@ -95,7 +95,7 @@ class ResearcherAgentTest {
                 new ChatMessage.UserChatMessage("ground this answer")
         ))));
 
-        assertInstanceOf(Decision.Complete.class, decision);
+        assertInstanceOf(ToolLoopDecision.Complete.class, toolLoopDecision);
         assertEquals(5, chatModel.lastRequest.messages().size());
         assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
         UserMessage firstUserMessage = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));

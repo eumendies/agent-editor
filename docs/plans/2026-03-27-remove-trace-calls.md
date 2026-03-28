@@ -55,7 +55,7 @@ Expected: PASS
 
 **Step 2: Update tests to construct these definitions without trace dependencies.**
 
-**Step 3: Keep behavior coverage focused on prompts, tool-call parsing, and decision outputs.**
+**Step 3: Keep behavior coverage focused on prompts, tool-call parsing, and toolLoopDecision outputs.**
 
 **Step 4: Run targeted tests.**
 

@@ -1,7 +1,8 @@
 package com.agent.editor.agent.v2.planning;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
-import com.agent.editor.agent.v2.core.agent.Decision;
+import com.agent.editor.agent.v2.core.agent.ToolLoopAgent;
+import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
@@ -11,7 +12,7 @@ import java.util.List;
 /**
  * Planning agent 只负责把原始任务拆成结构化步骤，不直接执行工具。
  */
-public class PlanningAgent implements Agent {
+public class PlanningAgent implements ToolLoopAgent {
 
     private final PlanningAiService planningAiService;
 
@@ -25,14 +26,14 @@ public class PlanningAgent implements Agent {
     }
 
     @Override
-    public Decision decide(AgentRunContext context) {
+    public ToolLoopDecision decide(AgentRunContext context) {
         // 兼容统一 runtime：当 planner 被当作普通 agent 运行时，返回可展示的计划文本。
         PlanResult plan = createPlan(context.getRequest().getDocument(), context.getRequest().getInstruction());
         String result = plan.getSteps().stream()
                 .map(step -> step.getOrder() + ". " + step.getInstruction())
                 .reduce((left, right) -> left + "\n" + right)
                 .orElse(context.getRequest().getInstruction());
-        return new Decision.Complete(result, "planning complete");
+        return new ToolLoopDecision.Complete(result, "planning complete");
     }
 
     public PlanResult createPlan(DocumentSnapshot document, String instruction) {

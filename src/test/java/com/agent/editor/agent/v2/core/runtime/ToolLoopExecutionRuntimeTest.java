@@ -1,9 +1,6 @@
 package com.agent.editor.agent.v2.core.runtime;
 
-import com.agent.editor.agent.v2.core.agent.Agent;
-import com.agent.editor.agent.v2.core.agent.AgentType;
-import com.agent.editor.agent.v2.core.agent.Decision;
-import com.agent.editor.agent.v2.core.agent.ToolCall;
+import com.agent.editor.agent.v2.core.agent.*;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.*;
@@ -240,7 +237,7 @@ class ToolLoopExecutionRuntimeTest {
         ));
     }
 
-    private static final class CompletingAgent implements Agent {
+    private static final class CompletingAgent implements ToolLoopAgent {
 
         @Override
         public AgentType type() {
@@ -248,12 +245,12 @@ class ToolLoopExecutionRuntimeTest {
         }
 
         @Override
-        public Decision decide(AgentRunContext context) {
-            return new Decision.Complete("done", "complete immediately");
+        public ToolLoopDecision decide(AgentRunContext context) {
+            return new ToolLoopDecision.Complete("done", "complete immediately");
         }
     }
 
-    private static final class ToolUsingAgent implements Agent {
+    private static final class ToolUsingAgent implements ToolLoopAgent {
 
         @Override
         public AgentType type() {
@@ -261,11 +258,11 @@ class ToolLoopExecutionRuntimeTest {
         }
 
         @Override
-        public Decision decide(AgentRunContext context) {
+        public ToolLoopDecision decide(AgentRunContext context) {
             if (toolResultCount(context) == 0) {
-                return new Decision.ToolCalls(List.of(new ToolCall("appendText", "{\"suffix\":\" world\"}")), "need tool");
+                return new ToolLoopDecision.ToolCalls(List.of(new ToolCall("appendText", "{\"suffix\":\" world\"}")), "need tool");
             }
-            return new Decision.Complete("updated", "tool finished");
+            return new ToolLoopDecision.Complete("updated", "tool finished");
         }
     }
 
@@ -294,7 +291,7 @@ class ToolLoopExecutionRuntimeTest {
         }
     }
 
-    private static final class MultiStepToolAgent implements Agent {
+    private static final class MultiStepToolAgent implements ToolLoopAgent {
 
         @Override
         public AgentType type() {
@@ -302,15 +299,15 @@ class ToolLoopExecutionRuntimeTest {
         }
 
         @Override
-        public Decision decide(AgentRunContext context) {
+        public ToolLoopDecision decide(AgentRunContext context) {
             if (toolResultCount(context) < 2) {
-                return new Decision.ToolCalls(List.of(new ToolCall("appendText", "{\"suffix\":\" world\"}")), "need another tool run");
+                return new ToolLoopDecision.ToolCalls(List.of(new ToolCall("appendText", "{\"suffix\":\" world\"}")), "need another tool run");
             }
-            return new Decision.Complete("used two tools", "tool history available");
+            return new ToolLoopDecision.Complete("used two tools", "tool history available");
         }
     }
 
-    private static final class RecordingStateAgent implements Agent {
+    private static final class RecordingStateAgent implements ToolLoopAgent {
 
         private int seenIteration;
         private String seenContent;
@@ -321,10 +318,10 @@ class ToolLoopExecutionRuntimeTest {
         }
 
         @Override
-        public Decision decide(AgentRunContext context) {
+        public ToolLoopDecision decide(AgentRunContext context) {
             seenIteration = context.state().getIteration();
             seenContent = context.state().getCurrentContent();
-            return new Decision.Complete("resumed", "resumed execution");
+            return new ToolLoopDecision.Complete("resumed", "resumed execution");
         }
     }
 

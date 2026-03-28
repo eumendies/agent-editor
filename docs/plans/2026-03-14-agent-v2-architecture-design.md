@@ -15,7 +15,7 @@ Introduce a new `com.agent.editor.agent.v2` package that replaces the current in
 The current `agent` package is too coupled to evolve safely:
 
 - `BaseAgent` is named as an abstraction but implements a concrete ReAct loop
-- `ReActAgent` is forced into hook methods instead of owning its own decision model
+- `ReActAgent` is forced into hook methods instead of owning its own toolLoopDecision model
 - `AgentFactory` claims multiple modes while always returning `ReActAgent`
 - `AgentState` mixes task record, runtime state, document mutation state, and API-facing data
 - `EditorAgentTools` mixes tool definitions, state mutation, transport side effects, and execution
@@ -48,7 +48,7 @@ That loop is suitable for one style of ReAct runtime, but not for:
 
 Current hook methods such as `buildSystemPrompt()`, `parseResponse()`, and `extractContent()` abstract presentation details rather than control behavior. The actual variation points should be:
 
-- how an agent makes a decision
+- how an agent makes a toolLoopDecision
 - what tools the agent can use
 - how a run terminates
 - which events are emitted
@@ -145,7 +145,7 @@ The runtime algorithm becomes:
 1. create execution state
 2. build context
 3. ask `AgentDefinition` for a `Decision`
-4. if decision is `ToolCalls`, execute through tool runtime
+4. if toolLoopDecision is `ToolCalls`, execute through tool runtime
 5. append events and memory
 6. stop when termination policy is met
 7. return structured result
@@ -372,7 +372,7 @@ Mitigation:
 Mitigation:
 
 - isolate LangChain4j integration to memory/model adapters and ReAct/Planning definitions
-- use v2-owned decision, tool, event, and state models elsewhere
+- use v2-owned toolLoopDecision, tool, event, and state models elsewhere
 
 ### 3. Frontend breakage during event model transition
 

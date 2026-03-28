@@ -2,7 +2,8 @@ package com.agent.editor.agent.v2.reflexion;
 
 import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
-import com.agent.editor.agent.v2.core.agent.Decision;
+import com.agent.editor.agent.v2.core.agent.ToolLoopAgent;
+import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -24,7 +25,7 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ReflexionCritic implements Agent {
+public class ReflexionCritic implements ToolLoopAgent {
 
     private static final JsonSchema REFLEXION_CRITIQUE_SCHEMA = JsonSchema.builder()
             .name("reflexion_critique")
@@ -62,10 +63,10 @@ public class ReflexionCritic implements Agent {
     }
 
     @Override
-    public Decision decide(AgentRunContext context) {
+    public ToolLoopDecision decide(AgentRunContext context) {
         if (chatModel == null) {
             // 测试或降级场景下允许 critic 缺席，但仍返回一个结构合法的 revise 结果。
-            return new Decision.Complete("""
+            return new ToolLoopDecision.Complete("""
                     {"verdict":"REVISE","feedback":"Critic model unavailable","reasoning":"fallback"}
                     """.trim(), "critic stub");
         }
@@ -84,7 +85,7 @@ public class ReflexionCritic implements Agent {
 
         AiMessage aiMessage = response.aiMessage();
         if (aiMessage.hasToolExecutionRequests()) {
-            return new Decision.ToolCalls(
+            return new ToolLoopDecision.ToolCalls(
                     aiMessage.toolExecutionRequests().stream()
                             .map(request -> new com.agent.editor.agent.v2.core.agent.ToolCall(
                                     request.id(),
@@ -96,7 +97,7 @@ public class ReflexionCritic implements Agent {
             );
         }
 
-        return new Decision.Complete(aiMessage.text(), "critic complete");
+        return new ToolLoopDecision.Complete(aiMessage.text(), "critic complete");
     }
 
     public ReflexionCritique parseCritique(String rawText) {

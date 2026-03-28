@@ -1,7 +1,7 @@
 package com.agent.editor.agent.v2.supervisor.worker;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
-import com.agent.editor.agent.v2.core.agent.Decision;
+import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
@@ -62,9 +62,9 @@ class GroundedWriterAgentTest {
                 .build());
         GroundedWriterAgent definition = new GroundedWriterAgent(chatModel);
 
-        Decision decision = definition.decide(context(List.of(editDocumentTool())));
+        ToolLoopDecision toolLoopDecision = definition.decide(context(List.of(editDocumentTool())));
 
-        Decision.ToolCalls toolCalls = assertInstanceOf(Decision.ToolCalls.class, decision);
+        ToolLoopDecision.ToolCalls toolCalls = assertInstanceOf(ToolLoopDecision.ToolCalls.class, toolLoopDecision);
         assertEquals("editDocument", toolCalls.getCalls().get(0).getName());
     }
 

@@ -2,7 +2,7 @@ package com.agent.editor.agent.v2.task;
 
 import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
-import com.agent.editor.agent.v2.core.agent.Decision;
+import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.runtime.ToolLoopExecutionRuntime;
@@ -60,8 +60,8 @@ class SingleAgentOrchestratorTest {
         }
 
         @Override
-        public Decision decide(AgentRunContext context) {
-            return new Decision.Complete("done", "complete immediately");
+        public ToolLoopDecision decide(AgentRunContext context) {
+            return new ToolLoopDecision.Complete("done", "complete immediately");
         }
     }
 }

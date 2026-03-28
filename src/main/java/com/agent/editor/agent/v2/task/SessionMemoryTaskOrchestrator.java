@@ -3,6 +3,9 @@ package com.agent.editor.agent.v2.task;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.memory.SessionMemoryStore;
 
+/**
+ * 保存对话记忆的任务编排器
+ */
 public class SessionMemoryTaskOrchestrator implements TaskOrchestrator {
 
     private final TaskOrchestrator delegate;

@@ -1,7 +1,7 @@
 package com.agent.editor.agent.v2.react;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
-import com.agent.editor.agent.v2.core.agent.Decision;
+import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
@@ -40,9 +40,9 @@ class ReactAgentTest {
                 .build());
         ReactAgent definition = new ReactAgent(chatModel);
 
-        Decision decision = definition.decide(context());
+        ToolLoopDecision toolLoopDecision = definition.decide(context());
 
-        Decision.Complete complete = assertInstanceOf(Decision.Complete.class, decision);
+        ToolLoopDecision.Complete complete = assertInstanceOf(ToolLoopDecision.Complete.class, toolLoopDecision);
         assertEquals("final answer", complete.getResult());
         assertNotNull(chatModel.lastRequest);
         assertEquals(2, chatModel.lastRequest.messages().size());
@@ -64,9 +64,9 @@ class ReactAgentTest {
                 .build());
         ReactAgent definition = new ReactAgent(chatModel);
 
-        Decision decision = definition.decide(context());
+        ToolLoopDecision toolLoopDecision = definition.decide(context());
 
-        Decision.ToolCalls toolCalls = assertInstanceOf(Decision.ToolCalls.class, decision);
+        ToolLoopDecision.ToolCalls toolCalls = assertInstanceOf(ToolLoopDecision.ToolCalls.class, toolLoopDecision);
         assertEquals(1, toolCalls.getCalls().size());
         assertEquals("editDocument", toolCalls.getCalls().get(0).getName());
         assertEquals("{\"content\":\"new body\"}", toolCalls.getCalls().get(0).getArguments());
@@ -98,7 +98,7 @@ class ReactAgentTest {
                 .build());
         ReactAgent definition = new ReactAgent(chatModel);
 
-        Decision decision = definition.decide(new AgentRunContext(
+        ToolLoopDecision toolLoopDecision = definition.decide(new AgentRunContext(
                 new ExecutionRequest(
                         "task-2",
                         "session-1",
@@ -125,7 +125,7 @@ class ReactAgentTest {
                 java.util.List.of()
         ));
 
-        Decision.Complete complete = assertInstanceOf(Decision.Complete.class, decision);
+        ToolLoopDecision.Complete complete = assertInstanceOf(ToolLoopDecision.Complete.class, toolLoopDecision);
         assertEquals("final answer", complete.getResult());
         assertEquals(5, chatModel.lastRequest.messages().size());
         UserMessage transcriptStep = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
@@ -154,9 +154,9 @@ class ReactAgentTest {
                 .build());
         ReactAgent definition = new ReactAgent(chatModel);
 
-        Decision decision = assertDoesNotThrow(() -> definition.decide(context()));
+        ToolLoopDecision toolLoopDecision = assertDoesNotThrow(() -> definition.decide(context()));
 
-        assertInstanceOf(Decision.ToolCalls.class, decision);
+        assertInstanceOf(ToolLoopDecision.ToolCalls.class, toolLoopDecision);
     }
 
     private AgentRunContext context() {

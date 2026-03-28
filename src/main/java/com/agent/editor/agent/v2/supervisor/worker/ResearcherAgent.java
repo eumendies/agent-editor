@@ -1,9 +1,6 @@
 package com.agent.editor.agent.v2.supervisor.worker;
 
-import com.agent.editor.agent.v2.core.agent.Agent;
-import com.agent.editor.agent.v2.core.agent.AgentType;
-import com.agent.editor.agent.v2.core.agent.Decision;
-import com.agent.editor.agent.v2.core.agent.ToolCall;
+import com.agent.editor.agent.v2.core.agent.*;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
@@ -17,7 +14,7 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ResearcherAgent implements Agent {
+public class ResearcherAgent implements ToolLoopAgent {
 
     private final ChatModel chatModel;
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
@@ -38,9 +35,9 @@ public class ResearcherAgent implements Agent {
     }
 
     @Override
-    public Decision decide(AgentRunContext context) {
+    public ToolLoopDecision decide(AgentRunContext context) {
         if (chatModel == null) {
-            return new Decision.Complete("{}", "researcher stub");
+            return new ToolLoopDecision.Complete("{}", "researcher stub");
         }
 
         String systemPrompt = buildSystemPrompt();
@@ -52,7 +49,7 @@ public class ResearcherAgent implements Agent {
 
         AiMessage aiMessage = response.aiMessage();
         if (aiMessage.hasToolExecutionRequests()) {
-            return new Decision.ToolCalls(
+            return new ToolLoopDecision.ToolCalls(
                     aiMessage.toolExecutionRequests().stream()
                             .map(this::toToolCall)
                             .toList(),
@@ -60,7 +57,7 @@ public class ResearcherAgent implements Agent {
             );
         }
 
-        return new Decision.Complete(aiMessage.text(), aiMessage.text());
+        return new ToolLoopDecision.Complete(aiMessage.text(), aiMessage.text());
     }
 
     private String buildSystemPrompt() {

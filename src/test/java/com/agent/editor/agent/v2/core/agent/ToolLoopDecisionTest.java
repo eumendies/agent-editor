@@ -9,12 +9,12 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-class DecisionTest {
+class ToolLoopDecisionTest {
 
     @Test
     void shouldExposeToolCallDecisionData() {
         ToolCall call = new ToolCall("editDocument", "{\"content\":\"hi\"}");
-        Decision.ToolCalls decision = new Decision.ToolCalls(List.of(call), "need to edit");
+        ToolLoopDecision.ToolCalls decision = new ToolLoopDecision.ToolCalls(List.of(call), "need to edit");
 
         assertEquals(1, decision.getCalls().size());
         assertNotNull(decision.getCalls().get(0).getId());

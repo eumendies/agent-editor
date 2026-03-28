@@ -92,7 +92,7 @@ Run the same command and confirm the failure is due to missing production classe
 
 ```bash
 git add src/test/java/com/agent/editor/agent/v2/supervisor/HybridSupervisorAgentDefinitionTest.java
-git commit -m "test: define hybrid supervisor decision behavior"
+git commit -m "test: define hybrid supervisor toolLoopDecision behavior"
 ```
 
 ### Task 3: Implement Minimal Hybrid Supervisor Decision Logic
@@ -121,7 +121,7 @@ Implement `HybridSupervisorAgentDefinition` with:
 - constructor injection for `ChatModel`
 - rule-based candidate filtering from `instruction`, `availableWorkers`, and `workerResults`
 - a structured supervisor prompt
-- JSON parsing into an internal decision object
+- JSON parsing into an internal toolLoopDecision object
 - conversion to existing `SupervisorDecision`
 - one-step rule fallback when the model output is invalid
 
@@ -138,7 +138,7 @@ Run the same command and expect PASS.
 
 ```bash
 git add src/main/java/com/agent/editor/agent/v2/supervisor/HybridSupervisorAgentDefinition.java src/test/java/com/agent/editor/agent/v2/supervisor/HybridSupervisorAgentDefinitionTest.java
-git commit -m "feat: add hybrid supervisor decision logic"
+git commit -m "feat: add hybrid supervisor toolLoopDecision logic"
 ```
 
 ### Task 4: Add Loop Guard Tests

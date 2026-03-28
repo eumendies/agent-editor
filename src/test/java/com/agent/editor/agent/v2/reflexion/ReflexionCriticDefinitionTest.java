@@ -1,7 +1,7 @@
 package com.agent.editor.agent.v2.reflexion;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
-import com.agent.editor.agent.v2.core.agent.Decision;
+import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
@@ -34,9 +34,9 @@ class ReflexionCriticDefinitionTest {
                         """)
         );
 
-        Decision decision = definition.decide(context());
+        ToolLoopDecision toolLoopDecision = definition.decide(context());
 
-        Decision.Complete complete = assertInstanceOf(Decision.Complete.class, decision);
+        ToolLoopDecision.Complete complete = assertInstanceOf(ToolLoopDecision.Complete.class, toolLoopDecision);
         ReflexionCritique critique = definition.parseCritique(complete.getResult());
         assertEquals(ReflexionVerdict.PASS, critique.getVerdict());
         assertEquals("Looks good", critique.getFeedback());
@@ -51,7 +51,7 @@ class ReflexionCriticDefinitionTest {
         );
 
         ReflexionCritique critique = definition.parseCritique(assertInstanceOf(
-                Decision.Complete.class,
+                ToolLoopDecision.Complete.class,
                 definition.decide(context())
         ).getResult());
 
@@ -68,7 +68,7 @@ class ReflexionCriticDefinitionTest {
                         """)
         );
 
-        String rawCritique = assertInstanceOf(Decision.Complete.class, definition.decide(context())).getResult();
+        String rawCritique = assertInstanceOf(ToolLoopDecision.Complete.class, definition.decide(context())).getResult();
 
         assertThrows(IllegalArgumentException.class, () -> definition.parseCritique(rawCritique));
     }

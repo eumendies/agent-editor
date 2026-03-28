@@ -2,7 +2,7 @@ package com.agent.editor.agent.v2.supervisor;
 
 import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
-import com.agent.editor.agent.v2.core.agent.Decision;
+import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.*;
@@ -291,8 +291,8 @@ class SupervisorOrchestratorTest {
         }
 
         @Override
-        public Decision decide(AgentRunContext context) {
-            return new Decision.Complete(result, "done");
+        public ToolLoopDecision decide(AgentRunContext context) {
+            return new ToolLoopDecision.Complete(result, "done");
         }
     }
 

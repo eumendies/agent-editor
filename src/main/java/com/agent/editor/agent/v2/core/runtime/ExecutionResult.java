@@ -11,14 +11,15 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ExecutionResult {
+public class ExecutionResult<T> {
 
+    private T result;   // Agent执行后返回的结构化结果
     private String finalMessage;
     private String finalContent;
     private AgentRunContext finalState;
 
     public ExecutionResult(String finalMessage) {
-        this(finalMessage, finalMessage, new AgentRunContext(
+        this(null, finalMessage, finalMessage, new AgentRunContext(
                 null,
                 0,
                 finalMessage,
@@ -30,7 +31,19 @@ public class ExecutionResult {
     }
 
     public ExecutionResult(String finalMessage, String finalContent) {
-        this(finalMessage, finalContent, new AgentRunContext(
+        this(null,  finalMessage, finalContent, new AgentRunContext(
+                null,
+                0,
+                finalContent,
+                new ChatTranscriptMemory(List.of()),
+                ExecutionStage.RUNNING,
+                null,
+                List.of()
+        ));
+    }
+
+    public ExecutionResult(T result, String finalMessage, String finalContent) {
+        this(result,  finalMessage, finalContent, new AgentRunContext(
                 null,
                 0,
                 finalContent,
