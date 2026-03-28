@@ -68,7 +68,7 @@ class ReflexionOrchestratorTest {
                 message instanceof ChatMessage.UserChatMessage userMessage
                         && "Improve the draft".equals(userMessage.getText())
         ));
-        assertEquals(List.of("editDocument", "searchContent"), runtime.actorAllowedTools.get(0));
+        assertEquals(List.of("editDocument", "appendToDocument", "getDocumentSnapshot", "searchContent"), runtime.actorAllowedTools.get(0));
         assertEquals(List.of("searchContent", "analyzeDocument"), runtime.criticAllowedTools.get(0));
         ChatTranscriptMemory criticMemory = (ChatTranscriptMemory) runtime.criticStates.get(0).getMemory();
         assertTrue(criticMemory.getMessages().stream().anyMatch(message ->

@@ -123,6 +123,36 @@ class ToolLoopExecutionRuntimeTest {
     }
 
     @Test
+    void shouldExposeLatestDocumentSnapshotAfterAppendToolInSameLoop() {
+        ToolRegistry registry = new ToolRegistry();
+        registry.register(new AppendToDocumentHandler());
+        registry.register(new GetDocumentSnapshotHandler());
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
+                registry,
+                event -> {}
+        );
+        ExecutionRequest request = new ExecutionRequest(
+                "task-4b",
+                "session-4b",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-4b", "title", "body"),
+                "append then snapshot",
+                4
+        );
+
+        ExecutionResult result = runtime.run(new AppendThenSnapshotAgent(), request);
+
+        assertEquals("snapshot read", result.getFinalMessage());
+        assertEquals("body world", result.getFinalContent());
+        ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) result.getFinalState().getMemory();
+        assertTrue(transcriptMemory.getMessages().stream().anyMatch(message ->
+                message instanceof ChatMessage.ToolExecutionResultChatMessage toolMessage
+                        && "getDocumentSnapshot".equals(toolMessage.getName())
+                        && "body world".equals(toolMessage.getText())
+        ));
+    }
+
+    @Test
     void shouldNotCaptureRuntimeTraceForStateAndToolExecution() {
         ToolRegistry registry = new ToolRegistry();
         registry.register(new AppendToolHandler());
@@ -304,6 +334,32 @@ class ToolLoopExecutionRuntimeTest {
         }
     }
 
+    private static final class AppendThenSnapshotAgent implements ToolLoopAgent {
+
+        @Override
+        public AgentType type() {
+            return AgentType.REACT;
+        }
+
+        @Override
+        public ToolLoopDecision decide(AgentRunContext context) {
+            long toolResults = toolResultCount(context);
+            if (toolResults == 0) {
+                return new ToolLoopDecision.ToolCalls(
+                        List.of(new ToolCall("appendToDocument", "{\"content\":\" world\"}")),
+                        "append first"
+                );
+            }
+            if (toolResults == 1) {
+                return new ToolLoopDecision.ToolCalls(
+                        List.of(new ToolCall("getDocumentSnapshot", "{}")),
+                        "read latest snapshot"
+                );
+            }
+            return new ToolLoopDecision.Complete("snapshot read", "done");
+        }
+    }
+
     private static final class RecordingStateAgent implements ToolLoopAgent {
 
         private int seenIteration;
@@ -327,5 +383,52 @@ class ToolLoopExecutionRuntimeTest {
         return memory.getMessages().stream()
                 .filter(ChatMessage.ToolExecutionResultChatMessage.class::isInstance)
                 .count();
+    }
+
+    private static final class AppendToDocumentHandler implements ToolHandler {
+
+        @Override
+        public String name() {
+            return "appendToDocument";
+        }
+
+        @Override
+        public ToolResult execute(ToolInvocation invocation, ToolContext context) {
+            return new ToolResult("appended", context.getCurrentContent() + " world");
+        }
+
+        @Override
+        public dev.langchain4j.agent.tool.ToolSpecification specification() {
+            return dev.langchain4j.agent.tool.ToolSpecification.builder()
+                    .name("appendToDocument")
+                    .description("Append text to the end of the document")
+                    .parameters(dev.langchain4j.model.chat.request.json.JsonObjectSchema.builder()
+                            .addStringProperty("content")
+                            .required("content")
+                            .build())
+                    .build();
+        }
+    }
+
+    private static final class GetDocumentSnapshotHandler implements ToolHandler {
+
+        @Override
+        public String name() {
+            return "getDocumentSnapshot";
+        }
+
+        @Override
+        public ToolResult execute(ToolInvocation invocation, ToolContext context) {
+            return new ToolResult(context.getCurrentContent());
+        }
+
+        @Override
+        public dev.langchain4j.agent.tool.ToolSpecification specification() {
+            return dev.langchain4j.agent.tool.ToolSpecification.builder()
+                    .name("getDocumentSnapshot")
+                    .description("Get the latest current document snapshot")
+                    .parameters(dev.langchain4j.model.chat.request.json.JsonObjectSchema.builder().build())
+                    .build();
+        }
     }
 }

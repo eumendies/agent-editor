@@ -51,7 +51,7 @@ public class SupervisorAgentConfig {
                 "Writer",
                 "Produce grounded document updates and revisions without introducing unsupported claims.",
                 groundedWriterAgentDefinition,
-                List.of("editDocument", "searchContent"),
+                List.of("editDocument", "appendToDocument", "getDocumentSnapshot", "searchContent"),
                 List.of("write", "edit")
         ));
         workerRegistry.register(new WorkerDefinition(

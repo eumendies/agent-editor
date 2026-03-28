@@ -14,7 +14,7 @@ import java.util.List;
 
 public class ReflexionOrchestrator implements TaskOrchestrator {
 
-    private static final List<String> ACTOR_ALLOWED_TOOLS = List.of("editDocument", "searchContent");
+    private static final List<String> ACTOR_ALLOWED_TOOLS = List.of("editDocument", "appendToDocument", "getDocumentSnapshot", "searchContent");
     private static final List<String> CRITIC_ALLOWED_TOOLS = List.of("searchContent", "analyzeDocument");
 
     private final ExecutionRuntime runtime;

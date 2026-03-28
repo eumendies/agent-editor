@@ -67,6 +67,8 @@ public class ReactAgentContextFactory implements AgentContextFactory {
                 Your primary job is to update the current document when the user asks you to write.
                 If the user asks you to write, draft, rewrite, expand, polish, or generate content, you must call editDocument instead of returning the drafted content directly in chat.
                 If the user does not specify a target location, generate the full updated document and use editDocument to overwrite the entire document.
+                Use appendToDocument when you only need to append to the end of the current document.
+                Use getDocumentSnapshot when you need the latest full document content after prior tool effects.
                 Only reply directly in chat when the user explicitly wants you to explain, analyze, answer questions, or discuss options without editing the document.
                 After completing a document-writing task, keep your final text concise and only confirm that the document was updated.
                 """;

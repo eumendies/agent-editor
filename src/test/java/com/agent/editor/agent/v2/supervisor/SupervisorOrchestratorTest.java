@@ -45,7 +45,7 @@ class SupervisorOrchestratorTest {
                 "Editor",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("editDocument")
+                List.of("editDocument", "appendToDocument", "getDocumentSnapshot")
         ));
 
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
@@ -72,7 +72,7 @@ class SupervisorOrchestratorTest {
         assertEquals(List.of("analyzer", "editor"), runtime.workerIds());
         assertEquals(List.of(
                 List.of("searchContent", "analyzeDocument"),
-                List.of("editDocument")
+                List.of("editDocument", "appendToDocument", "getDocumentSnapshot")
         ), runtime.allowedTools());
         assertEquals(EventType.WORKER_SELECTED, eventPublisher.events().get(0).getType());
         assertEquals(EventType.SUPERVISOR_COMPLETED, eventPublisher.events().get(eventPublisher.events().size() - 1).getType());
@@ -94,7 +94,7 @@ class SupervisorOrchestratorTest {
                 "Editor",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("editDocument")
+                List.of("editDocument", "appendToDocument", "getDocumentSnapshot")
         ));
 
         SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(
@@ -171,7 +171,7 @@ class SupervisorOrchestratorTest {
                 "Editor",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("editDocument")
+                List.of("editDocument", "appendToDocument", "getDocumentSnapshot")
         ));
 
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
@@ -219,7 +219,7 @@ class SupervisorOrchestratorTest {
                 "Editor",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("editDocument")
+                List.of("editDocument", "appendToDocument", "getDocumentSnapshot")
         ));
 
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();

@@ -368,7 +368,7 @@ class HybridSupervisorAgentTest {
                         "Editor",
                         "Apply document edits",
                         workerAgent,
-                        List.of("editDocument"),
+                        List.of("editDocument", "appendToDocument", "getDocumentSnapshot"),
                         List.of("edit")
                 ),
                 new WorkerDefinition(
@@ -398,7 +398,7 @@ class HybridSupervisorAgentTest {
                         "Writer",
                         "Write or revise the document.",
                         workerAgent,
-                        List.of("editDocument"),
+                        List.of("editDocument", "appendToDocument", "getDocumentSnapshot"),
                         List.of("write")
                 ),
                 new WorkerDefinition(

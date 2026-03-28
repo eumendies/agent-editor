@@ -1,6 +1,8 @@
 package com.agent.editor.config;
 
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
+import com.agent.editor.agent.v2.core.runtime.PlanningExecutionRuntime;
+import com.agent.editor.agent.v2.core.runtime.ToolLoopExecutionRuntime;
 import com.agent.editor.agent.v2.reflexion.ReflexionActor;
 import com.agent.editor.agent.v2.reflexion.ReflexionCritic;
 import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
@@ -47,7 +49,9 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(TraceStore.class);
             assertThat(context).hasSingleBean(TraceCollector.class);
             assertThat(context).hasSingleBean(WorkerRegistry.class);
-            assertThat(context).hasSingleBean(ExecutionRuntime.class);
+            assertThat(context).hasSingleBean(ToolLoopExecutionRuntime.class);
+            assertThat(context).hasSingleBean(PlanningExecutionRuntime.class);
+            assertThat(context).getBeans(ExecutionRuntime.class).hasSize(2);
             assertThat(context).hasSingleBean(TaskOrchestrator.class);
             assertThat(context).hasSingleBean(ReflexionActor.class);
             assertThat(context).hasSingleBean(ReflexionCritic.class);
@@ -115,6 +119,16 @@ class AgentV2ConfigurationSplitTest {
             ToolRegistry toolRegistry = context.getBean(ToolRegistry.class);
 
             assertThat(toolRegistry.get("retrieveKnowledge")).isNotNull();
+        });
+    }
+
+    @Test
+    void shouldRegisterAppendAndSnapshotDocumentTools() {
+        contextRunner.run(context -> {
+            ToolRegistry toolRegistry = context.getBean(ToolRegistry.class);
+
+            assertThat(toolRegistry.get("appendToDocument")).isNotNull();
+            assertThat(toolRegistry.get("getDocumentSnapshot")).isNotNull();
         });
     }
 

@@ -40,12 +40,19 @@ class GroundedWriterAgentTest {
                 .build());
         GroundedWriterAgent definition = new GroundedWriterAgent(chatModel);
 
-        definition.decide(context(List.of(editDocumentTool(), searchContentTool())));
+        definition.decide(context(List.of(
+                editDocumentTool(),
+                appendToDocumentTool(),
+                getDocumentSnapshotTool(),
+                searchContentTool()
+        )));
 
-        assertEquals(List.of("editDocument", "searchContent"), assertThatToolNames(chatModel.lastRequest));
+        assertEquals(List.of("editDocument", "appendToDocument", "getDocumentSnapshot", "searchContent"), assertThatToolNames(chatModel.lastRequest));
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
         assertTrue(systemMessage.text().contains("grounded writer worker"));
         assertTrue(systemMessage.text().contains("Do not introduce claims"));
+        assertTrue(systemMessage.text().contains("appendToDocument"));
+        assertTrue(systemMessage.text().contains("getDocumentSnapshot"));
         UserMessage currentTurn = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
         assertEquals("rewrite the answer using available evidence", currentTurn.singleText());
     }
@@ -100,6 +107,20 @@ class GroundedWriterAgentTest {
         return ToolSpecification.builder()
                 .name("searchContent")
                 .description("search current content")
+                .build();
+    }
+
+    private ToolSpecification appendToDocumentTool() {
+        return ToolSpecification.builder()
+                .name("appendToDocument")
+                .description("append to current content")
+                .build();
+    }
+
+    private ToolSpecification getDocumentSnapshotTool() {
+        return ToolSpecification.builder()
+                .name("getDocumentSnapshot")
+                .description("get latest document snapshot")
                 .build();
     }
 
