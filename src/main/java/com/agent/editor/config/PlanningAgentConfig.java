@@ -1,6 +1,6 @@
 package com.agent.editor.config;
 
-import com.agent.editor.agent.v2.planning.PlanningAgent;
+import com.agent.editor.agent.v2.planning.PlanningAgentImpl;
 import com.agent.editor.agent.v2.planning.PlanningAiService;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.model.chat.ChatModel;
@@ -11,10 +11,10 @@ import org.springframework.context.annotation.Configuration;
 public class PlanningAgentConfig {
 
     @Bean
-    public PlanningAgent planningAgentDefinition(ChatModel chatModel) {
+    public PlanningAgentImpl planningAgentDefinition(ChatModel chatModel) {
         PlanningAiService planningAiService = AiServices.builder(PlanningAiService.class)
                 .chatModel(chatModel)
                 .build();
-        return new PlanningAgent(planningAiService);
+        return new PlanningAgentImpl(planningAiService);
     }
 }

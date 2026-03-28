@@ -3,12 +3,13 @@ package com.agent.editor.config;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.memory.SessionMemoryStore;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
+import com.agent.editor.agent.v2.core.runtime.PlanningExecutionRuntime;
 import com.agent.editor.agent.v2.core.runtime.ToolLoopExecutionRuntime;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.LegacyEventAdapter;
 import com.agent.editor.agent.v2.event.WebSocketEventPublisher;
 import com.agent.editor.agent.v2.memory.InMemorySessionMemoryStore;
-import com.agent.editor.agent.v2.planning.PlanningAgent;
+import com.agent.editor.agent.v2.planning.PlanningAgentImpl;
 import com.agent.editor.agent.v2.planning.PlanningThenExecutionOrchestrator;
 import com.agent.editor.agent.v2.react.ReactAgent;
 import com.agent.editor.agent.v2.reflexion.ReflexionActor;
@@ -26,6 +27,7 @@ import com.agent.editor.service.TaskQueryService;
 import com.agent.editor.websocket.WebSocketService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.util.Map;
 
@@ -45,9 +47,14 @@ public class TaskOrchestratorConfig {
     }
 
     @Bean
-    public ExecutionRuntime executionRuntime(ToolRegistry toolRegistry,
+    public ToolLoopExecutionRuntime executionRuntime(ToolRegistry toolRegistry,
                                              EventPublisher eventPublisher) {
         return new ToolLoopExecutionRuntime(toolRegistry, eventPublisher);
+    }
+
+    @Bean
+    public PlanningExecutionRuntime planningExecutionRuntime(EventPublisher eventPublisher) {
+        return new PlanningExecutionRuntime(eventPublisher);
     }
 
     @Bean
@@ -56,10 +63,11 @@ public class TaskOrchestratorConfig {
     }
 
     @Bean
-    public TaskOrchestrator taskOrchestrator(ExecutionRuntime executionRuntime,
+    public TaskOrchestrator taskOrchestrator(ToolLoopExecutionRuntime executionRuntime,
+                                             PlanningExecutionRuntime planningExecutionRuntime,
                                              EventPublisher eventPublisher,
                                              WorkerRegistry workerRegistry,
-                                             PlanningAgent planningAgentDefinition,
+                                             PlanningAgentImpl planningAgentImplDefinition,
                                              ReactAgent reactAgentDefinition,
                                              ReflexionActor reflexionActorDefinition,
                                              ReflexionCritic reflexionCriticDefinition,
@@ -67,10 +75,10 @@ public class TaskOrchestratorConfig {
                                              SessionMemoryStore sessionMemoryStore) {
         TaskOrchestrator reactOrchestrator = new ReActAgentOrchestrator(executionRuntime, reactAgentDefinition);
         TaskOrchestrator planningOrchestrator = new PlanningThenExecutionOrchestrator(
-                planningAgentDefinition,
+                planningExecutionRuntime,
+                planningAgentImplDefinition,
                 executionRuntime,
-                reactAgentDefinition,
-                eventPublisher
+                reactAgentDefinition
         );
         TaskOrchestrator supervisorOrchestrator = new SupervisorOrchestrator(
                 supervisorAgentDefinition,

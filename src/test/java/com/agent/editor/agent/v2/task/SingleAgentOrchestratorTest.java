@@ -2,6 +2,7 @@ package com.agent.editor.agent.v2.task;
 
 import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.agent.ToolLoopAgent;
 import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
@@ -52,7 +53,7 @@ class SingleAgentOrchestratorTest {
         assertTrue(memory.getMessages().stream().anyMatch(message -> "done".equals(message.getText())));
     }
 
-    private static final class StubAgent implements Agent {
+    private static final class StubAgent implements ToolLoopAgent {
 
         @Override
         public AgentType type() {

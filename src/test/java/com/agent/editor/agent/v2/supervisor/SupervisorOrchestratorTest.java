@@ -2,6 +2,7 @@ package com.agent.editor.agent.v2.supervisor;
 
 import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.agent.ToolLoopAgent;
 import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
@@ -277,7 +278,7 @@ class SupervisorOrchestratorTest {
         }
     }
 
-    private static final class StubWorkerAgent implements Agent {
+    private static final class StubWorkerAgent implements ToolLoopAgent {
 
         private final String result;
 
@@ -302,7 +303,7 @@ class SupervisorOrchestratorTest {
         private final List<AgentRunContext> states = new ArrayList<>();
 
         @Override
-        public ExecutionResult run(Agent definition, ExecutionRequest request) {
+        public ExecutionResult run(Agent agent, ExecutionRequest request) {
             requests.add(request);
             String marker = request.getAllowedTools().contains("editDocument") ? "editor" : "analyzer";
             return new ExecutionResult(marker + " result", request.getDocument().getContent() + " -> " + marker);
@@ -315,6 +316,7 @@ class SupervisorOrchestratorTest {
             String marker = request.getAllowedTools().contains("editDocument") ? "editor" : "analyzer";
             String updatedContent = initialState.getCurrentContent() + " -> " + marker;
             return new ExecutionResult(
+                    marker + " result",
                     marker + " result",
                     updatedContent,
                     new AgentRunContext(

@@ -2,6 +2,7 @@ package com.agent.editor.agent.v2.reflexion;
 
 import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.agent.ToolLoopAgent;
 import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
@@ -172,7 +173,7 @@ class ReflexionOrchestratorTest {
         );
     }
 
-    private static final class ActorAgent implements Agent {
+    private static final class ActorAgent implements ToolLoopAgent {
 
         @Override
         public AgentType type() {
@@ -207,24 +208,27 @@ class ReflexionOrchestratorTest {
                 ToolLoopDecision.Complete complete = (ToolLoopDecision.Complete) criticDefinition.decide(
                         initialState.withRequest(request).withToolSpecifications(List.of())
                 );
-                return new ExecutionResult(complete.getResult(), initialState.getCurrentContent(), initialState.markCompleted());
+                String critique = String.valueOf(complete.getResult());
+                return new ExecutionResult(complete.getResult(), critique, initialState.getCurrentContent(), initialState.markCompleted());
             }
 
             actorStates.add(initialState);
             actorAllowedTools.add(request.getAllowedTools());
-            ToolLoopDecision.Complete complete = (ToolLoopDecision.Complete) definition.decide(
+            ToolLoopDecision.Complete complete = (ToolLoopDecision.Complete) ((ToolLoopAgent) definition).decide(
                     initialState.withRequest(request).withToolSpecifications(List.of())
             );
+            String actorResult = String.valueOf(complete.getResult());
             return new ExecutionResult(
                     complete.getResult(),
-                    complete.getResult(),
-                    initialState.withCurrentContent(complete.getResult()).markCompleted()
+                    actorResult,
+                    actorResult,
+                    initialState.withCurrentContent(actorResult).markCompleted()
             );
         }
 
         @Override
-        public ExecutionResult run(Agent definition, ExecutionRequest request) {
-            return run(definition, request, new AgentRunContext(0, request.getDocument().getContent()));
+        public ExecutionResult run(Agent agent, ExecutionRequest request) {
+            return run(agent, request, new AgentRunContext(0, request.getDocument().getContent()));
         }
     }
 

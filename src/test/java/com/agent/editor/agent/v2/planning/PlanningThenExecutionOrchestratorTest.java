@@ -2,13 +2,12 @@ package com.agent.editor.agent.v2.planning;
 
 import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.agent.PlanResult;
+import com.agent.editor.agent.v2.core.agent.ToolLoopAgent;
 import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.*;
-import com.agent.editor.agent.v2.event.EventPublisher;
-import com.agent.editor.agent.v2.event.EventType;
-import com.agent.editor.agent.v2.event.ExecutionEvent;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
@@ -28,21 +27,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PlanningThenExecutionOrchestratorTest {
 
     @Test
-    void shouldExecutePlanStepsSequentially() {
-        RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
-        StaticPlanningAgent planner = new StaticPlanningAgent(
-                new PlanResult(List.of(
-                        new PlanStep(1, "Add outline"),
-                        new PlanStep(2, "Refine tone")
-                ))
-        );
-        RecordingEventPublisher eventPublisher = new RecordingEventPublisher();
+    void shouldCreatePlanThroughPlanningRuntimeBeforeExecutingSteps() {
+        RecordingPlanningRuntime planningRuntime = new RecordingPlanningRuntime(plan("Add outline", "Refine tone"));
+        RecordingExecutionRuntime executionRuntime = new RecordingExecutionRuntime();
         TraceStore traceStore = new InMemoryTraceStore();
         PlanningThenExecutionOrchestrator orchestrator = new PlanningThenExecutionOrchestrator(
-                planner,
-                runtime,
-                new CompletingExecutionAgent(),
-                eventPublisher
+                planningRuntime,
+                new FailIfCalledPlanningAgentImpl(),
+                executionRuntime,
+                new CompletingExecutionAgent()
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -56,27 +49,23 @@ class PlanningThenExecutionOrchestratorTest {
 
         assertEquals(TaskStatus.COMPLETED, result.getStatus());
         assertEquals("body -> Add outline -> Refine tone", result.getFinalContent());
-        assertEquals(List.of("Add outline", "Refine tone"), runtime.instructions());
-        assertEquals("body", runtime.requests().get(0).getDocument().getContent());
-        assertEquals("body -> Add outline", runtime.requests().get(1).getDocument().getContent());
-        assertEquals(EventType.PLAN_CREATED, eventPublisher.events().get(0).getType());
+        assertEquals(1, planningRuntime.requests().size());
+        assertEquals("Improve document", planningRuntime.requests().get(0).getInstruction());
+        assertEquals(List.of("Add outline", "Refine tone"), executionRuntime.instructions());
+        assertEquals("body", executionRuntime.requests().get(0).getDocument().getContent());
+        assertEquals("body -> Add outline", executionRuntime.requests().get(1).getDocument().getContent());
         assertTrue(traceStore.getByTaskId("task-1").isEmpty());
     }
 
     @Test
     void shouldReuseExecutionStateAcrossPlanSteps() {
+        RecordingPlanningRuntime planningRuntime = new RecordingPlanningRuntime(plan("Add outline", "Refine tone"));
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
-        StaticPlanningAgent planner = new StaticPlanningAgent(
-                new PlanResult(List.of(
-                        new PlanStep(1, "Add outline"),
-                        new PlanStep(2, "Refine tone")
-                ))
-        );
         PlanningThenExecutionOrchestrator orchestrator = new PlanningThenExecutionOrchestrator(
-                planner,
+                planningRuntime,
+                new StaticPlanningAgentImpl(plan("unused")),
                 runtime,
-                new CompletingExecutionAgent(),
-                event -> {}
+                new CompletingExecutionAgent()
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -104,22 +93,69 @@ class PlanningThenExecutionOrchestratorTest {
         ));
     }
 
-    private static final class StaticPlanningAgent extends PlanningAgent {
+    private static PlanResult plan(String... instructions) {
+        return new PlanResult().withInstructions(List.of(instructions));
+    }
+
+    private static final class RecordingPlanningRuntime implements ExecutionRuntime {
+
+        private final List<ExecutionRequest> requests = new ArrayList<>();
+        private final PlanResult planResult;
+
+        private RecordingPlanningRuntime(PlanResult planResult) {
+            this.planResult = planResult;
+        }
+
+        @Override
+        public ExecutionResult run(Agent agent, ExecutionRequest request) {
+            requests.add(request);
+            return new ExecutionResult(planResult, "plan created", request.getDocument().getContent());
+        }
+
+        @Override
+        public ExecutionResult run(Agent agent, ExecutionRequest request, AgentRunContext initialContext) {
+            requests.add(request);
+            return new ExecutionResult(
+                    planResult,
+                    "plan created",
+                    request.getDocument().getContent(),
+                    initialContext.markCompleted()
+            );
+        }
+
+        private List<ExecutionRequest> requests() {
+            return requests;
+        }
+    }
+
+    private static final class StaticPlanningAgentImpl extends PlanningAgentImpl {
 
         private final PlanResult planResult;
 
-        private StaticPlanningAgent(PlanResult planResult) {
+        private StaticPlanningAgentImpl(PlanResult planResult) {
             super(null);
             this.planResult = planResult;
         }
 
         @Override
-        public PlanResult createPlan(DocumentSnapshot document, String instruction) {
+        public PlanResult createPlan(AgentRunContext context) {
             return planResult;
         }
     }
 
-    private static final class CompletingExecutionAgent implements Agent {
+    private static final class FailIfCalledPlanningAgentImpl extends PlanningAgentImpl {
+
+        private FailIfCalledPlanningAgentImpl() {
+            super(null);
+        }
+
+        @Override
+        public PlanResult createPlan(AgentRunContext context) {
+            throw new AssertionError("planner should be invoked through planning runtime");
+        }
+    }
+
+    private static final class CompletingExecutionAgent implements ToolLoopAgent {
 
         @Override
         public AgentType type() {
@@ -138,7 +174,7 @@ class PlanningThenExecutionOrchestratorTest {
         private final List<AgentRunContext> states = new ArrayList<>();
 
         @Override
-        public ExecutionResult run(Agent definition, ExecutionRequest request) {
+        public ExecutionResult run(Agent agent, ExecutionRequest request) {
             requests.add(request);
             return new ExecutionResult(request.getInstruction(), request.getDocument().getContent() + " -> " + request.getInstruction());
         }
@@ -149,6 +185,7 @@ class PlanningThenExecutionOrchestratorTest {
             states.add(initialState);
             String updatedContent = initialState.getCurrentContent() + " -> " + request.getInstruction();
             return new ExecutionResult(
+                    request.getInstruction(),
                     request.getInstruction(),
                     updatedContent,
                     new AgentRunContext(
@@ -175,20 +212,6 @@ class PlanningThenExecutionOrchestratorTest {
 
         private List<AgentRunContext> states() {
             return states;
-        }
-    }
-
-    private static final class RecordingEventPublisher implements EventPublisher {
-
-        private final List<ExecutionEvent> events = new ArrayList<>();
-
-        @Override
-        public void publish(ExecutionEvent event) {
-            events.add(event);
-        }
-
-        private List<ExecutionEvent> events() {
-            return events;
         }
     }
 }

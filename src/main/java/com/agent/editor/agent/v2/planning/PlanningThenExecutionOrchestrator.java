@@ -2,11 +2,9 @@ package com.agent.editor.agent.v2.planning;
 
 import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.agent.PlanResult;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
-import com.agent.editor.agent.v2.event.EventPublisher;
-import com.agent.editor.agent.v2.event.EventType;
-import com.agent.editor.agent.v2.event.ExecutionEvent;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
@@ -24,30 +22,46 @@ import java.util.ArrayList;
  */
 public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
 
-    private final PlanningAgent planningAgent;
-    private final ExecutionRuntime executionRuntime;
+    private final ExecutionRuntime planningRuntime;
+    private final PlanningAgentImpl planningAgentImpl;
+    private final ExecutionRuntime toolLoopExecutionRuntime;
     private final Agent executionAgent;
-    private final EventPublisher eventPublisher;
 
-    public PlanningThenExecutionOrchestrator(PlanningAgent planningAgent,
-                                             ExecutionRuntime executionRuntime,
-                                             Agent executionAgent,
-                                             EventPublisher eventPublisher) {
-        this.planningAgent = planningAgent;
-        this.executionRuntime = executionRuntime;
+    public PlanningThenExecutionOrchestrator(ExecutionRuntime planningRuntime,
+                                             PlanningAgentImpl planningAgentImpl,
+                                             ExecutionRuntime toolLoopExecutionRuntime,
+                                             Agent executionAgent) {
+        this.planningRuntime = planningRuntime;
+        this.planningAgentImpl = planningAgentImpl;
+        this.toolLoopExecutionRuntime = toolLoopExecutionRuntime;
         this.executionAgent = executionAgent;
-        this.eventPublisher = eventPublisher;
     }
 
     @Override
     public TaskResult execute(TaskRequest request) {
-        // planning 阶段只生成计划，不直接落文档；真正写文档仍然走统一 execution runtime。
-        PlanResult plan = planningAgent.createPlan(request.getDocument(), request.getInstruction());
-        eventPublisher.publish(new ExecutionEvent(
-                EventType.PLAN_CREATED,
-                request.getTaskId(),
-                "plan created with %d step(s)".formatted(plan.getSteps().size())
-        ));
+        // planning 与 execution 都通过 runtime 承接，编排层只负责阶段串联。
+        AgentRunContext planningState = new AgentRunContext(
+                null,
+                0,
+                request.getDocument().getContent(),
+                request.getMemory(),
+                ExecutionStage.RUNNING,
+                null,
+                java.util.List.of()
+        );
+        ExecutionResult<PlanResult> planningResult = planningRuntime.run(
+                planningAgentImpl,
+                new ExecutionRequest(
+                        request.getTaskId(),
+                        request.getSessionId(),
+                        AgentType.PLANNING,
+                        request.getDocument(),
+                        request.getInstruction(),
+                        request.getMaxIterations()
+                ),
+                planningState
+        );
+        PlanResult plan = planningResult.getResult();
 
         AgentRunContext currentState = new AgentRunContext(
                 null,
@@ -59,10 +73,10 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
                 java.util.List.of()
         );
         String currentContent = request.getDocument().getContent();
-        for (PlanStep step : plan.getSteps()) {
+        for (PlanResult.PlanStep step : plan.getPlans()) {
             AgentRunContext stepState = prepareStepState(currentState, step);
             // 每个步骤都基于上一步的文档内容继续执行，形成显式的阶段性产物传递。
-            ExecutionResult result = executionRuntime.run(
+            ExecutionResult result = toolLoopExecutionRuntime.run(
                     executionAgent,
                     new ExecutionRequest(
                             request.getTaskId(),
@@ -86,7 +100,7 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
         return new TaskResult(TaskStatus.COMPLETED, currentContent, currentState.getMemory());
     }
 
-    private AgentRunContext prepareStepState(AgentRunContext state, PlanStep step) {
+    private AgentRunContext prepareStepState(AgentRunContext state, PlanResult.PlanStep step) {
         if (!(state.getMemory() instanceof ChatTranscriptMemory transcriptMemory)) {
             return new AgentRunContext(
                     state.getRequest(),

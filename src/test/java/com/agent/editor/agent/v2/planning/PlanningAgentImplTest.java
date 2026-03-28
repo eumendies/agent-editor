@@ -1,6 +1,8 @@
 package com.agent.editor.agent.v2.planning;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.agent.PlanResult;
+import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -14,32 +16,31 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
-class PlanningAgentTest {
+class PlanningAgentImplTest {
 
     @Test
     void shouldReportPlanningType() {
-        PlanningAgent definition = new PlanningAgent((PlanningAiService) null);
+        PlanningAgentImpl definition = new PlanningAgentImpl((PlanningAiService) null);
 
         assertEquals(AgentType.PLANNING, definition.type());
     }
 
     @Test
     void shouldMapTypedPlanFromAiService() {
-        PlanningAgent definition = new PlanningAgent((document, instruction) ->
+        PlanningAgentImpl definition = new PlanningAgentImpl((document, instruction) ->
                 new PlanningResponse(List.of(
                         new PlanningResponse.Step("Review structure"),
                         new PlanningResponse.Step("Rewrite introduction"),
                         new PlanningResponse.Step("Polish tone")
                 )));
 
-        PlanResult result = definition.createPlan(
-                new DocumentSnapshot("doc-1", "Title", "body"),
-                "Improve this document"
-        );
+        PlanResult result = definition.createPlan(context("body", "Improve this document"));
 
-        assertEquals(3, result.getSteps().size());
-        assertEquals(new PlanStep(1, "Review structure"), result.getSteps().get(0));
-        assertEquals(new PlanStep(3, "Polish tone"), result.getSteps().get(2));
+        assertEquals(3, result.getPlans().size());
+        assertEquals(1, result.getPlans().get(0).getOrder());
+        assertEquals("Review structure", result.getPlans().get(0).getInstruction());
+        assertEquals(3, result.getPlans().get(2).getOrder());
+        assertEquals("Polish tone", result.getPlans().get(2).getInstruction());
     }
 
     @Test
@@ -60,41 +61,47 @@ class PlanningAgentTest {
 
     @Test
     void shouldFallbackToSingleStepPlanWhenAiServiceUnavailable() {
-        PlanningAgent definition = new PlanningAgent((PlanningAiService) null);
+        PlanningAgentImpl definition = new PlanningAgentImpl((PlanningAiService) null);
 
-        PlanResult result = definition.createPlan(
-                new DocumentSnapshot("doc-1", "Title", "body"),
-                "Improve this document"
-        );
+        PlanResult result = definition.createPlan(context("body", "Improve this document"));
 
-        assertEquals(List.of(new PlanStep(1, "Improve this document")), result.getSteps());
+        assertEquals(1, result.getPlans().size());
+        assertEquals("Improve this document", result.getPlans().get(0).getInstruction());
     }
 
     @Test
     void shouldFallbackToSingleStepPlanWhenAiServiceReturnsNoSteps() {
-        PlanningAgent definition = new PlanningAgent((document, instruction) ->
+        PlanningAgentImpl definition = new PlanningAgentImpl((document, instruction) ->
                 new PlanningResponse(List.of()));
 
-        PlanResult result = definition.createPlan(
-                new DocumentSnapshot("doc-1", "Title", "body"),
-                "Improve this document"
-        );
+        PlanResult result = definition.createPlan(context("body", "Improve this document"));
 
-        assertEquals(List.of(new PlanStep(1, "Improve this document")), result.getSteps());
+        assertEquals(1, result.getPlans().size());
+        assertEquals("Improve this document", result.getPlans().get(0).getInstruction());
     }
 
     @Test
     void shouldFallbackToSingleStepPlanWhenAiServiceFails() {
-        PlanningAgent definition = new PlanningAgent((document, instruction) -> {
+        PlanningAgentImpl definition = new PlanningAgentImpl((document, instruction) -> {
             throw new IllegalStateException("boom");
         });
 
-        PlanResult result = definition.createPlan(
-                new DocumentSnapshot("doc-1", "Title", "body"),
-                "Improve this document"
-        );
+        PlanResult result = definition.createPlan(context("body", "Improve this document"));
 
-        assertEquals(List.of(new PlanStep(1, "Improve this document")), result.getSteps());
+        assertEquals(1, result.getPlans().size());
+        assertEquals("Improve this document", result.getPlans().get(0).getInstruction());
+    }
+
+    private static AgentRunContext context(String content, String instruction) {
+        return new AgentRunContext(0, content)
+                .withRequest(new com.agent.editor.agent.v2.core.runtime.ExecutionRequest(
+                        "task-1",
+                        "session-1",
+                        AgentType.PLANNING,
+                        new DocumentSnapshot("doc-1", "Title", content),
+                        instruction,
+                        3
+                ));
     }
 
     private static final class RecordingChatModel implements ChatModel {

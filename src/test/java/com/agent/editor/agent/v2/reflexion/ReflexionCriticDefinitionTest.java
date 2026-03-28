@@ -37,7 +37,7 @@ class ReflexionCriticDefinitionTest {
         ToolLoopDecision toolLoopDecision = definition.decide(context());
 
         ToolLoopDecision.Complete complete = assertInstanceOf(ToolLoopDecision.Complete.class, toolLoopDecision);
-        ReflexionCritique critique = definition.parseCritique(complete.getResult());
+        ReflexionCritique critique = definition.parseCritique((String) complete.getResult());
         assertEquals(ReflexionVerdict.PASS, critique.getVerdict());
         assertEquals("Looks good", critique.getFeedback());
     }
@@ -53,7 +53,7 @@ class ReflexionCriticDefinitionTest {
         ReflexionCritique critique = definition.parseCritique(assertInstanceOf(
                 ToolLoopDecision.Complete.class,
                 definition.decide(context())
-        ).getResult());
+        ).getResult().toString());
 
         assertEquals(ReflexionVerdict.REVISE, critique.getVerdict());
         assertEquals("Tighten the introduction", critique.getFeedback());
@@ -68,7 +68,7 @@ class ReflexionCriticDefinitionTest {
                         """)
         );
 
-        String rawCritique = assertInstanceOf(ToolLoopDecision.Complete.class, definition.decide(context())).getResult();
+        String rawCritique = assertInstanceOf(ToolLoopDecision.Complete.class, definition.decide(context())).getResult().toString();
 
         assertThrows(IllegalArgumentException.class, () -> definition.parseCritique(rawCritique));
     }
