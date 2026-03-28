@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.core.runtime;
 
-import com.agent.editor.agent.v2.core.agent.AgentDefinition;
+import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
@@ -26,7 +26,7 @@ class ToolLoopExecutionRuntimeTest {
 
     @Test
     void shouldCompleteWhenAgentReturnsCompleteDecision() {
-        AgentDefinition agent = new CompletingAgentDefinition();
+        Agent agent = new CompletingAgent();
         ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
                 new ToolRegistry(),
                 event -> {}
@@ -64,7 +64,7 @@ class ToolLoopExecutionRuntimeTest {
                 registry,
                 event -> {}
         );
-        AgentDefinition agent = new ToolUsingAgentDefinition();
+        Agent agent = new ToolUsingAgent();
         ExecutionRequest request = new ExecutionRequest(
                 "task-2",
                 "session-2",
@@ -99,7 +99,7 @@ class ToolLoopExecutionRuntimeTest {
         );
 
         IllegalStateException error = assertThrows(IllegalStateException.class, () ->
-                runtime.run(new ToolUsingAgentDefinition(), request)
+                runtime.run(new ToolUsingAgent(), request)
         );
 
         assertEquals("No tool handler registered for appendText", error.getMessage());
@@ -122,7 +122,7 @@ class ToolLoopExecutionRuntimeTest {
                 4
         );
 
-        ExecutionResult result = runtime.run(new MultiStepToolAgentDefinition(), request);
+        ExecutionResult result = runtime.run(new MultiStepToolAgent(), request);
 
         assertEquals("used two tools", result.getFinalMessage());
         assertEquals("body world world", result.getFinalContent());
@@ -146,7 +146,7 @@ class ToolLoopExecutionRuntimeTest {
                 3
         );
 
-        runtime.run(new ToolUsingAgentDefinition(), request);
+        runtime.run(new ToolUsingAgent(), request);
 
         assertTrue(traceStore.getByTaskId("task-5").isEmpty());
     }
@@ -158,7 +158,7 @@ class ToolLoopExecutionRuntimeTest {
                 registry,
                 event -> {}
         );
-        RecordingStateAgentDefinition agent = new RecordingStateAgentDefinition();
+        RecordingStateAgent agent = new RecordingStateAgent();
         ExecutionRequest request = new ExecutionRequest(
                 "task-6",
                 "session-6",
@@ -207,7 +207,7 @@ class ToolLoopExecutionRuntimeTest {
                 List.of()
         );
 
-        ExecutionResult result = runtime.run(new ToolUsingAgentDefinition(), request, initialState);
+        ExecutionResult result = runtime.run(new ToolUsingAgent(), request, initialState);
 
         ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) result.getFinalState().getMemory();
         assertTrue(transcriptMemory.getMessages().stream().anyMatch(message ->
@@ -240,7 +240,7 @@ class ToolLoopExecutionRuntimeTest {
         ));
     }
 
-    private static final class CompletingAgentDefinition implements AgentDefinition {
+    private static final class CompletingAgent implements Agent {
 
         @Override
         public AgentType type() {
@@ -253,7 +253,7 @@ class ToolLoopExecutionRuntimeTest {
         }
     }
 
-    private static final class ToolUsingAgentDefinition implements AgentDefinition {
+    private static final class ToolUsingAgent implements Agent {
 
         @Override
         public AgentType type() {
@@ -294,7 +294,7 @@ class ToolLoopExecutionRuntimeTest {
         }
     }
 
-    private static final class MultiStepToolAgentDefinition implements AgentDefinition {
+    private static final class MultiStepToolAgent implements Agent {
 
         @Override
         public AgentType type() {
@@ -310,7 +310,7 @@ class ToolLoopExecutionRuntimeTest {
         }
     }
 
-    private static final class RecordingStateAgentDefinition implements AgentDefinition {
+    private static final class RecordingStateAgent implements Agent {
 
         private int seenIteration;
         private String seenContent;

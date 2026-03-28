@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.reflexion;
 
-import com.agent.editor.agent.v2.core.agent.AgentDefinition;
+import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
@@ -24,7 +24,7 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ReflexionCriticDefinition implements AgentDefinition {
+public class ReflexionCritic implements Agent {
 
     private static final JsonSchema REFLEXION_CRITIQUE_SCHEMA = JsonSchema.builder()
             .name("reflexion_critique")
@@ -44,12 +44,12 @@ public class ReflexionCriticDefinition implements AgentDefinition {
     private final ObjectMapper objectMapper;
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
 
-    public ReflexionCriticDefinition(ChatModel chatModel) {
+    public ReflexionCritic(ChatModel chatModel) {
         this(chatModel, new ExecutionMemoryChatMessageMapper());
     }
 
-    ReflexionCriticDefinition(ChatModel chatModel,
-                              ExecutionMemoryChatMessageMapper memoryChatMessageMapper) {
+    ReflexionCritic(ChatModel chatModel,
+                    ExecutionMemoryChatMessageMapper memoryChatMessageMapper) {
         this.chatModel = chatModel;
         this.memoryChatMessageMapper = memoryChatMessageMapper;
         this.objectMapper = new ObjectMapper()

@@ -23,11 +23,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class EvidenceReviewerAgentDefinitionTest {
+class EvidenceReviewerAgentTest {
 
     @Test
     void shouldReportReactType() {
-        EvidenceReviewerAgentDefinition definition = new EvidenceReviewerAgentDefinition(null);
+        EvidenceReviewerAgent definition = new EvidenceReviewerAgent(null);
 
         assertEquals(AgentType.REACT, definition.type());
     }
@@ -39,7 +39,7 @@ class EvidenceReviewerAgentDefinitionTest {
                         {"verdict":"PASS","instructionSatisfied":true,"evidenceGrounded":true,"unsupportedClaims":[],"missingRequirements":[],"feedback":"ok","reasoning":"complete"}
                         """))
                 .build());
-        EvidenceReviewerAgentDefinition definition = new EvidenceReviewerAgentDefinition(chatModel);
+        EvidenceReviewerAgent definition = new EvidenceReviewerAgent(chatModel);
 
         definition.decide(context(List.of(searchContentTool(), analyzeDocumentTool())));
 
@@ -59,7 +59,7 @@ class EvidenceReviewerAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("need one more verification step", List.of(toolRequest)))
                 .build());
-        EvidenceReviewerAgentDefinition definition = new EvidenceReviewerAgentDefinition(chatModel);
+        EvidenceReviewerAgent definition = new EvidenceReviewerAgent(chatModel);
 
         Decision decision = definition.decide(context(List.of(analyzeDocumentTool())));
 

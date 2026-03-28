@@ -42,7 +42,7 @@ Add `capabilities` to `WorkerDefinition` and update `SupervisorAgentConfig` regi
 - `editor` -> `List.of("edit")`
 - `reviewer` -> `List.of("review")`
 
-Keep existing role, description, agentDefinition, and allowedTools unchanged.
+Keep existing role, description, agent, and allowedTools unchanged.
 
 **Step 4: Run test to verify it passes**
 

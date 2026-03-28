@@ -14,18 +14,18 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
-class PlanningAgentDefinitionTest {
+class PlanningAgentTest {
 
     @Test
     void shouldReportPlanningType() {
-        PlanningAgentDefinition definition = new PlanningAgentDefinition((PlanningAiService) null);
+        PlanningAgent definition = new PlanningAgent((PlanningAiService) null);
 
         assertEquals(AgentType.PLANNING, definition.type());
     }
 
     @Test
     void shouldMapTypedPlanFromAiService() {
-        PlanningAgentDefinition definition = new PlanningAgentDefinition((document, instruction) ->
+        PlanningAgent definition = new PlanningAgent((document, instruction) ->
                 new PlanningResponse(List.of(
                         new PlanningResponse.Step("Review structure"),
                         new PlanningResponse.Step("Rewrite introduction"),
@@ -60,7 +60,7 @@ class PlanningAgentDefinitionTest {
 
     @Test
     void shouldFallbackToSingleStepPlanWhenAiServiceUnavailable() {
-        PlanningAgentDefinition definition = new PlanningAgentDefinition((PlanningAiService) null);
+        PlanningAgent definition = new PlanningAgent((PlanningAiService) null);
 
         PlanResult result = definition.createPlan(
                 new DocumentSnapshot("doc-1", "Title", "body"),
@@ -72,7 +72,7 @@ class PlanningAgentDefinitionTest {
 
     @Test
     void shouldFallbackToSingleStepPlanWhenAiServiceReturnsNoSteps() {
-        PlanningAgentDefinition definition = new PlanningAgentDefinition((document, instruction) ->
+        PlanningAgent definition = new PlanningAgent((document, instruction) ->
                 new PlanningResponse(List.of()));
 
         PlanResult result = definition.createPlan(
@@ -85,7 +85,7 @@ class PlanningAgentDefinitionTest {
 
     @Test
     void shouldFallbackToSingleStepPlanWhenAiServiceFails() {
-        PlanningAgentDefinition definition = new PlanningAgentDefinition((document, instruction) -> {
+        PlanningAgent definition = new PlanningAgent((document, instruction) -> {
             throw new IllegalStateException("boom");
         });
 

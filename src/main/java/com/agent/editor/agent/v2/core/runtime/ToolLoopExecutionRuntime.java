@@ -1,10 +1,9 @@
 package com.agent.editor.agent.v2.core.runtime;
 
-import com.agent.editor.agent.v2.core.agent.AgentDefinition;
+import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
-import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
@@ -34,12 +33,12 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
     }
 
     @Override
-    public ExecutionResult run(AgentDefinition definition, ExecutionRequest request) {
+    public ExecutionResult run(Agent definition, ExecutionRequest request) {
         return run(definition, request, new AgentRunContext(0, request.getDocument().getContent()).withRequest(request));
     }
 
     @Override
-    public ExecutionResult run(AgentDefinition definition, ExecutionRequest request, AgentRunContext initialContext) {
+    public ExecutionResult run(Agent definition, ExecutionRequest request, AgentRunContext initialContext) {
         eventPublisher.publish(new ExecutionEvent(EventType.TASK_STARTED, request.getTaskId(), "execution started"));
 
         // runtime 维护“本轮文档内容 + 工具结果历史”，每次决策都基于最新状态继续推进。

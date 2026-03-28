@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.task;
 
-import com.agent.editor.agent.v2.core.agent.AgentDefinition;
+import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
@@ -27,7 +27,7 @@ class SingleAgentOrchestratorTest {
                 new ToolRegistry(),
                 event -> {}
         );
-        AgentDefinition agent = new StubAgentDefinition();
+        Agent agent = new StubAgent();
         ReActAgentOrchestrator orchestrator = new ReActAgentOrchestrator(runtime, agent);
 
         TaskRequest request = new TaskRequest(
@@ -52,7 +52,7 @@ class SingleAgentOrchestratorTest {
         assertTrue(memory.getMessages().stream().anyMatch(message -> "done".equals(message.getText())));
     }
 
-    private static final class StubAgentDefinition implements AgentDefinition {
+    private static final class StubAgent implements Agent {
 
         @Override
         public AgentType type() {

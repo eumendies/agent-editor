@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.reflexion;
 
-import com.agent.editor.agent.v2.core.agent.AgentDefinition;
+import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
@@ -20,13 +20,13 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
     private static final List<String> CRITIC_ALLOWED_TOOLS = List.of("searchContent", "analyzeDocument");
 
     private final ExecutionRuntime runtime;
-    private final AgentDefinition actorDefinition;
-    private final ReflexionCriticDefinition criticDefinition;
+    private final Agent actorDefinition;
+    private final ReflexionCritic criticDefinition;
     private final EventPublisher eventPublisher;
 
     public ReflexionOrchestrator(ExecutionRuntime runtime,
-                                 AgentDefinition actorDefinition,
-                                 ReflexionCriticDefinition criticDefinition,
+                                 Agent actorDefinition,
+                                 ReflexionCritic criticDefinition,
                                  EventPublisher eventPublisher) {
         this.runtime = runtime;
         this.actorDefinition = actorDefinition;

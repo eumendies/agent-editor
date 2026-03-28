@@ -1,6 +1,6 @@
 package com.agent.editor.config;
 
-import com.agent.editor.agent.v2.react.ReactAgentDefinition;
+import com.agent.editor.agent.v2.react.ReactAgent;
 import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 public class ReactAgentConfig {
 
     @Bean
-    public ReactAgentDefinition reactAgentDefinition(ChatModel chatModel) {
-        return new ReactAgentDefinition(chatModel);
+    public ReactAgent reactAgentDefinition(ChatModel chatModel) {
+        return new ReactAgent(chatModel);
     }
 }

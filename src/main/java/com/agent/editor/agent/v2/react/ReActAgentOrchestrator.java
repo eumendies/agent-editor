@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.react;
 
-import com.agent.editor.agent.v2.core.agent.AgentDefinition;
+import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
@@ -14,11 +14,11 @@ import com.agent.editor.agent.v2.task.TaskResult;
 public class ReActAgentOrchestrator implements TaskOrchestrator {
 
     private final ExecutionRuntime runtime;
-    private final AgentDefinition agentDefinition;
+    private final Agent agent;
 
-    public ReActAgentOrchestrator(ExecutionRuntime runtime, AgentDefinition agentDefinition) {
+    public ReActAgentOrchestrator(ExecutionRuntime runtime, Agent agent) {
         this.runtime = runtime;
-        this.agentDefinition = agentDefinition;
+        this.agent = agent;
     }
 
     @Override
@@ -33,7 +33,7 @@ public class ReActAgentOrchestrator implements TaskOrchestrator {
                 java.util.List.of()
         );
         ExecutionResult result = runtime.run(
-                agentDefinition,
+                agent,
                 new ExecutionRequest(
                         request.getTaskId(),
                         request.getSessionId(),

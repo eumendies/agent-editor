@@ -25,11 +25,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class ResearcherAgentDefinitionTest {
+class ResearcherAgentTest {
 
     @Test
     void shouldReportReactType() {
-        ResearcherAgentDefinition definition = new ResearcherAgentDefinition(null);
+        ResearcherAgent definition = new ResearcherAgent(null);
 
         assertEquals(AgentType.REACT, definition.type());
     }
@@ -41,7 +41,7 @@ class ResearcherAgentDefinitionTest {
                         {"queries":["agentic rag"],"evidenceSummary":"...", "limitations":"...", "uncoveredPoints":[], "chunks":[]}
                         """))
                 .build());
-        ResearcherAgentDefinition definition = new ResearcherAgentDefinition(chatModel);
+        ResearcherAgent definition = new ResearcherAgent(chatModel);
 
         definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("ground this answer")
@@ -63,7 +63,7 @@ class ResearcherAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("need evidence", List.of(toolRequest)))
                 .build());
-        ResearcherAgentDefinition definition = new ResearcherAgentDefinition(chatModel);
+        ResearcherAgent definition = new ResearcherAgent(chatModel);
 
         Decision decision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("ground this answer")
@@ -81,7 +81,7 @@ class ResearcherAgentDefinitionTest {
                         {"queries":["agentic rag"],"evidenceSummary":"...", "limitations":"...", "uncoveredPoints":[], "chunks":[]}
                         """))
                 .build());
-        ResearcherAgentDefinition definition = new ResearcherAgentDefinition(chatModel);
+        ResearcherAgent definition = new ResearcherAgent(chatModel);
 
         Decision decision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("initial grounding request"),

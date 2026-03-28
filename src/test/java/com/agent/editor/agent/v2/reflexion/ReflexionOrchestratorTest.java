@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.reflexion;
 
-import com.agent.editor.agent.v2.core.agent.AgentDefinition;
+import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
@@ -34,7 +34,7 @@ class ReflexionOrchestratorTest {
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
         ReflexionOrchestrator orchestrator = new ReflexionOrchestrator(
                 runtime,
-                new ActorAgentDefinition(),
+                new ActorAgent(),
                 criticWithResponses("""
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"done"}
                         """),
@@ -63,7 +63,7 @@ class ReflexionOrchestratorTest {
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
         ReflexionOrchestrator orchestrator = new ReflexionOrchestrator(
                 runtime,
-                new ActorAgentDefinition(),
+                new ActorAgent(),
                 criticWithResponses(
                         """
                         {"verdict":"REVISE","feedback":"Tighten the introduction","reasoning":"too long"}
@@ -109,7 +109,7 @@ class ReflexionOrchestratorTest {
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
         ReflexionOrchestrator orchestrator = new ReflexionOrchestrator(
                 runtime,
-                new ActorAgentDefinition(),
+                new ActorAgent(),
                 criticWithResponses(
                         """
                         {"verdict":"REVISE","feedback":"Round 1","reasoning":"continue"}
@@ -141,7 +141,7 @@ class ReflexionOrchestratorTest {
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
         ReflexionOrchestrator orchestrator = new ReflexionOrchestrator(
                 runtime,
-                new ActorAgentDefinition(),
+                new ActorAgent(),
                 criticWithResponses(
                         """
                         {"verdict":"REVISE","feedback":"Tighten the introduction","reasoning":"too long"}
@@ -166,13 +166,13 @@ class ReflexionOrchestratorTest {
         assertEquals(2, runtime.criticStates.size());
     }
 
-    private ReflexionCriticDefinition criticWithResponses(String... responses) {
-        return new ReflexionCriticDefinition(
+    private ReflexionCritic criticWithResponses(String... responses) {
+        return new ReflexionCritic(
                 new QueueChatModel(responses)
         );
     }
 
-    private static final class ActorAgentDefinition implements AgentDefinition {
+    private static final class ActorAgent implements Agent {
 
         @Override
         public AgentType type() {
@@ -200,8 +200,8 @@ class ReflexionOrchestratorTest {
         private final List<List<String>> criticAllowedTools = new ArrayList<>();
 
         @Override
-        public ExecutionResult run(AgentDefinition definition, ExecutionRequest request, AgentRunContext initialState) {
-            if (definition instanceof ReflexionCriticDefinition criticDefinition) {
+        public ExecutionResult run(Agent definition, ExecutionRequest request, AgentRunContext initialState) {
+            if (definition instanceof ReflexionCritic criticDefinition) {
                 criticStates.add(initialState);
                 criticAllowedTools.add(request.getAllowedTools());
                 Decision.Complete complete = (Decision.Complete) criticDefinition.decide(
@@ -223,7 +223,7 @@ class ReflexionOrchestratorTest {
         }
 
         @Override
-        public ExecutionResult run(AgentDefinition definition, ExecutionRequest request) {
+        public ExecutionResult run(Agent definition, ExecutionRequest request) {
             return run(definition, request, new AgentRunContext(0, request.getDocument().getContent()));
         }
     }

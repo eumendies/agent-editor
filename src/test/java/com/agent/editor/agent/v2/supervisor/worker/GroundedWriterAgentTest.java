@@ -24,11 +24,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class GroundedWriterAgentDefinitionTest {
+class GroundedWriterAgentTest {
 
     @Test
     void shouldReportReactType() {
-        GroundedWriterAgentDefinition definition = new GroundedWriterAgentDefinition(null);
+        GroundedWriterAgent definition = new GroundedWriterAgent(null);
 
         assertEquals(AgentType.REACT, definition.type());
     }
@@ -38,7 +38,7 @@ class GroundedWriterAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("Document updated"))
                 .build());
-        GroundedWriterAgentDefinition definition = new GroundedWriterAgentDefinition(chatModel);
+        GroundedWriterAgent definition = new GroundedWriterAgent(chatModel);
 
         definition.decide(context(List.of(editDocumentTool(), searchContentTool())));
 
@@ -60,7 +60,7 @@ class GroundedWriterAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("apply grounded draft", List.of(toolRequest)))
                 .build());
-        GroundedWriterAgentDefinition definition = new GroundedWriterAgentDefinition(chatModel);
+        GroundedWriterAgent definition = new GroundedWriterAgent(chatModel);
 
         Decision decision = definition.decide(context(List.of(editDocumentTool())));
 

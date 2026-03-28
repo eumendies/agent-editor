@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.planning;
 
-import com.agent.editor.agent.v2.core.agent.AgentDefinition;
+import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
@@ -30,7 +30,7 @@ class PlanningThenExecutionOrchestratorTest {
     @Test
     void shouldExecutePlanStepsSequentially() {
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
-        StaticPlanningAgentDefinition planner = new StaticPlanningAgentDefinition(
+        StaticPlanningAgent planner = new StaticPlanningAgent(
                 new PlanResult(List.of(
                         new PlanStep(1, "Add outline"),
                         new PlanStep(2, "Refine tone")
@@ -66,7 +66,7 @@ class PlanningThenExecutionOrchestratorTest {
     @Test
     void shouldReuseExecutionStateAcrossPlanSteps() {
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
-        StaticPlanningAgentDefinition planner = new StaticPlanningAgentDefinition(
+        StaticPlanningAgent planner = new StaticPlanningAgent(
                 new PlanResult(List.of(
                         new PlanStep(1, "Add outline"),
                         new PlanStep(2, "Refine tone")
@@ -104,11 +104,11 @@ class PlanningThenExecutionOrchestratorTest {
         ));
     }
 
-    private static final class StaticPlanningAgentDefinition extends PlanningAgentDefinition {
+    private static final class StaticPlanningAgent extends PlanningAgent {
 
         private final PlanResult planResult;
 
-        private StaticPlanningAgentDefinition(PlanResult planResult) {
+        private StaticPlanningAgent(PlanResult planResult) {
             super(null);
             this.planResult = planResult;
         }
@@ -119,7 +119,7 @@ class PlanningThenExecutionOrchestratorTest {
         }
     }
 
-    private static final class CompletingExecutionAgent implements AgentDefinition {
+    private static final class CompletingExecutionAgent implements Agent {
 
         @Override
         public AgentType type() {
@@ -138,13 +138,13 @@ class PlanningThenExecutionOrchestratorTest {
         private final List<AgentRunContext> states = new ArrayList<>();
 
         @Override
-        public ExecutionResult run(AgentDefinition definition, ExecutionRequest request) {
+        public ExecutionResult run(Agent definition, ExecutionRequest request) {
             requests.add(request);
             return new ExecutionResult(request.getInstruction(), request.getDocument().getContent() + " -> " + request.getInstruction());
         }
 
         @Override
-        public ExecutionResult run(AgentDefinition definition, ExecutionRequest request, AgentRunContext initialState) {
+        public ExecutionResult run(Agent definition, ExecutionRequest request, AgentRunContext initialState) {
             requests.add(request);
             states.add(initialState);
             String updatedContent = initialState.getCurrentContent() + " -> " + request.getInstruction();

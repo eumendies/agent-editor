@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.planning;
 
-import com.agent.editor.agent.v2.core.agent.AgentDefinition;
+import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
@@ -24,14 +24,14 @@ import java.util.ArrayList;
  */
 public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
 
-    private final PlanningAgentDefinition planningAgent;
+    private final PlanningAgent planningAgent;
     private final ExecutionRuntime executionRuntime;
-    private final AgentDefinition executionAgent;
+    private final Agent executionAgent;
     private final EventPublisher eventPublisher;
 
-    public PlanningThenExecutionOrchestrator(PlanningAgentDefinition planningAgent,
+    public PlanningThenExecutionOrchestrator(PlanningAgent planningAgent,
                                              ExecutionRuntime executionRuntime,
-                                             AgentDefinition executionAgent,
+                                             Agent executionAgent,
                                              EventPublisher eventPublisher) {
         this.planningAgent = planningAgent;
         this.executionRuntime = executionRuntime;

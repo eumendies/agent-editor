@@ -8,11 +8,11 @@ import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.LegacyEventAdapter;
 import com.agent.editor.agent.v2.event.WebSocketEventPublisher;
 import com.agent.editor.agent.v2.memory.InMemorySessionMemoryStore;
-import com.agent.editor.agent.v2.planning.PlanningAgentDefinition;
+import com.agent.editor.agent.v2.planning.PlanningAgent;
 import com.agent.editor.agent.v2.planning.PlanningThenExecutionOrchestrator;
-import com.agent.editor.agent.v2.react.ReactAgentDefinition;
-import com.agent.editor.agent.v2.reflexion.ReflexionActorDefinition;
-import com.agent.editor.agent.v2.reflexion.ReflexionCriticDefinition;
+import com.agent.editor.agent.v2.react.ReactAgent;
+import com.agent.editor.agent.v2.reflexion.ReflexionActor;
+import com.agent.editor.agent.v2.reflexion.ReflexionCritic;
 import com.agent.editor.agent.v2.reflexion.ReflexionOrchestrator;
 import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
 import com.agent.editor.agent.v2.supervisor.SupervisorOrchestrator;
@@ -59,10 +59,10 @@ public class TaskOrchestratorConfig {
     public TaskOrchestrator taskOrchestrator(ExecutionRuntime executionRuntime,
                                              EventPublisher eventPublisher,
                                              WorkerRegistry workerRegistry,
-                                             PlanningAgentDefinition planningAgentDefinition,
-                                             ReactAgentDefinition reactAgentDefinition,
-                                             ReflexionActorDefinition reflexionActorDefinition,
-                                             ReflexionCriticDefinition reflexionCriticDefinition,
+                                             PlanningAgent planningAgentDefinition,
+                                             ReactAgent reactAgentDefinition,
+                                             ReflexionActor reflexionActorDefinition,
+                                             ReflexionCritic reflexionCriticDefinition,
                                              SupervisorAgentDefinition supervisorAgentDefinition,
                                              SessionMemoryStore sessionMemoryStore) {
         TaskOrchestrator reactOrchestrator = new ReActAgentOrchestrator(executionRuntime, reactAgentDefinition);

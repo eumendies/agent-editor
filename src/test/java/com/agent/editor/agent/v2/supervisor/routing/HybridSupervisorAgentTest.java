@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.supervisor.routing;
 
-import com.agent.editor.agent.v2.core.agent.AgentDefinition;
+import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
@@ -21,7 +21,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
-class HybridSupervisorAgentDefinitionTest {
+class HybridSupervisorAgentTest {
 
     @Test
     void shouldMapStructuredResponseThroughAiService() {
@@ -352,7 +352,7 @@ class HybridSupervisorAgentDefinitionTest {
     }
 
     private static List<WorkerDefinition> workers() {
-        AgentDefinition workerAgent = new NoOpWorkerAgent();
+        Agent workerAgent = new NoOpWorkerAgent();
         return List.of(
                 new WorkerDefinition(
                         "analyzer",
@@ -382,7 +382,7 @@ class HybridSupervisorAgentDefinitionTest {
     }
 
     private static List<WorkerDefinition> ragWorkers() {
-        AgentDefinition workerAgent = new NoOpWorkerAgent();
+        Agent workerAgent = new NoOpWorkerAgent();
         return List.of(
                 new WorkerDefinition(
                         "researcher",
@@ -467,7 +467,7 @@ class HybridSupervisorAgentDefinitionTest {
         }
     }
 
-    private static final class NoOpWorkerAgent implements AgentDefinition {
+    private static final class NoOpWorkerAgent implements Agent {
 
         @Override
         public AgentType type() {

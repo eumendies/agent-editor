@@ -1,8 +1,8 @@
 package com.agent.editor.agent.v2.react;
 
+import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
-import com.agent.editor.agent.v2.core.agent.AgentDefinition;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
@@ -10,7 +10,6 @@ import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -18,17 +17,17 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ReactAgentDefinition implements AgentDefinition {
+public class ReactAgent implements Agent {
 
     private final ChatModel chatModel;
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
 
-    public ReactAgentDefinition(ChatModel chatModel) {
+    public ReactAgent(ChatModel chatModel) {
         this(chatModel, new ExecutionMemoryChatMessageMapper());
     }
 
-    ReactAgentDefinition(ChatModel chatModel,
-                         ExecutionMemoryChatMessageMapper memoryChatMessageMapper) {
+    ReactAgent(ChatModel chatModel,
+               ExecutionMemoryChatMessageMapper memoryChatMessageMapper) {
         this.chatModel = chatModel;
         this.memoryChatMessageMapper = memoryChatMessageMapper;
     }

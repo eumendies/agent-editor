@@ -2,7 +2,7 @@ package com.agent.editor.agent.v2.planning;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
-import com.agent.editor.agent.v2.core.agent.AgentDefinition;
+import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 
@@ -11,11 +11,11 @@ import java.util.List;
 /**
  * Planning agent 只负责把原始任务拆成结构化步骤，不直接执行工具。
  */
-public class PlanningAgentDefinition implements AgentDefinition {
+public class PlanningAgent implements Agent {
 
     private final PlanningAiService planningAiService;
 
-    public PlanningAgentDefinition(PlanningAiService planningAiService) {
+    public PlanningAgent(PlanningAiService planningAiService) {
         this.planningAiService = planningAiService;
     }
 

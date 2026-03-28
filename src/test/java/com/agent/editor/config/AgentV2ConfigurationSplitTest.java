@@ -1,16 +1,13 @@
 package com.agent.editor.config;
 
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
-import com.agent.editor.agent.v2.reflexion.ReflexionActorDefinition;
-import com.agent.editor.agent.v2.reflexion.ReflexionCriticDefinition;
+import com.agent.editor.agent.v2.reflexion.ReflexionActor;
+import com.agent.editor.agent.v2.reflexion.ReflexionCritic;
 import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
 import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgentDefinition;
+import com.agent.editor.agent.v2.supervisor.worker.*;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
-import com.agent.editor.agent.v2.supervisor.worker.EvidenceReviewerAgentDefinition;
-import com.agent.editor.agent.v2.supervisor.worker.GroundedWriterAgentDefinition;
-import com.agent.editor.agent.v2.supervisor.worker.ResearcherAgentDefinition;
-import com.agent.editor.agent.v2.supervisor.worker.WorkerDefinition;
-import com.agent.editor.agent.v2.supervisor.worker.WorkerRegistry;
+import com.agent.editor.agent.v2.supervisor.worker.EvidenceReviewerAgent;
 import com.agent.editor.agent.v2.trace.TraceCollector;
 import com.agent.editor.agent.v2.trace.TraceStore;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
@@ -52,8 +49,8 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(WorkerRegistry.class);
             assertThat(context).hasSingleBean(ExecutionRuntime.class);
             assertThat(context).hasSingleBean(TaskOrchestrator.class);
-            assertThat(context).hasSingleBean(ReflexionActorDefinition.class);
-            assertThat(context).hasSingleBean(ReflexionCriticDefinition.class);
+            assertThat(context).hasSingleBean(ReflexionActor.class);
+            assertThat(context).hasSingleBean(ReflexionCritic.class);
             assertThat(context.containsBean("agentV2Config")).isFalse();
         });
     }
@@ -73,9 +70,9 @@ class AgentV2ConfigurationSplitTest {
             assertThat(workerRegistry.get("writer").getCapabilities()).containsExactly("write", "edit");
             assertThat(workerRegistry.get("writer").getDescription()).contains("grounded");
             assertThat(workerRegistry.get("reviewer").getCapabilities()).containsExactly("review");
-            assertThat(workerRegistry.get("researcher").getAgentDefinition()).isInstanceOf(ResearcherAgentDefinition.class);
-            assertThat(workerRegistry.get("writer").getAgentDefinition()).isInstanceOf(GroundedWriterAgentDefinition.class);
-            assertThat(workerRegistry.get("reviewer").getAgentDefinition()).isInstanceOf(EvidenceReviewerAgentDefinition.class);
+            assertThat(workerRegistry.get("researcher").getAgent()).isInstanceOf(ResearcherAgent.class);
+            assertThat(workerRegistry.get("writer").getAgent()).isInstanceOf(GroundedWriterAgent.class);
+            assertThat(workerRegistry.get("reviewer").getAgent()).isInstanceOf(EvidenceReviewerAgent.class);
         });
     }
 
@@ -92,8 +89,8 @@ class AgentV2ConfigurationSplitTest {
     @Test
     void shouldWireReflexionBeansWithoutReusingSupervisorReviewer() {
         contextRunner.run(context -> {
-            assertThat(context).hasSingleBean(ReflexionActorDefinition.class);
-            assertThat(context).hasSingleBean(ReflexionCriticDefinition.class);
+            assertThat(context).hasSingleBean(ReflexionActor.class);
+            assertThat(context).hasSingleBean(ReflexionCritic.class);
             assertThat(context.getBean(WorkerRegistry.class).all())
                     .extracting(WorkerDefinition::getWorkerId)
                     .doesNotContain("reflexion-critic");

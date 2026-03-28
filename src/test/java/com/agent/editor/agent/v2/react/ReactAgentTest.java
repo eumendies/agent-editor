@@ -24,11 +24,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class ReactAgentDefinitionTest {
+class ReactAgentTest {
 
     @Test
     void shouldReportReactType() {
-        ReactAgentDefinition definition = new ReactAgentDefinition(null);
+        ReactAgent definition = new ReactAgent(null);
 
         assertEquals(AgentType.REACT, definition.type());
     }
@@ -38,7 +38,7 @@ class ReactAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("final answer"))
                 .build());
-        ReactAgentDefinition definition = new ReactAgentDefinition(chatModel);
+        ReactAgent definition = new ReactAgent(chatModel);
 
         Decision decision = definition.decide(context());
 
@@ -62,7 +62,7 @@ class ReactAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("need tool", java.util.List.of(toolRequest)))
                 .build());
-        ReactAgentDefinition definition = new ReactAgentDefinition(chatModel);
+        ReactAgent definition = new ReactAgent(chatModel);
 
         Decision decision = definition.decide(context());
 
@@ -77,7 +77,7 @@ class ReactAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("updated"))
                 .build());
-        ReactAgentDefinition definition = new ReactAgentDefinition(chatModel);
+        ReactAgent definition = new ReactAgent(chatModel);
 
         definition.decide(context());
 
@@ -96,7 +96,7 @@ class ReactAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("final answer"))
                 .build());
-        ReactAgentDefinition definition = new ReactAgentDefinition(chatModel);
+        ReactAgent definition = new ReactAgent(chatModel);
 
         Decision decision = definition.decide(new AgentRunContext(
                 new ExecutionRequest(
@@ -152,7 +152,7 @@ class ReactAgentDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from(null, java.util.List.of(toolRequest)))
                 .build());
-        ReactAgentDefinition definition = new ReactAgentDefinition(chatModel);
+        ReactAgent definition = new ReactAgent(chatModel);
 
         Decision decision = assertDoesNotThrow(() -> definition.decide(context()));
 

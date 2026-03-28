@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.supervisor;
 
-import com.agent.editor.agent.v2.core.agent.AgentDefinition;
+import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
@@ -277,7 +277,7 @@ class SupervisorOrchestratorTest {
         }
     }
 
-    private static final class StubWorkerAgent implements AgentDefinition {
+    private static final class StubWorkerAgent implements Agent {
 
         private final String result;
 
@@ -302,14 +302,14 @@ class SupervisorOrchestratorTest {
         private final List<AgentRunContext> states = new ArrayList<>();
 
         @Override
-        public ExecutionResult run(AgentDefinition definition, ExecutionRequest request) {
+        public ExecutionResult run(Agent definition, ExecutionRequest request) {
             requests.add(request);
             String marker = request.getAllowedTools().contains("editDocument") ? "editor" : "analyzer";
             return new ExecutionResult(marker + " result", request.getDocument().getContent() + " -> " + marker);
         }
 
         @Override
-        public ExecutionResult run(AgentDefinition definition, ExecutionRequest request, AgentRunContext initialState) {
+        public ExecutionResult run(Agent definition, ExecutionRequest request, AgentRunContext initialState) {
             requests.add(request);
             states.add(initialState);
             String marker = request.getAllowedTools().contains("editDocument") ? "editor" : "analyzer";

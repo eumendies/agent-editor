@@ -81,7 +81,7 @@ TaskRequest
      -> AssignWorker / Complete
   -> if AssignWorker:
        WorkerRegistry.get(workerId)
-       ExecutionRuntime.run(worker.agentDefinition, worker-scoped request)
+       ExecutionRuntime.run(worker.agent, worker-scoped request)
        记录 WorkerResult
        回灌给下一轮 supervisor
   -> if Complete:

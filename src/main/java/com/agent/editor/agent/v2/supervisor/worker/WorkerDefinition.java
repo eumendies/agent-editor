@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.supervisor.worker;
 
-import com.agent.editor.agent.v2.core.agent.AgentDefinition;
+import com.agent.editor.agent.v2.core.agent.Agent;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -13,20 +13,20 @@ public class WorkerDefinition {
     private String workerId;
     private String role;
     private String description;
-    private AgentDefinition agentDefinition;
+    private Agent agent;
     private List<String> allowedTools = List.of();
     private List<String> capabilities = List.of();
 
     public WorkerDefinition(String workerId,
                             String role,
                             String description,
-                            AgentDefinition agentDefinition,
+                            Agent agent,
                             List<String> allowedTools,
                             List<String> capabilities) {
         this.workerId = workerId;
         this.role = role;
         this.description = description;
-        this.agentDefinition = agentDefinition;
+        this.agent = agent;
         setAllowedTools(allowedTools);
         setCapabilities(capabilities);
     }
@@ -34,9 +34,9 @@ public class WorkerDefinition {
     public WorkerDefinition(String workerId,
                             String role,
                             String description,
-                            AgentDefinition agentDefinition,
+                            Agent agent,
                             List<String> allowedTools) {
-        this(workerId, role, description, agentDefinition, allowedTools, List.of());
+        this(workerId, role, description, agent, allowedTools, List.of());
     }
 
     public void setAllowedTools(List<String> allowedTools) {

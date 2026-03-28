@@ -5,8 +5,6 @@ import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
-import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
-import com.agent.editor.agent.v2.core.memory.ExecutionMemory;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
@@ -85,7 +83,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                 ));
 
                 ExecutionResult result = executionRuntime.run(
-                        worker.getAgentDefinition(),
+                        worker.getAgent(),
                         new ExecutionRequest(
                                 request.getTaskId(),
                                 request.getSessionId(),

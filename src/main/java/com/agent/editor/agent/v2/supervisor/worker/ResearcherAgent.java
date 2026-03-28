@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.supervisor.worker;
 
-import com.agent.editor.agent.v2.core.agent.AgentDefinition;
+import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.Decision;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
@@ -17,17 +17,17 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ResearcherAgentDefinition implements AgentDefinition {
+public class ResearcherAgent implements Agent {
 
     private final ChatModel chatModel;
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
 
-    public ResearcherAgentDefinition(ChatModel chatModel) {
+    public ResearcherAgent(ChatModel chatModel) {
         this(chatModel, new ExecutionMemoryChatMessageMapper());
     }
 
-    ResearcherAgentDefinition(ChatModel chatModel,
-                              ExecutionMemoryChatMessageMapper memoryChatMessageMapper) {
+    ResearcherAgent(ChatModel chatModel,
+                    ExecutionMemoryChatMessageMapper memoryChatMessageMapper) {
         this.chatModel = chatModel;
         this.memoryChatMessageMapper = memoryChatMessageMapper;
     }

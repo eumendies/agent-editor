@@ -28,7 +28,7 @@ class ReflexionCriticDefinitionTest {
 
     @Test
     void shouldParsePassCritiqueFromModelResponse() {
-        ReflexionCriticDefinition definition = new ReflexionCriticDefinition(
+        ReflexionCritic definition = new ReflexionCritic(
                 new RecordingChatModel("""
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"All key requirements are satisfied"}
                         """)
@@ -44,7 +44,7 @@ class ReflexionCriticDefinitionTest {
 
     @Test
     void shouldParseReviseCritiqueFromModelResponse() {
-        ReflexionCriticDefinition definition = new ReflexionCriticDefinition(
+        ReflexionCritic definition = new ReflexionCritic(
                 new RecordingChatModel("""
                         {"verdict":"REVISE","feedback":"Tighten the introduction","reasoning":"The opening is too long"}
                         """)
@@ -62,7 +62,7 @@ class ReflexionCriticDefinitionTest {
 
     @Test
     void shouldRejectInvalidCritiquePayload() {
-        ReflexionCriticDefinition definition = new ReflexionCriticDefinition(
+        ReflexionCritic definition = new ReflexionCritic(
                 new RecordingChatModel("""
                         {"verdict":"MAYBE","feedback":"unclear","reasoning":"invalid verdict"}
                         """)
@@ -78,7 +78,7 @@ class ReflexionCriticDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel("""
                 {"verdict":"PASS","feedback":"Looks good","reasoning":"All key requirements are satisfied"}
                 """);
-        ReflexionCriticDefinition definition = new ReflexionCriticDefinition(chatModel);
+        ReflexionCritic definition = new ReflexionCritic(chatModel);
 
         definition.decide(new AgentRunContext(
                 new ExecutionRequest(
@@ -115,7 +115,7 @@ class ReflexionCriticDefinitionTest {
         RecordingChatModel chatModel = new RecordingChatModel("""
                 {"verdict":"PASS","feedback":"Looks good","reasoning":"All key requirements are satisfied"}
                 """);
-        ReflexionCriticDefinition definition = new ReflexionCriticDefinition(chatModel);
+        ReflexionCritic definition = new ReflexionCritic(chatModel);
 
         definition.decide(context());
 
