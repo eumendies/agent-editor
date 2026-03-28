@@ -8,15 +8,24 @@ import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
+import com.agent.editor.agent.v2.core.runtime.ToolLoopExecutionRuntime;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
+import com.agent.editor.agent.v2.tool.ToolContext;
+import com.agent.editor.agent.v2.tool.ToolHandler;
+import com.agent.editor.agent.v2.tool.ToolInvocation;
+import com.agent.editor.agent.v2.tool.ToolRegistry;
+import com.agent.editor.agent.v2.tool.ToolResult;
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import org.junit.jupiter.api.Test;
 
@@ -38,8 +47,7 @@ class ReflexionOrchestratorTest {
                 new ActorAgent(),
                 criticWithResponses("""
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"done"}
-                        """),
-                event -> {}
+                        """)
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -72,8 +80,7 @@ class ReflexionOrchestratorTest {
                         """
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"done"}
                         """
-                ),
-                event -> {}
+                )
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -118,8 +125,7 @@ class ReflexionOrchestratorTest {
                         """
                         {"verdict":"REVISE","feedback":"Round 2","reasoning":"continue"}
                         """
-                ),
-                event -> {}
+                )
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -150,8 +156,7 @@ class ReflexionOrchestratorTest {
                         """
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"done"}
                         """
-                ),
-                event -> {}
+                )
         );
 
         orchestrator.execute(new TaskRequest(
@@ -165,6 +170,54 @@ class ReflexionOrchestratorTest {
 
         assertEquals(2, runtime.actorStates.size());
         assertEquals(2, runtime.criticStates.size());
+    }
+
+    @Test
+    void shouldLetCriticUseToolLoopRuntimeBeforePassing() {
+        ToolRegistry registry = new ToolRegistry();
+        registry.register(new AnalyzeDocumentToolHandler());
+        QueueChatModel criticModel = new QueueChatModel(
+                ChatResponse.builder()
+                        .aiMessage(AiMessage.from(
+                                "need evidence",
+                                List.of(ToolExecutionRequest.builder()
+                                        .id("critic-tool-1")
+                                        .name("analyzeDocument")
+                                        .arguments("{\"focus\":\"intro\"}")
+                                        .build())
+                        ))
+                        .build(),
+                ChatResponse.builder()
+                        .aiMessage(AiMessage.from("""
+                                {"verdict":"PASS","feedback":"Looks good","reasoning":"Enough evidence collected"}
+                                """))
+                        .build()
+        );
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(registry, event -> {});
+        ReflexionOrchestrator orchestrator = new ReflexionOrchestrator(
+                runtime,
+                new ActorAgent(),
+                new ReflexionCritic(criticModel)
+        );
+
+        TaskResult result = orchestrator.execute(new TaskRequest(
+                "task-reflex-5",
+                "session-reflex-5",
+                AgentType.REFLEXION,
+                new DocumentSnapshot("doc-5", "Title", "body"),
+                "Improve the draft",
+                3
+        ));
+
+        assertEquals(TaskStatus.COMPLETED, result.getStatus());
+        assertEquals("body", result.getFinalContent());
+        assertEquals(2, criticModel.requests().size());
+        assertTrue(criticModel.requests().get(0).toolSpecifications().stream()
+                .map(ToolSpecification::name)
+                .anyMatch("analyzeDocument"::equals));
+        assertTrue(criticModel.requests().get(1).messages().stream()
+                .map(Object::toString)
+                .anyMatch(text -> text.contains("analyzeDocument => intro needs tightening")));
     }
 
     private ReflexionCritic criticWithResponses(String... responses) {
@@ -234,17 +287,56 @@ class ReflexionOrchestratorTest {
 
     private static final class QueueChatModel implements ChatModel {
 
-        private final Deque<String> responses;
+        private final Deque<ChatResponse> responses;
+        private final List<ChatRequest> requests = new ArrayList<>();
 
         private QueueChatModel(String... responses) {
+            this.responses = new ArrayDeque<>(
+                    List.of(responses).stream()
+                            .map(response -> ChatResponse.builder()
+                                    .aiMessage(AiMessage.from(response))
+                                    .build())
+                            .toList()
+            );
+        }
+
+        private QueueChatModel(ChatResponse... responses) {
             this.responses = new ArrayDeque<>(List.of(responses));
         }
 
         @Override
         public ChatResponse chat(ChatRequest request) {
-            return ChatResponse.builder()
-                    .aiMessage(AiMessage.from(responses.removeFirst()))
+            requests.add(request);
+            return responses.removeFirst();
+        }
+
+        private List<ChatRequest> requests() {
+            return requests;
+        }
+    }
+
+    private static final class AnalyzeDocumentToolHandler implements ToolHandler {
+
+        @Override
+        public String name() {
+            return "analyzeDocument";
+        }
+
+        @Override
+        public ToolSpecification specification() {
+            return ToolSpecification.builder()
+                    .name("analyzeDocument")
+                    .description("analyze document")
+                    .parameters(JsonObjectSchema.builder()
+                            .addStringProperty("focus")
+                            .required("focus")
+                            .build())
                     .build();
+        }
+
+        @Override
+        public ToolResult execute(ToolInvocation invocation, ToolContext context) {
+            return new ToolResult("analyzeDocument => intro needs tightening");
         }
     }
 }

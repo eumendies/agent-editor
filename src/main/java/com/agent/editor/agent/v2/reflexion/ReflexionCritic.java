@@ -1,9 +1,9 @@
 package com.agent.editor.agent.v2.reflexion;
 
-import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.ToolLoopAgent;
 import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
+import com.agent.editor.agent.v2.core.exception.NullChatModelException;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -65,22 +65,12 @@ public class ReflexionCritic implements ToolLoopAgent {
     @Override
     public ToolLoopDecision decide(AgentRunContext context) {
         if (chatModel == null) {
-            // 测试或降级场景下允许 critic 缺席，但仍返回一个结构合法的 revise 结果。
-            return new ToolLoopDecision.Complete("""
-                    {"verdict":"REVISE","feedback":"Critic model unavailable","reasoning":"fallback"}
-                    """.trim(), "critic stub");
+            throw new NullChatModelException("Reflexion Critic require non-null ChatModel");
         }
 
-        String systemPrompt = buildSystemPrompt();
-        String userPrompt = buildUserPrompt(context);
-
         ChatResponse response = chatModel.chat(ChatRequest.builder()
-                .messages(buildMessages(context, systemPrompt, userPrompt))
+                .messages(buildMessages(context, buildAnalysisSystemPrompt(), buildUserPrompt(context)))
                 .toolSpecifications(context.getToolSpecifications())
-                .responseFormat(ResponseFormat.builder()
-                        .type(ResponseFormatType.JSON)
-                        .jsonSchema(REFLEXION_CRITIQUE_SCHEMA)
-                        .build())
                 .build());
 
         AiMessage aiMessage = response.aiMessage();
@@ -97,7 +87,29 @@ public class ReflexionCritic implements ToolLoopAgent {
             );
         }
 
-        return new ToolLoopDecision.Complete(aiMessage.text(), "critic complete");
+        ReflexionCritique critique = tryParseCritique(aiMessage.text());
+        if (critique != null) {
+            return new ToolLoopDecision.Complete<>(critique, "critic complete");
+        }
+
+        // 先让模型自由分析和调工具；只有文本结果无法解析成 verdict 时，再补一次严格 JSON 收口。
+        ChatResponse finalizationResponse = chatModel.chat(ChatRequest.builder()
+                .messages(buildFinalizationMessages(context, aiMessage.text()))
+                .responseFormat(ResponseFormat.builder()
+                        .type(ResponseFormatType.JSON)
+                        .jsonSchema(REFLEXION_CRITIQUE_SCHEMA)
+                        .build())
+                .build());
+
+        ReflexionCritique finalizedCritique = tryParseCritique(finalizationResponse.aiMessage().text());
+        if (finalizedCritique == null) {
+            finalizedCritique = new ReflexionCritique(
+                    ReflexionVerdict.PASS,
+                    "Critic Agent Not Available Now",
+                    "Critic Agent Not Available Now"
+            );
+        }
+        return new ToolLoopDecision.Complete<>(finalizedCritique, "critic complete");
     }
 
     public ReflexionCritique parseCritique(String rawText) {
@@ -113,16 +125,39 @@ public class ReflexionCritic implements ToolLoopAgent {
         }
     }
 
-    private String buildSystemPrompt() {
+    private ReflexionCritique tryParseCritique(String rawText) {
+        if (rawText == null || rawText.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(rawText, ReflexionCritique.class);
+        } catch (JsonProcessingException exception) {
+            return null;
+        }
+    }
+
+    private String buildAnalysisSystemPrompt() {
         return """
                 You are a critic for a document editing reflexion workflow.
                 Review the current draft against the instruction.
-                Return only JSON so the orchestrator can deterministically branch on PASS vs REVISE.
-                Return strict JSON with:
+                Use tools whenever more evidence is needed.
+                You may call tools multiple times until you have enough evidence.
+                When you are ready to finish, return critique JSON with:
                 - verdict: PASS or REVISE
                 - feedback: concise actionable feedback
                 - reasoning: concise explanation
-                Use tools when analysis is needed before finalizing your critique.
+                """;
+    }
+
+    private String buildFinalizationSystemPrompt() {
+        return """
+                You are a critic for a document editing reflexion workflow.
+                Finalize the critique based on the gathered evidence.
+                Do not call any tools.
+                Return only strict JSON with:
+                - verdict: PASS or REVISE
+                - feedback: concise actionable feedback
+                - reasoning: concise explanation
                 """;
     }
 
@@ -143,7 +178,23 @@ public class ReflexionCritic implements ToolLoopAgent {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt));
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().getMemory()));
-        messages.add(UserMessage.from(userPrompt));
+        return messages;
+    }
+
+    private List<ChatMessage> buildFinalizationMessages(AgentRunContext context, String analysisText) {
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(SystemMessage.from(buildFinalizationSystemPrompt()));
+        messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().getMemory()));
+        messages.add(UserMessage.from("""
+                Current document:
+                %s
+
+                Draft critique analysis:
+                %s
+                """.formatted(
+                context.state().getCurrentContent(),
+                analysisText == null ? "" : analysisText
+        )));
         return messages;
     }
 }

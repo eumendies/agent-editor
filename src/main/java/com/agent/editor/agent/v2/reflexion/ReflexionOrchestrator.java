@@ -3,6 +3,7 @@ package com.agent.editor.agent.v2.reflexion;
 import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
+import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
@@ -12,6 +13,9 @@ import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
+import org.checkerframework.checker.units.qual.A;
+
+import java.util.ArrayList;
 import java.util.List;
 
 public class ReflexionOrchestrator implements TaskOrchestrator {
@@ -22,16 +26,13 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
     private final ExecutionRuntime runtime;
     private final Agent actorDefinition;
     private final ReflexionCritic criticDefinition;
-    private final EventPublisher eventPublisher;
 
     public ReflexionOrchestrator(ExecutionRuntime runtime,
                                  Agent actorDefinition,
-                                 ReflexionCritic criticDefinition,
-                                 EventPublisher eventPublisher) {
+                                 ReflexionCritic criticDefinition) {
         this.runtime = runtime;
         this.actorDefinition = actorDefinition;
         this.criticDefinition = criticDefinition;
-        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -56,13 +57,13 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
             );
             actorState = actorResult.getFinalState();
             currentContent = actorResult.getFinalContent();
-            ExecutionResult criticResult = runtime.run(
+            ExecutionResult<ReflexionCritique> criticResult = runtime.run(
                     criticDefinition,
-                    criticRequest(request, currentContent, actorResult.getFinalMessage()),
+                    criticRequest(request, currentContent),
                     // critic 每轮 fresh，避免把上轮批评过程本身继续带进下一轮判定。
-                    new AgentRunContext(0, currentContent)
+                    prepareCriticContext(actorState, actorResult.getFinalMessage())
             );
-            ReflexionCritique critique = criticDefinition.parseCritique(criticResult.getFinalMessage());
+            ReflexionCritique critique = criticResult.getResult();
             if (critique.getVerdict() == ReflexionVerdict.PASS) {
                 return new TaskResult(TaskStatus.COMPLETED, currentContent, actorState.getMemory());
             }
@@ -88,22 +89,36 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
         );
     }
 
-    private ExecutionRequest criticRequest(TaskRequest request, String currentContent, String actorSummary) {
+    private ExecutionRequest criticRequest(TaskRequest request, String currentContent) {
         return new ExecutionRequest(
                 request.getTaskId(),
                 request.getSessionId(),
                 AgentType.REFLEXION,
                 new DocumentSnapshot(request.getDocument().getDocumentId(), request.getDocument().getTitle(), currentContent),
-                // critic 看的是“原始目标 + actor 本轮摘要”，而不是直接继承 actor 的完整指令链。
-                """
-                Original instruction:
-                %s
-
-                Actor summary:
-                %s
-                """.formatted(request.getInstruction(), actorSummary),
+                "critic current content",
                 request.getMaxIterations(),
                 CRITIC_ALLOWED_TOOLS
+        );
+    }
+
+    private AgentRunContext prepareCriticContext(AgentRunContext state, String actorSummary) {
+        ArrayList<ChatMessage> messages = new ArrayList<>();
+        messages.add(new ChatMessage.UserChatMessage(state.getRequest().getInstruction()));
+        messages.add(new ChatMessage.AiChatMessage("""
+                Current Content:
+                %s
+                Actor Summary:
+                %s
+               """.formatted(state.getCurrentContent(), actorSummary)));
+
+        return new AgentRunContext(
+                state.getRequest(),
+                state.getIteration(),
+                state.getCurrentContent(),
+                new ChatTranscriptMemory(messages),
+                ExecutionStage.RUNNING,
+                state.getPendingReason(),
+                state.getToolSpecifications()
         );
     }
 

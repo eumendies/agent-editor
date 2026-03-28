@@ -89,8 +89,7 @@ public class TaskOrchestratorConfig {
         TaskOrchestrator reflexionOrchestrator = new ReflexionOrchestrator(
                 executionRuntime,
                 reflexionActorDefinition,
-                reflexionCriticDefinition,
-                eventPublisher
+                reflexionCriticDefinition
         );
 
         return new SessionMemoryTaskOrchestrator(new RoutingTaskOrchestrator(Map.of(
