@@ -44,12 +44,9 @@ class ToolLoopExecutionRuntimeTest {
         assertEquals(ExecutionStage.COMPLETED, result.getFinalState().getStage());
         assertEquals("body", result.getFinalState().getCurrentContent());
         ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) result.getFinalState().getMemory();
-        assertEquals(2, transcriptMemory.getMessages().size());
-        ChatMessage.UserChatMessage userMessage =
-                (ChatMessage.UserChatMessage) transcriptMemory.getMessages().get(0);
+        assertEquals(1, transcriptMemory.getMessages().size());
         ChatMessage.AiChatMessage aiMessage =
-                (ChatMessage.AiChatMessage) transcriptMemory.getMessages().get(1);
-        assertEquals("finish", userMessage.getText());
+                (ChatMessage.AiChatMessage) transcriptMemory.getMessages().get(0);
         assertEquals("done", aiMessage.getText());
     }
 
@@ -215,7 +212,7 @@ class ToolLoopExecutionRuntimeTest {
                 message instanceof ChatMessage.AiChatMessage aiMessage
                         && aiMessage.getText().contains("thinking")
         ));
-        assertTrue(transcriptMemory.getMessages().stream().anyMatch(message ->
+        assertTrue(transcriptMemory.getMessages().stream().noneMatch(message ->
                 message instanceof ChatMessage.UserChatMessage userMessage
                         && userMessage.getText().contains("use tool")
         ));

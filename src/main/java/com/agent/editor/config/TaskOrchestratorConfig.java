@@ -9,11 +9,15 @@ import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.LegacyEventAdapter;
 import com.agent.editor.agent.v2.event.WebSocketEventPublisher;
 import com.agent.editor.agent.v2.memory.InMemorySessionMemoryStore;
+import com.agent.editor.agent.v2.planning.PlanningAgentContextFactory;
 import com.agent.editor.agent.v2.planning.PlanningAgentImpl;
 import com.agent.editor.agent.v2.planning.PlanningThenExecutionOrchestrator;
 import com.agent.editor.agent.v2.react.ReactAgent;
+import com.agent.editor.agent.v2.react.ReactAgentContextFactory;
 import com.agent.editor.agent.v2.reflexion.ReflexionActor;
+import com.agent.editor.agent.v2.reflexion.ReflexionActorContextFactory;
 import com.agent.editor.agent.v2.reflexion.ReflexionCritic;
+import com.agent.editor.agent.v2.reflexion.ReflexionCriticContextFactory;
 import com.agent.editor.agent.v2.reflexion.ReflexionOrchestrator;
 import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
 import com.agent.editor.agent.v2.supervisor.SupervisorOrchestrator;
@@ -27,8 +31,6 @@ import com.agent.editor.service.TaskQueryService;
 import com.agent.editor.websocket.WebSocketService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.beans.factory.annotation.Qualifier;
-
 import java.util.Map;
 
 @Configuration
@@ -63,6 +65,26 @@ public class TaskOrchestratorConfig {
     }
 
     @Bean
+    public ReactAgentContextFactory reactAgentContextFactory() {
+        return new ReactAgentContextFactory();
+    }
+
+    @Bean
+    public PlanningAgentContextFactory planningAgentContextFactory() {
+        return new PlanningAgentContextFactory();
+    }
+
+    @Bean
+    public ReflexionActorContextFactory reflexionActorContextFactory() {
+        return new ReflexionActorContextFactory();
+    }
+
+    @Bean
+    public ReflexionCriticContextFactory reflexionCriticContextFactory() {
+        return new ReflexionCriticContextFactory();
+    }
+
+    @Bean
     public TaskOrchestrator taskOrchestrator(ToolLoopExecutionRuntime executionRuntime,
                                              PlanningExecutionRuntime planningExecutionRuntime,
                                              EventPublisher eventPublisher,
@@ -72,13 +94,18 @@ public class TaskOrchestratorConfig {
                                              ReflexionActor reflexionActorDefinition,
                                              ReflexionCritic reflexionCriticDefinition,
                                              SupervisorAgentDefinition supervisorAgentDefinition,
-                                             SessionMemoryStore sessionMemoryStore) {
-        TaskOrchestrator reactOrchestrator = new ReActAgentOrchestrator(executionRuntime, reactAgentDefinition);
+                                             SessionMemoryStore sessionMemoryStore,
+                                             ReactAgentContextFactory reactAgentContextFactory,
+                                             PlanningAgentContextFactory planningAgentContextFactory,
+                                             ReflexionActorContextFactory reflexionActorContextFactory,
+                                             ReflexionCriticContextFactory reflexionCriticContextFactory) {
+        TaskOrchestrator reactOrchestrator = new ReActAgentOrchestrator(executionRuntime, reactAgentDefinition, reactAgentContextFactory);
         TaskOrchestrator planningOrchestrator = new PlanningThenExecutionOrchestrator(
                 planningExecutionRuntime,
                 planningAgentImplDefinition,
                 executionRuntime,
-                reactAgentDefinition
+                reactAgentDefinition,
+                planningAgentContextFactory
         );
         TaskOrchestrator supervisorOrchestrator = new SupervisorOrchestrator(
                 supervisorAgentDefinition,
@@ -89,7 +116,9 @@ public class TaskOrchestratorConfig {
         TaskOrchestrator reflexionOrchestrator = new ReflexionOrchestrator(
                 executionRuntime,
                 reflexionActorDefinition,
-                reflexionCriticDefinition
+                reflexionCriticDefinition,
+                reflexionActorContextFactory,
+                reflexionCriticContextFactory
         );
 
         return new SessionMemoryTaskOrchestrator(new RoutingTaskOrchestrator(Map.of(

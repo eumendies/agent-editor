@@ -11,6 +11,10 @@ public class ReflexionActor extends ReactAgent {
         super(chatModel);
     }
 
+    public ReflexionActor(ChatModel chatModel, ReflexionActorContextFactory contextFactory) {
+        super(chatModel, contextFactory);
+    }
+
     @Override
     public AgentType type() {
         return AgentType.REFLEXION;

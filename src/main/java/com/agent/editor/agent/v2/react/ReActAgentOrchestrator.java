@@ -5,7 +5,6 @@ import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
-import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
@@ -15,23 +14,21 @@ public class ReActAgentOrchestrator implements TaskOrchestrator {
 
     private final ExecutionRuntime runtime;
     private final Agent agent;
+    private final ReactAgentContextFactory contextFactory;
 
     public ReActAgentOrchestrator(ExecutionRuntime runtime, Agent agent) {
+        this(runtime, agent, new ReactAgentContextFactory());
+    }
+
+    public ReActAgentOrchestrator(ExecutionRuntime runtime, Agent agent, ReactAgentContextFactory contextFactory) {
         this.runtime = runtime;
         this.agent = agent;
+        this.contextFactory = contextFactory;
     }
 
     @Override
     public TaskResult execute(TaskRequest request) {
-        AgentRunContext initialState = new AgentRunContext(
-                null,
-                0,
-                request.getDocument().getContent(),
-                request.getMemory(),
-                ExecutionStage.RUNNING,
-                null,
-                java.util.List.of()
-        );
+        AgentRunContext initialState = contextFactory.prepareInitialContext(request);
         ExecutionResult result = runtime.run(
                 agent,
                 new ExecutionRequest(

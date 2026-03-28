@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PlanningThenExecutionOrchestratorTest {
@@ -86,11 +87,26 @@ class PlanningThenExecutionOrchestratorTest {
         assertEquals("body -> Add outline", runtime.states().get(1).getCurrentContent());
         ChatTranscriptMemory firstStepMemory = (ChatTranscriptMemory) runtime.states().get(0).getMemory();
         assertTrue(firstStepMemory.getMessages().stream().anyMatch(message -> "previous turn".equals(message.getText())));
+        assertFalse(firstStepMemory.getMessages().stream().anyMatch(message -> "Improve document".equals(message.getText())));
+        assertTrue(firstStepMemory.getMessages().stream().anyMatch(message ->
+                message instanceof ChatMessage.UserChatMessage userMessage
+                        && "Plan step 1: Add outline".equals(userMessage.getText())
+        ));
         ChatTranscriptMemory secondStepMemory = (ChatTranscriptMemory) runtime.states().get(1).getMemory();
         assertTrue(secondStepMemory.getMessages().stream().anyMatch(message ->
                 message instanceof ChatMessage.UserChatMessage userMessage
-                        && userMessage.getText().contains("completed Add outline")
+                        && "Plan step 1: Add outline".equals(userMessage.getText())
         ));
+        assertTrue(secondStepMemory.getMessages().stream().anyMatch(message ->
+                message instanceof ChatMessage.AiChatMessage aiMessage
+                        && "Step result: completed Add outline".equals(aiMessage.getText())
+        ));
+        assertTrue(secondStepMemory.getMessages().stream().anyMatch(message ->
+                message instanceof ChatMessage.UserChatMessage userMessage
+                        && "Plan step 2: Refine tone".equals(userMessage.getText())
+        ));
+        assertFalse(secondStepMemory.getMessages().stream().anyMatch(ChatMessage.ToolExecutionResultChatMessage.class::isInstance));
+        assertFalse(secondStepMemory.getMessages().stream().anyMatch(ChatMessage.AiToolCallChatMessage.class::isInstance));
     }
 
     private static PlanResult plan(String... instructions) {
@@ -186,14 +202,24 @@ class PlanningThenExecutionOrchestratorTest {
             String updatedContent = initialState.getCurrentContent() + " -> " + request.getInstruction();
             return new ExecutionResult(
                     request.getInstruction(),
-                    request.getInstruction(),
+                    "completed " + request.getInstruction(),
                     updatedContent,
                     new AgentRunContext(
                             request,
                             initialState.getIteration() + 1,
                             updatedContent,
                             new ChatTranscriptMemory(List.of(
-                                    new ChatMessage.UserChatMessage("completed " + request.getInstruction())
+                                    new ChatMessage.AiToolCallChatMessage(
+                                            "need tool",
+                                            List.of()
+                                    ),
+                                    new ChatMessage.ToolExecutionResultChatMessage(
+                                            "tool-1",
+                                            "searchContent",
+                                            "{\"query\":\"heading\"}",
+                                            "tool result"
+                                    ),
+                                    new ChatMessage.AiChatMessage("completed " + request.getInstruction())
                             )),
                             ExecutionStage.COMPLETED,
                             null,

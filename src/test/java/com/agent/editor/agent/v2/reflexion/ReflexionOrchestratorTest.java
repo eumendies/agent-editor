@@ -63,8 +63,18 @@ class ReflexionOrchestratorTest {
         assertEquals("body -> actor-pass-1", result.getFinalContent());
         assertEquals(1, runtime.actorStates.size());
         assertEquals(1, runtime.criticStates.size());
+        ChatTranscriptMemory actorMemory = (ChatTranscriptMemory) runtime.actorStates.get(0).getMemory();
+        assertTrue(actorMemory.getMessages().stream().anyMatch(message ->
+                message instanceof ChatMessage.UserChatMessage userMessage
+                        && "Improve the draft".equals(userMessage.getText())
+        ));
         assertEquals(List.of("editDocument", "searchContent"), runtime.actorAllowedTools.get(0));
         assertEquals(List.of("searchContent", "analyzeDocument"), runtime.criticAllowedTools.get(0));
+        ChatTranscriptMemory criticMemory = (ChatTranscriptMemory) runtime.criticStates.get(0).getMemory();
+        assertTrue(criticMemory.getMessages().stream().anyMatch(message ->
+                message instanceof ChatMessage.UserChatMessage userMessage
+                        && "Improve the draft".equals(userMessage.getText())
+        ));
     }
 
     @Test

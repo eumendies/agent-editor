@@ -43,9 +43,8 @@ class PlanningExecutionRuntimeTest {
         assertEquals(ExecutionStage.COMPLETED, result.getFinalState().getStage());
         assertEquals("body", result.getFinalState().getCurrentContent());
         ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) result.getFinalState().getMemory();
-        assertEquals(2, transcriptMemory.getMessages().size());
-        assertEquals("split the work", ((ChatMessage.UserChatMessage) transcriptMemory.getMessages().get(0)).getText());
-        assertTrue(((ChatMessage.AiChatMessage) transcriptMemory.getMessages().get(1)).getText().contains("2 step"));
+        assertEquals(1, transcriptMemory.getMessages().size());
+        assertTrue(((ChatMessage.AiChatMessage) transcriptMemory.getMessages().get(0)).getText().contains("2 step"));
         assertEquals(
                 List.of(EventType.TASK_STARTED, EventType.PLAN_CREATED, EventType.TASK_COMPLETED),
                 eventPublisher.events().stream().map(ExecutionEvent::getType).toList()
@@ -110,7 +109,7 @@ class PlanningExecutionRuntimeTest {
                 message instanceof ChatMessage.AiChatMessage aiMessage
                         && "previous answer".equals(aiMessage.getText())
         ));
-        assertTrue(transcriptMemory.getMessages().stream().anyMatch(message ->
+        assertTrue(transcriptMemory.getMessages().stream().noneMatch(message ->
                 message instanceof ChatMessage.UserChatMessage userMessage
                         && "plan this".equals(userMessage.getText())
         ));

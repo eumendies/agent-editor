@@ -56,8 +56,7 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
         // runtime 维护“本轮文档内容 + 工具结果历史”，每次决策都基于最新状态继续推进。
         AgentRunContext state = initialContext
                 .withRequest(request)
-                .withToolSpecifications(toolRegistry.specifications(request.getAllowedTools()))
-                .appendMemory(new ChatMessage.UserChatMessage(request.getInstruction()));
+                .withToolSpecifications(toolRegistry.specifications(request.getAllowedTools()));
         while (state.getIteration() < request.getMaxIterations() && state.getStage() != com.agent.editor.agent.v2.core.state.ExecutionStage.COMPLETED) {
             eventPublisher.publish(new ExecutionEvent(EventType.ITERATION_STARTED, request.getTaskId(), "iteration " + state.getIteration()));
 

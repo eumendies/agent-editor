@@ -39,8 +39,7 @@ public class PlanningExecutionRuntime implements ExecutionRuntime {
         eventPublisher.publish(new ExecutionEvent(EventType.TASK_STARTED, request.getTaskId(), "execution started"));
 
         AgentRunContext state = initialContext
-                .withRequest(request)
-                .appendMemory(new ChatMessage.UserChatMessage(request.getInstruction()));
+                .withRequest(request);
         PlanResult planResult = agent.createPlan(state);
         String planSummary = buildPlanSummary(planResult);
 
