@@ -77,8 +77,8 @@ public class GroundedWriterAgent implements ToolLoopAgent {
     private List<ChatMessage> buildMessages(AgentRunContext context, String systemPrompt) {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt));
-        messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().getMemory()));
         messages.add(UserMessage.from(context.getRequest().getInstruction()));
+        messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().getMemory()));
         return messages;
     }
 

@@ -2,6 +2,8 @@ package com.agent.editor.agent.v2.event;
 
 public enum EventType {
     TASK_STARTED,
+    TASK_COMPLETED,
+    TASK_FAILED,
     PLAN_CREATED,
     WORKER_SELECTED,
     WORKER_COMPLETED,
@@ -11,6 +13,4 @@ public enum EventType {
     TOOL_CALLED,
     TOOL_SUCCEEDED,
     TOOL_FAILED,
-    TASK_COMPLETED,
-    TASK_FAILED
 }

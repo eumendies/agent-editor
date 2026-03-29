@@ -17,6 +17,7 @@ import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
+import com.agent.editor.agent.v2.core.runtime.SupervisorExecutionRuntime;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
@@ -53,8 +54,10 @@ class SupervisorOrchestratorTest {
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
         RecordingEventPublisher eventPublisher = new RecordingEventPublisher();
         TraceStore traceStore = new InMemoryTraceStore();
+        RecordingSupervisorExecutionRuntime supervisorRuntime = new RecordingSupervisorExecutionRuntime();
         SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(
                 new ScriptedSupervisorAgentDefinition(),
+                supervisorRuntime,
                 workerRegistry,
                 runtime,
                 eventPublisher,
@@ -73,6 +76,7 @@ class SupervisorOrchestratorTest {
         assertEquals(TaskStatus.COMPLETED, result.getStatus());
         assertEquals("body -> analyzer -> editor", result.getFinalContent());
         assertEquals(List.of("analyzer", "editor"), runtime.workerIds());
+        assertEquals(3, supervisorRuntime.runCount);
         assertEquals(List.of(
                 List.of("searchContent", "analyzeDocument"),
                 List.of("editDocument", "appendToDocument", "getDocumentSnapshot")
@@ -100,8 +104,10 @@ class SupervisorOrchestratorTest {
                 List.of("editDocument", "appendToDocument", "getDocumentSnapshot")
         ));
 
+        RecordingSupervisorExecutionRuntime supervisorRuntime = new RecordingSupervisorExecutionRuntime();
         SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(
                 new ScriptedSupervisorAgentDefinition(),
+                supervisorRuntime,
                 workerRegistry,
                 new RecordingExecutionRuntime(),
                 event -> {},
@@ -135,8 +141,10 @@ class SupervisorOrchestratorTest {
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
         RepeatingWorkerSupervisorAgentDefinition supervisor = new RepeatingWorkerSupervisorAgentDefinition();
         RecordingSupervisorContextFactory contextFactory = new RecordingSupervisorContextFactory();
+        RecordingSupervisorExecutionRuntime supervisorRuntime = new RecordingSupervisorExecutionRuntime();
         SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(
                 supervisor,
+                supervisorRuntime,
                 workerRegistry,
                 runtime,
                 event -> {},
@@ -156,6 +164,7 @@ class SupervisorOrchestratorTest {
         assertEquals("body -> analyzer -> analyzer", result.getFinalContent());
         assertEquals(List.of("analyzer", "analyzer"), runtime.workerIds());
         assertEquals(3, supervisor.contexts().size());
+        assertEquals(3, supervisorRuntime.runCount);
         assertEquals(3, contextFactory.supervisorContextBuildCount);
         assertEquals(2, contextFactory.workerExecutionContextBuildCount);
         assertEquals(2, contextFactory.workerSummaryCount);
@@ -186,6 +195,7 @@ class SupervisorOrchestratorTest {
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
         SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(
                 new ScriptedSupervisorAgentDefinition(),
+                new RecordingSupervisorExecutionRuntime(),
                 workerRegistry,
                 runtime,
                 event -> {},
@@ -235,6 +245,7 @@ class SupervisorOrchestratorTest {
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
         SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(
                 new ScriptedSupervisorAgentDefinition(),
+                new RecordingSupervisorExecutionRuntime(),
                 workerRegistry,
                 runtime,
                 event -> {},
@@ -440,6 +451,21 @@ class SupervisorOrchestratorTest {
                                                      ExecutionResult<?> result) {
             workerSummaryCount++;
             return super.summarizeWorkerResult(conversationState, workerId, result);
+        }
+    }
+
+    private static final class RecordingSupervisorExecutionRuntime extends SupervisorExecutionRuntime {
+
+        private int runCount;
+
+        private RecordingSupervisorExecutionRuntime() {
+            super(event -> {});
+        }
+
+        @Override
+        public ExecutionResult<SupervisorDecision> run(Agent agent, ExecutionRequest request, AgentRunContext initialContext) {
+            runCount++;
+            return super.run(agent, request, initialContext);
         }
     }
 }

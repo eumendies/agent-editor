@@ -8,6 +8,7 @@ import com.agent.editor.agent.v2.core.context.SupervisorContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
+import com.agent.editor.agent.v2.core.runtime.SupervisorExecutionRuntime;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.event.EventPublisher;
@@ -27,17 +28,20 @@ import java.util.List;
 public class SupervisorOrchestrator implements TaskOrchestrator {
 
     private final SupervisorAgent supervisorAgent;
+    private final SupervisorExecutionRuntime supervisorExecutionRuntime;
     private final WorkerRegistry workerRegistry;
     private final ExecutionRuntime executionRuntime;
     private final EventPublisher eventPublisher;
     private final SupervisorContextFactory supervisorContextFactory;
 
     public SupervisorOrchestrator(SupervisorAgent supervisorAgent,
+                                  SupervisorExecutionRuntime supervisorExecutionRuntime,
                                   WorkerRegistry workerRegistry,
                                   ExecutionRuntime executionRuntime,
                                   EventPublisher eventPublisher,
                                   SupervisorContextFactory supervisorContextFactory) {
         this.supervisorAgent = supervisorAgent;
+        this.supervisorExecutionRuntime = supervisorExecutionRuntime;
         this.workerRegistry = workerRegistry;
         this.executionRuntime = executionRuntime;
         this.eventPublisher = eventPublisher;
@@ -59,7 +63,23 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                     workerResults,
                     workerRegistry.all()
             );
-            SupervisorDecision decision = supervisorAgent.decide(supervisorContext);
+            ExecutionResult<SupervisorDecision> supervisorResult = supervisorExecutionRuntime.run(
+                    supervisorAgent,
+                    new ExecutionRequest(
+                            request.getTaskId(),
+                            request.getSessionId(),
+                            AgentType.SUPERVISOR,
+                            new DocumentSnapshot(
+                                    request.getDocument().getDocumentId(),
+                                    request.getDocument().getTitle(),
+                                    currentContent
+                            ),
+                            request.getInstruction(),
+                            request.getMaxIterations()
+                    ),
+                    supervisorContext
+            );
+            SupervisorDecision decision = supervisorResult.getResult();
 
             if (decision instanceof SupervisorDecision.AssignWorker assignWorker) {
                 SupervisorContext.WorkerDefinition worker = workerRegistry.get(assignWorker.getWorkerId());

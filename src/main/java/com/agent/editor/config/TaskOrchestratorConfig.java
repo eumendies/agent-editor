@@ -5,6 +5,7 @@ import com.agent.editor.agent.v2.core.agent.SupervisorAgent;
 import com.agent.editor.agent.v2.core.memory.SessionMemoryStore;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.runtime.PlanningExecutionRuntime;
+import com.agent.editor.agent.v2.core.runtime.SupervisorExecutionRuntime;
 import com.agent.editor.agent.v2.core.runtime.ToolLoopExecutionRuntime;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.LegacyEventAdapter;
@@ -61,6 +62,11 @@ public class TaskOrchestratorConfig {
     }
 
     @Bean
+    public SupervisorExecutionRuntime supervisorExecutionRuntime(EventPublisher eventPublisher) {
+        return new SupervisorExecutionRuntime(eventPublisher);
+    }
+
+    @Bean
     public SessionMemoryStore sessionMemoryStore() {
         return new InMemorySessionMemoryStore();
     }
@@ -93,6 +99,7 @@ public class TaskOrchestratorConfig {
     @Bean
     public TaskOrchestrator taskOrchestrator(ToolLoopExecutionRuntime executionRuntime,
                                              PlanningExecutionRuntime planningExecutionRuntime,
+                                             SupervisorExecutionRuntime supervisorExecutionRuntime,
                                              EventPublisher eventPublisher,
                                              WorkerRegistry workerRegistry,
                                              PlanningAgentImpl planningAgentImplDefinition,
@@ -116,6 +123,7 @@ public class TaskOrchestratorConfig {
         );
         TaskOrchestrator supervisorOrchestrator = new SupervisorOrchestrator(
                 supervisorAgentDefinition,
+                supervisorExecutionRuntime,
                 workerRegistry,
                 executionRuntime,
                 eventPublisher,

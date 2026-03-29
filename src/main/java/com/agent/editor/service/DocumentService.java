@@ -20,9 +20,15 @@ public class DocumentService {
 
     public DocumentService() {
         Document sampleDoc = new Document(
-            "doc-001",
-            "Welcome Document",
-            "Welcome to AI Editor!\n\nThis is a sample document.\nYou can edit it using AI-powered agents.\n\nTry asking the agent to:\n- Format this text\n- Add more content\n- Change the style"
+        "doc-001",
+        "Welcome Document",
+        """
+                从前，有一只小狐狸住在森林边缘。它毛色火红，眼睛明亮，对这个世界充满了好奇。
+                
+                狐狸妈妈总是叮嘱它："孩子，不要在森林里走得太远，外面很危险。"
+                
+                小狐狸点点头，但心里却想着：森林外面到底是什么样子的呢？
+                """
         );
         documents.put(sampleDoc.getId(), sampleDoc);
     }

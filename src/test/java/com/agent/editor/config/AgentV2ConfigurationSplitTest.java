@@ -4,6 +4,7 @@ import com.agent.editor.agent.v2.core.agent.SupervisorAgent;
 import com.agent.editor.agent.v2.core.context.SupervisorContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.runtime.PlanningExecutionRuntime;
+import com.agent.editor.agent.v2.core.runtime.SupervisorExecutionRuntime;
 import com.agent.editor.agent.v2.core.runtime.ToolLoopExecutionRuntime;
 import com.agent.editor.agent.v2.reflexion.ReflexionActor;
 import com.agent.editor.agent.v2.reflexion.ReflexionCritic;
@@ -54,7 +55,8 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(WorkerRegistry.class);
             assertThat(context).hasSingleBean(ToolLoopExecutionRuntime.class);
             assertThat(context).hasSingleBean(PlanningExecutionRuntime.class);
-            assertThat(context).getBeans(ExecutionRuntime.class).hasSize(2);
+            assertThat(context).hasSingleBean(SupervisorExecutionRuntime.class);
+            assertThat(context).getBeans(ExecutionRuntime.class).hasSize(3);
             assertThat(context).hasSingleBean(TaskOrchestrator.class);
             assertThat(context).hasSingleBean(ReflexionActor.class);
             assertThat(context).hasSingleBean(ReflexionCritic.class);
