@@ -4,7 +4,7 @@ import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.ToolLoopAgent;
 import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
-import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
+import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;

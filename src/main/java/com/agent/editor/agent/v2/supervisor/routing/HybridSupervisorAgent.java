@@ -1,12 +1,12 @@
 package com.agent.editor.agent.v2.supervisor.routing;
 
-import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
-import com.agent.editor.agent.v2.supervisor.SupervisorContext;
-import com.agent.editor.agent.v2.supervisor.SupervisorDecision;
+import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.agent.SupervisorAgent;
+import com.agent.editor.agent.v2.core.context.SupervisorContext;
+import com.agent.editor.agent.v2.core.agent.SupervisorDecision;
+import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
 import com.agent.editor.agent.v2.supervisor.worker.ReviewerFeedback;
 import com.agent.editor.agent.v2.supervisor.worker.ReviewerVerdict;
-import com.agent.editor.agent.v2.supervisor.worker.WorkerDefinition;
-import com.agent.editor.agent.v2.supervisor.worker.WorkerResult;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.model.chat.ChatModel;
@@ -16,19 +16,34 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinition {
+public class HybridSupervisorAgent implements SupervisorAgent {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private final SupervisorRoutingAiService routingAiService;
+    private final SupervisorContextFactory contextFactory;
 
-    public HybridSupervisorAgentDefinition(ChatModel chatModel) {
-        this(createRoutingAiService(chatModel));
+    public HybridSupervisorAgent(ChatModel chatModel) {
+        this(createRoutingAiService(chatModel), new SupervisorContextFactory());
     }
 
-    HybridSupervisorAgentDefinition(SupervisorRoutingAiService routingAiService) {
+    public HybridSupervisorAgent(ChatModel chatModel, SupervisorContextFactory contextFactory) {
+        this(createRoutingAiService(chatModel), contextFactory);
+    }
+
+    HybridSupervisorAgent(SupervisorRoutingAiService routingAiService) {
+        this(routingAiService, new SupervisorContextFactory());
+    }
+
+    HybridSupervisorAgent(SupervisorRoutingAiService routingAiService, SupervisorContextFactory contextFactory) {
         this.routingAiService = routingAiService;
+        this.contextFactory = contextFactory;
+    }
+
+    @Override
+    public AgentType type() {
+        return AgentType.SUPERVISOR;
     }
 
     @Override
@@ -54,7 +69,7 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
         }
 
         // 这里只保留硬规则过滤，避免用不可靠的关键词意图判断提前排除 worker。
-        List<WorkerDefinition> candidates = selectCandidates(context);
+        List<SupervisorContext.WorkerDefinition> candidates = selectCandidates(context);
         if (candidates.isEmpty()) {
             return new SupervisorDecision.Complete(
                     context.getCurrentContent(),
@@ -75,24 +90,24 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
 
             if (routingResponse.getAction() == SupervisorAction.ASSIGN_WORKER) {
                 // 模型只能选择候选集合内的 worker，越界结果直接视为无效输出。
-                WorkerDefinition selectedWorker = candidates.stream()
+                SupervisorContext.WorkerDefinition selectedWorker = candidates.stream()
                         .filter(worker -> worker.getWorkerId().equals(routingResponse.getWorkerId()))
                         .findFirst()
                         .orElse(null);
                 if (selectedWorker != null) {
                     return new SupervisorDecision.AssignWorker(
                             selectedWorker.getWorkerId(),
-                            firstNonBlank(routingResponse.getInstruction(), buildFallbackInstruction(selectedWorker, context)),
+                            firstNonBlank(routingResponse.getInstruction(), contextFactory.buildFallbackInstruction(selectedWorker, context)),
                             firstNonBlank(routingResponse.getReasoning(), "model selected candidate")
                     );
                 }
             }
         }
 
-        WorkerDefinition fallbackWorker = candidates.get(0);
+        SupervisorContext.WorkerDefinition fallbackWorker = candidates.get(0);
         return new SupervisorDecision.AssignWorker(
                 fallbackWorker.getWorkerId(),
-                buildFallbackInstruction(fallbackWorker, context),
+                contextFactory.buildFallbackInstruction(fallbackWorker, context),
                 "rule-based fallback"
         );
     }
@@ -103,22 +118,22 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
                 .build();
     }
 
-    private List<WorkerDefinition> selectCandidates(SupervisorContext context) {
+    private List<SupervisorContext.WorkerDefinition> selectCandidates(SupervisorContext context) {
         String demotedWorkerId = consecutiveWorkerId(context);
-        List<WorkerDefinition> allowedWorkers = context.getAvailableWorkers().stream()
+        List<SupervisorContext.WorkerDefinition> allowedWorkers = context.getAvailableWorkers().stream()
                 .filter(worker -> !worker.getWorkerId().equals(demotedWorkerId))
                 .toList();
         if (allowedWorkers.isEmpty()) {
             return List.of();
         }
 
-        ArrayList<WorkerDefinition> ordered = new ArrayList<>();
+        ArrayList<SupervisorContext.WorkerDefinition> ordered = new ArrayList<>();
         if (context.getWorkerResults().isEmpty()) {
             addRemaining(ordered, allowedWorkers);
             return List.copyOf(ordered);
         }
 
-        WorkerResult latest = context.getWorkerResults().get(context.getWorkerResults().size() - 1);
+        SupervisorContext.WorkerResult latest = context.getWorkerResults().get(context.getWorkerResults().size() - 1);
         if ("reviewer".equals(latest.getWorkerId())) {
             ReviewerFeedback reviewerFeedback = parseReviewerFeedback(latest.getSummary());
             if (reviewerFeedback != null) {
@@ -142,8 +157,8 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
             return false;
         }
 
-        WorkerResult latest = context.getWorkerResults().get(context.getWorkerResults().size() - 1);
-        WorkerResult previous = context.getWorkerResults().get(context.getWorkerResults().size() - 2);
+        SupervisorContext.WorkerResult latest = context.getWorkerResults().get(context.getWorkerResults().size() - 1);
+        SupervisorContext.WorkerResult previous = context.getWorkerResults().get(context.getWorkerResults().size() - 2);
         return Objects.equals(latest.getUpdatedContent(), context.getCurrentContent())
                 && Objects.equals(previous.getUpdatedContent(), context.getCurrentContent())
                 && Objects.equals(latest.getUpdatedContent(), previous.getUpdatedContent())
@@ -155,8 +170,8 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
             return null;
         }
 
-        WorkerResult latest = context.getWorkerResults().get(context.getWorkerResults().size() - 1);
-        WorkerResult previous = context.getWorkerResults().get(context.getWorkerResults().size() - 2);
+        SupervisorContext.WorkerResult latest = context.getWorkerResults().get(context.getWorkerResults().size() - 1);
+        SupervisorContext.WorkerResult previous = context.getWorkerResults().get(context.getWorkerResults().size() - 2);
         if (latest.getWorkerId().equals(previous.getWorkerId())) {
             // 若重复调用2次, 下一次不再调用该worker
             return latest.getWorkerId();
@@ -164,45 +179,21 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
         return null;
     }
 
-    private SupervisorRoutingResponse requestModelDecision(SupervisorContext context, List<WorkerDefinition> candidates) {
+    private SupervisorRoutingResponse requestModelDecision(SupervisorContext context, List<SupervisorContext.WorkerDefinition> candidates) {
         if (routingAiService == null) {
             return null;
         }
 
         try {
             return routingAiService.route(
-                    context.getOriginalInstruction(),
+                    context.getRequest().getInstruction(),
                     context.getCurrentContent(),
-                    renderCandidates(candidates),
-                    renderWorkerResults(context.getWorkerResults())
+                    contextFactory.renderCandidates(candidates),
+                    contextFactory.renderWorkerResults(context.getWorkerResults())
             );
         } catch (RuntimeException ignored) {
             return null;
         }
-    }
-
-    private String renderCandidates(List<WorkerDefinition> candidates) {
-        return candidates.stream()
-                .map(worker -> worker.getWorkerId()
-                        + " | role=" + worker.getRole()
-                        + " | description=" + worker.getDescription()
-                        + " | capabilities=" + String.join(", ", worker.getCapabilities()))
-                .reduce((left, right) -> left + "\n" + right)
-                .orElse("No candidate workers");
-    }
-
-    private String renderWorkerResults(List<WorkerResult> workerResults) {
-        if (workerResults.isEmpty()) {
-            return "No worker steps executed";
-        }
-        return workerResults.stream()
-                .map(result -> result.getWorkerId() + ": " + result.getSummary())
-                .reduce((left, right) -> left + "\n" + right)
-                .orElse("No worker steps executed");
-    }
-
-    private String buildFallbackInstruction(WorkerDefinition worker, SupervisorContext context) {
-        return worker.getRole() + ": " + worker.getDescription() + "\nTask: " + context.getOriginalInstruction();
     }
 
     private String summarize(SupervisorContext context) {
@@ -226,7 +217,7 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
         if (context.getWorkerResults().isEmpty()) {
             return null;
         }
-        WorkerResult latest = context.getWorkerResults().get(context.getWorkerResults().size() - 1);
+        SupervisorContext.WorkerResult latest = context.getWorkerResults().get(context.getWorkerResults().size() - 1);
         if (!"reviewer".equals(latest.getWorkerId())) {
             return null;
         }
@@ -244,19 +235,19 @@ public class HybridSupervisorAgentDefinition implements SupervisorAgentDefinitio
         }
     }
 
-    private void addByCapability(List<WorkerDefinition> ordered,
-                                 List<WorkerDefinition> allowedWorkers,
+    private void addByCapability(List<SupervisorContext.WorkerDefinition> ordered,
+                                 List<SupervisorContext.WorkerDefinition> allowedWorkers,
                                  String capability) {
         allowedWorkers.stream()
                 .filter(worker -> worker.getCapabilities().contains(capability))
                 .forEach(worker -> addIfAbsent(ordered, worker));
     }
 
-    private void addRemaining(List<WorkerDefinition> ordered, List<WorkerDefinition> allowedWorkers) {
+    private void addRemaining(List<SupervisorContext.WorkerDefinition> ordered, List<SupervisorContext.WorkerDefinition> allowedWorkers) {
         allowedWorkers.forEach(worker -> addIfAbsent(ordered, worker));
     }
 
-    private void addIfAbsent(List<WorkerDefinition> ordered, WorkerDefinition worker) {
+    private void addIfAbsent(List<SupervisorContext.WorkerDefinition> ordered, SupervisorContext.WorkerDefinition worker) {
         if (!ordered.contains(worker)) {
             ordered.add(worker);
         }

@@ -2,14 +2,17 @@ package com.agent.editor.agent.v2.supervisor.routing;
 
 import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.agent.SupervisorDecision;
 import com.agent.editor.agent.v2.core.agent.ToolLoopAgent;
 import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
-import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
+import com.agent.editor.agent.v2.core.context.AgentRunContext;
+import com.agent.editor.agent.v2.core.context.SupervisorContext;
+import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
+import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
-import com.agent.editor.agent.v2.supervisor.SupervisorContext;
-import com.agent.editor.agent.v2.supervisor.SupervisorDecision;
-import com.agent.editor.agent.v2.supervisor.worker.WorkerDefinition;
-import com.agent.editor.agent.v2.supervisor.worker.WorkerResult;
+import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
+import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -67,7 +70,7 @@ class HybridSupervisorAgentTest {
 
     @Test
     void shouldReturnAssignedWorkerSelectedByServiceWithinCandidates() {
-        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
+        HybridSupervisorAgent definition = new HybridSupervisorAgent(
                 new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
                         SupervisorAction.ASSIGN_WORKER,
                         "editor",
@@ -78,13 +81,13 @@ class HybridSupervisorAgentTest {
                 ))
         );
 
-        SupervisorDecision decision = definition.decide(new SupervisorContext(
+        SupervisorDecision decision = definition.decide(supervisorContext(
                 "task-2",
                 "session-1",
                 "Revise the tone of the introduction",
                 "Draft body",
                 workers(),
-                List.of(new WorkerResult("analyzer", TaskStatus.COMPLETED, "analysis complete", "Draft body"))
+                List.of(new SupervisorContext.WorkerResult("analyzer", TaskStatus.COMPLETED, "analysis complete", "Draft body"))
         ));
 
         SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
@@ -95,7 +98,8 @@ class HybridSupervisorAgentTest {
 
     @Test
     void shouldFallbackToFirstLegalWorkerWhenServiceReturnsUnknownWorker() {
-        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
+        RecordingSupervisorContextFactory contextFactory = new RecordingSupervisorContextFactory();
+        HybridSupervisorAgent definition = new HybridSupervisorAgent(
                 new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
                         SupervisorAction.ASSIGN_WORKER,
                         "translator",
@@ -103,25 +107,30 @@ class HybridSupervisorAgentTest {
                         null,
                         null,
                         "bad output"
-                ))
+                )),
+                contextFactory
         );
 
-        SupervisorDecision decision = definition.decide(new SupervisorContext(
+        SupervisorDecision decision = definition.decide(supervisorContext(
                 "task-3",
                 "session-1",
                 "Revise the introduction for clarity",
                 "Draft body",
                 workers(),
-                List.of(new WorkerResult("analyzer", TaskStatus.COMPLETED, "analysis complete", "Draft body"))
+                List.of(new SupervisorContext.WorkerResult("analyzer", TaskStatus.COMPLETED, "analysis complete", "Draft body"))
         ));
 
         SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
         assertEquals("analyzer", assignWorker.getWorkerId());
+        assertEquals("factory fallback: analyzer", assignWorker.getInstruction());
+        assertEquals(1, contextFactory.routingCandidateRenderCount);
+        assertEquals(1, contextFactory.routingResultRenderCount);
+        assertEquals(1, contextFactory.fallbackInstructionBuildCount);
     }
 
     @Test
     void shouldCompleteWhenServiceRequestsCompletion() {
-        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
+        HybridSupervisorAgent definition = new HybridSupervisorAgent(
                 new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
                         SupervisorAction.COMPLETE,
                         null,
@@ -132,15 +141,15 @@ class HybridSupervisorAgentTest {
                 ))
         );
 
-        SupervisorDecision decision = definition.decide(new SupervisorContext(
+        SupervisorDecision decision = definition.decide(supervisorContext(
                 "task-4",
                 "session-1",
                 "Review the revised draft",
                 "Draft body",
                 workers(),
                 List.of(
-                        new WorkerResult("analyzer", TaskStatus.COMPLETED, "analysis complete", "Draft body"),
-                        new WorkerResult("editor", TaskStatus.COMPLETED, "edited", "Final body")
+                        new SupervisorContext.WorkerResult("analyzer", TaskStatus.COMPLETED, "analysis complete", "Draft body"),
+                        new SupervisorContext.WorkerResult("editor", TaskStatus.COMPLETED, "edited", "Final body")
                 )
         ));
 
@@ -152,7 +161,7 @@ class HybridSupervisorAgentTest {
 
     @Test
     void shouldCompleteWhenNoCandidateWorkersRemain() {
-        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
+        HybridSupervisorAgent definition = new HybridSupervisorAgent(
                 new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
                         SupervisorAction.ASSIGN_WORKER,
                         "analyzer",
@@ -163,15 +172,15 @@ class HybridSupervisorAgentTest {
                 ))
         );
 
-        SupervisorDecision decision = definition.decide(new SupervisorContext(
+        SupervisorDecision decision = definition.decide(supervisorContext(
                 "task-5",
                 "session-1",
                 "Inspect the document before making changes",
                 "Draft body",
                 List.of(workers().get(0)),
                 List.of(
-                        new WorkerResult("analyzer", TaskStatus.COMPLETED, "analysis complete", "Draft body"),
-                        new WorkerResult("analyzer", TaskStatus.COMPLETED, "analysis complete", "Draft body")
+                        new SupervisorContext.WorkerResult("analyzer", TaskStatus.COMPLETED, "analysis complete", "Draft body"),
+                        new SupervisorContext.WorkerResult("analyzer", TaskStatus.COMPLETED, "analysis complete", "Draft body")
                 )
         ));
 
@@ -181,7 +190,7 @@ class HybridSupervisorAgentTest {
 
     @Test
     void shouldStopAfterRepeatedNoProgress() {
-        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
+        HybridSupervisorAgent definition = new HybridSupervisorAgent(
                 new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
                         SupervisorAction.ASSIGN_WORKER,
                         "editor",
@@ -192,15 +201,15 @@ class HybridSupervisorAgentTest {
                 ))
         );
 
-        SupervisorDecision decision = definition.decide(new SupervisorContext(
+        SupervisorDecision decision = definition.decide(supervisorContext(
                 "task-6",
                 "session-1",
                 "Revise the introduction for clarity",
                 "Draft body",
                 workers(),
                 List.of(
-                        new WorkerResult("editor", TaskStatus.COMPLETED, "no changes needed", "Draft body"),
-                        new WorkerResult("editor", TaskStatus.COMPLETED, "no changes needed", "Draft body")
+                        new SupervisorContext.WorkerResult("editor", TaskStatus.COMPLETED, "no changes needed", "Draft body"),
+                        new SupervisorContext.WorkerResult("editor", TaskStatus.COMPLETED, "no changes needed", "Draft body")
                 )
         ));
 
@@ -210,7 +219,7 @@ class HybridSupervisorAgentTest {
 
     @Test
     void shouldDemoteSameWorkerAfterConsecutiveSelections() {
-        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
+        HybridSupervisorAgent definition = new HybridSupervisorAgent(
                 new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
                         SupervisorAction.ASSIGN_WORKER,
                         "analyzer",
@@ -221,15 +230,15 @@ class HybridSupervisorAgentTest {
                 ))
         );
 
-        SupervisorDecision decision = definition.decide(new SupervisorContext(
+        SupervisorDecision decision = definition.decide(supervisorContext(
                 "task-7",
                 "session-1",
                 "Coordinate the next step for this document",
                 "Draft body",
                 workers(),
                 List.of(
-                        new WorkerResult("analyzer", TaskStatus.COMPLETED, "first pass", "Draft body"),
-                        new WorkerResult("analyzer", TaskStatus.COMPLETED, "second pass", "Draft body with notes")
+                        new SupervisorContext.WorkerResult("analyzer", TaskStatus.COMPLETED, "first pass", "Draft body"),
+                        new SupervisorContext.WorkerResult("analyzer", TaskStatus.COMPLETED, "second pass", "Draft body with notes")
                 )
         ));
 
@@ -239,7 +248,7 @@ class HybridSupervisorAgentTest {
 
     @Test
     void shouldUseRoutingServiceToSelectResearcherForInitialDispatch() {
-        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
+        HybridSupervisorAgent definition = new HybridSupervisorAgent(
                 new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
                         SupervisorAction.ASSIGN_WORKER,
                         "researcher",
@@ -250,7 +259,7 @@ class HybridSupervisorAgentTest {
                 ))
         );
 
-        SupervisorDecision decision = definition.decide(new SupervisorContext(
+        SupervisorDecision decision = definition.decide(supervisorContext(
                 "task-8",
                 "session-1",
                 "Write an answer about this project using my knowledge base details and technical facts",
@@ -265,7 +274,7 @@ class HybridSupervisorAgentTest {
 
     @Test
     void shouldUseRoutingServiceToSelectWriterForInitialDispatch() {
-        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition(
+        HybridSupervisorAgent definition = new HybridSupervisorAgent(
                 new StubSupervisorRoutingAiService(new SupervisorRoutingResponse(
                         SupervisorAction.ASSIGN_WORKER,
                         "writer",
@@ -276,7 +285,7 @@ class HybridSupervisorAgentTest {
                 ))
         );
 
-        SupervisorDecision decision = definition.decide(new SupervisorContext(
+        SupervisorDecision decision = definition.decide(supervisorContext(
                 "task-9",
                 "session-1",
                 "Polish the introduction and make it more concise without adding new facts",
@@ -291,18 +300,18 @@ class HybridSupervisorAgentTest {
 
     @Test
     void shouldCompleteWhenReviewerPassesInstructionAndGroundingChecks() {
-        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition((SupervisorRoutingAiService) null);
+        HybridSupervisorAgent definition = new HybridSupervisorAgent((SupervisorRoutingAiService) null);
 
-        SupervisorDecision decision = definition.decide(new SupervisorContext(
+        SupervisorDecision decision = definition.decide(supervisorContext(
                 "task-10",
                 "session-1",
                 "Write an answer grounded in my project materials",
                 "Final answer",
                 ragWorkers(),
                 List.of(
-                        new WorkerResult("researcher", TaskStatus.COMPLETED, evidenceSummary(), "Draft body"),
-                        new WorkerResult("writer", TaskStatus.COMPLETED, "updated answer", "Final answer"),
-                        new WorkerResult("reviewer", TaskStatus.COMPLETED, reviewerPass(), "Final answer")
+                        new SupervisorContext.WorkerResult("researcher", TaskStatus.COMPLETED, evidenceSummary(), "Draft body"),
+                        new SupervisorContext.WorkerResult("writer", TaskStatus.COMPLETED, "updated answer", "Final answer"),
+                        new SupervisorContext.WorkerResult("reviewer", TaskStatus.COMPLETED, reviewerPass(), "Final answer")
                 )
         ));
 
@@ -312,18 +321,18 @@ class HybridSupervisorAgentTest {
 
     @Test
     void shouldReturnToWriterWhenReviewerOnlyFindsInstructionGap() {
-        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition((SupervisorRoutingAiService) null);
+        HybridSupervisorAgent definition = new HybridSupervisorAgent((SupervisorRoutingAiService) null);
 
-        SupervisorDecision decision = definition.decide(new SupervisorContext(
+        SupervisorDecision decision = definition.decide(supervisorContext(
                 "task-11",
                 "session-1",
                 "Write an answer grounded in my project materials",
                 "Draft answer",
                 ragWorkers(),
                 List.of(
-                        new WorkerResult("researcher", TaskStatus.COMPLETED, evidenceSummary(), "Draft body"),
-                        new WorkerResult("writer", TaskStatus.COMPLETED, "updated answer", "Draft answer"),
-                        new WorkerResult("reviewer", TaskStatus.COMPLETED, reviewerInstructionGap(), "Draft answer")
+                        new SupervisorContext.WorkerResult("researcher", TaskStatus.COMPLETED, evidenceSummary(), "Draft body"),
+                        new SupervisorContext.WorkerResult("writer", TaskStatus.COMPLETED, "updated answer", "Draft answer"),
+                        new SupervisorContext.WorkerResult("reviewer", TaskStatus.COMPLETED, reviewerInstructionGap(), "Draft answer")
                 )
         ));
 
@@ -333,18 +342,18 @@ class HybridSupervisorAgentTest {
 
     @Test
     void shouldMakeResearcherEligibleAgainWhenReviewerFlagsUnsupportedClaims() {
-        HybridSupervisorAgentDefinition definition = new HybridSupervisorAgentDefinition((SupervisorRoutingAiService) null);
+        HybridSupervisorAgent definition = new HybridSupervisorAgent((SupervisorRoutingAiService) null);
 
-        SupervisorDecision decision = definition.decide(new SupervisorContext(
+        SupervisorDecision decision = definition.decide(supervisorContext(
                 "task-12",
                 "session-1",
                 "Write an answer grounded in my project materials",
                 "Draft answer",
                 ragWorkers(),
                 List.of(
-                        new WorkerResult("researcher", TaskStatus.COMPLETED, evidenceSummary(), "Draft body"),
-                        new WorkerResult("writer", TaskStatus.COMPLETED, "updated answer", "Draft answer"),
-                        new WorkerResult("reviewer", TaskStatus.COMPLETED, reviewerUnsupportedClaim(), "Draft answer")
+                        new SupervisorContext.WorkerResult("researcher", TaskStatus.COMPLETED, evidenceSummary(), "Draft body"),
+                        new SupervisorContext.WorkerResult("writer", TaskStatus.COMPLETED, "updated answer", "Draft answer"),
+                        new SupervisorContext.WorkerResult("reviewer", TaskStatus.COMPLETED, reviewerUnsupportedClaim(), "Draft answer")
                 )
         ));
 
@@ -352,10 +361,37 @@ class HybridSupervisorAgentTest {
         assertEquals("researcher", assignWorker.getWorkerId());
     }
 
-    private static List<WorkerDefinition> workers() {
+    private static SupervisorContext supervisorContext(String taskId,
+                                                       String sessionId,
+                                                       String instruction,
+                                                       String currentContent,
+                                                       List<SupervisorContext.WorkerDefinition> availableWorkers,
+                                                       List<SupervisorContext.WorkerResult> workerResults) {
+        SupervisorContext context = SupervisorContext.builder()
+                .request(new ExecutionRequest(
+                        taskId,
+                        sessionId,
+                        AgentType.SUPERVISOR,
+                        new DocumentSnapshot("doc-" + taskId, "Title", currentContent),
+                        instruction,
+                        5
+                ))
+                .iteration(0)
+                .currentContent(currentContent)
+                .memory(new ChatTranscriptMemory(List.of()))
+                .stage(ExecutionStage.RUNNING)
+                .pendingReason(null)
+                .toolSpecifications(List.of())
+                .availableWorkers(availableWorkers)
+                .workerResults(workerResults)
+                .build();
+        return context;
+    }
+
+    private static List<SupervisorContext.WorkerDefinition> workers() {
         Agent workerAgent = new NoOpWorkerAgent();
         return List.of(
-                new WorkerDefinition(
+                new SupervisorContext.WorkerDefinition(
                         "analyzer",
                         "Analyzer",
                         "Inspect the document",
@@ -363,7 +399,7 @@ class HybridSupervisorAgentTest {
                         List.of("searchContent", "analyzeDocument"),
                         List.of("analyze")
                 ),
-                new WorkerDefinition(
+                new SupervisorContext.WorkerDefinition(
                         "editor",
                         "Editor",
                         "Apply document edits",
@@ -371,7 +407,7 @@ class HybridSupervisorAgentTest {
                         List.of("editDocument", "appendToDocument", "getDocumentSnapshot"),
                         List.of("edit")
                 ),
-                new WorkerDefinition(
+                new SupervisorContext.WorkerDefinition(
                         "reviewer",
                         "Reviewer",
                         "Review the updated draft",
@@ -382,10 +418,10 @@ class HybridSupervisorAgentTest {
         );
     }
 
-    private static List<WorkerDefinition> ragWorkers() {
+    private static List<SupervisorContext.WorkerDefinition> ragWorkers() {
         Agent workerAgent = new NoOpWorkerAgent();
         return List.of(
-                new WorkerDefinition(
+                new SupervisorContext.WorkerDefinition(
                         "researcher",
                         "Researcher",
                         "Collect evidence from the knowledge base.",
@@ -393,7 +429,7 @@ class HybridSupervisorAgentTest {
                         List.of("retrieveKnowledge"),
                         List.of("research")
                 ),
-                new WorkerDefinition(
+                new SupervisorContext.WorkerDefinition(
                         "writer",
                         "Writer",
                         "Write or revise the document.",
@@ -401,7 +437,7 @@ class HybridSupervisorAgentTest {
                         List.of("editDocument", "appendToDocument", "getDocumentSnapshot"),
                         List.of("write")
                 ),
-                new WorkerDefinition(
+                new SupervisorContext.WorkerDefinition(
                         "reviewer",
                         "Reviewer",
                         "Check instruction completion and evidence grounding.",
@@ -465,6 +501,31 @@ class HybridSupervisorAgentTest {
         @Override
         public SupervisorRoutingResponse route(String instruction, String currentContent, String candidates, String previousWorkerResults) {
             return response;
+        }
+    }
+
+    private static final class RecordingSupervisorContextFactory extends SupervisorContextFactory {
+
+        private int routingCandidateRenderCount;
+        private int routingResultRenderCount;
+        private int fallbackInstructionBuildCount;
+
+        @Override
+        public String renderCandidates(List<SupervisorContext.WorkerDefinition> candidates) {
+            routingCandidateRenderCount++;
+            return super.renderCandidates(candidates);
+        }
+
+        @Override
+        public String renderWorkerResults(List<SupervisorContext.WorkerResult> workerResults) {
+            routingResultRenderCount++;
+            return super.renderWorkerResults(workerResults);
+        }
+
+        @Override
+        public String buildFallbackInstruction(SupervisorContext.WorkerDefinition worker, SupervisorContext context) {
+            fallbackInstructionBuildCount++;
+            return "factory fallback: " + worker.getWorkerId();
         }
     }
 

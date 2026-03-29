@@ -1,6 +1,5 @@
 package com.agent.editor.agent.v2.core.context;
 
-import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
 import com.agent.editor.agent.v2.task.TaskRequest;
 
 /**

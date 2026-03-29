@@ -1,5 +1,6 @@
 package com.agent.editor.agent.v2.core.runtime;
 
+import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import lombok.AllArgsConstructor;

@@ -1,12 +1,14 @@
 package com.agent.editor.config;
 
+import com.agent.editor.agent.v2.core.agent.SupervisorAgent;
+import com.agent.editor.agent.v2.core.context.SupervisorContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.runtime.PlanningExecutionRuntime;
 import com.agent.editor.agent.v2.core.runtime.ToolLoopExecutionRuntime;
 import com.agent.editor.agent.v2.reflexion.ReflexionActor;
 import com.agent.editor.agent.v2.reflexion.ReflexionCritic;
-import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
-import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgentDefinition;
+import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
+import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgent;
 import com.agent.editor.agent.v2.supervisor.worker.*;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.supervisor.worker.EvidenceReviewerAgent;
@@ -23,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -55,6 +58,7 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(TaskOrchestrator.class);
             assertThat(context).hasSingleBean(ReflexionActor.class);
             assertThat(context).hasSingleBean(ReflexionCritic.class);
+            assertThat(context).hasSingleBean(SupervisorContextFactory.class);
             assertThat(context.containsBean("agentV2Config")).isFalse();
         });
     }
@@ -65,10 +69,10 @@ class AgentV2ConfigurationSplitTest {
             WorkerRegistry workerRegistry = context.getBean(WorkerRegistry.class);
 
             assertThat(workerRegistry.all())
-                    .extracting(WorkerDefinition::getWorkerId)
+                    .extracting(SupervisorContext.WorkerDefinition::getWorkerId)
                     .containsExactly("researcher", "writer", "reviewer");
             assertThat(workerRegistry.all())
-                    .extracting(WorkerDefinition::getCapabilities)
+                    .extracting(SupervisorContext.WorkerDefinition::getCapabilities)
                     .allSatisfy(capabilities -> assertThat(capabilities).isNotEmpty());
             assertThat(workerRegistry.get("researcher").getCapabilities()).containsExactly("research");
             assertThat(workerRegistry.get("writer").getCapabilities()).containsExactly("write", "edit");
@@ -83,9 +87,11 @@ class AgentV2ConfigurationSplitTest {
     @Test
     void shouldWireHybridSupervisorAsDefaultSupervisorBean() {
         contextRunner.run(context -> {
-            assertThat(context).hasSingleBean(SupervisorAgentDefinition.class);
-            assertThat(context.getBean(SupervisorAgentDefinition.class))
-                    .isInstanceOf(HybridSupervisorAgentDefinition.class);
+            assertThat(context).hasSingleBean(SupervisorAgent.class);
+            assertThat(context.getBean(SupervisorAgent.class))
+                    .isInstanceOf(HybridSupervisorAgent.class);
+            assertThat(ReflectionTestUtils.getField(context.getBean(SupervisorAgent.class), "contextFactory"))
+                    .isSameAs(context.getBean(SupervisorContextFactory.class));
             assertThat(context).hasSingleBean(TaskOrchestrator.class);
         });
     }
@@ -96,7 +102,7 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(ReflexionActor.class);
             assertThat(context).hasSingleBean(ReflexionCritic.class);
             assertThat(context.getBean(WorkerRegistry.class).all())
-                    .extracting(WorkerDefinition::getWorkerId)
+                    .extracting(SupervisorContext.WorkerDefinition::getWorkerId)
                     .doesNotContain("reflexion-critic");
         });
     }

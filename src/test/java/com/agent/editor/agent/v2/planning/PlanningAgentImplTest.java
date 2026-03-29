@@ -2,7 +2,7 @@ package com.agent.editor.agent.v2.planning;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.PlanResult;
-import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
+import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;

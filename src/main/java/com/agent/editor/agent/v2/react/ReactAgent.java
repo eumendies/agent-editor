@@ -4,7 +4,7 @@ import com.agent.editor.agent.v2.core.agent.*;
 import com.agent.editor.agent.v2.core.context.AgentContextFactory;
 import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
 import com.agent.editor.agent.v2.core.exception.NullChatModelException;
-import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
+import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;

@@ -1,7 +1,9 @@
 package com.agent.editor.config;
 
-import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
-import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgentDefinition;
+import com.agent.editor.agent.v2.core.agent.SupervisorAgent;
+import com.agent.editor.agent.v2.core.context.SupervisorContext;
+import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
+import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgent;
 import com.agent.editor.agent.v2.supervisor.worker.*;
 import com.agent.editor.agent.v2.supervisor.worker.ResearcherAgent;
 import dev.langchain4j.model.chat.ChatModel;
@@ -14,8 +16,9 @@ import java.util.List;
 public class SupervisorAgentConfig {
 
     @Bean
-    public SupervisorAgentDefinition supervisorAgentDefinition(ChatModel chatModel) {
-        return new HybridSupervisorAgentDefinition(chatModel);
+    public SupervisorAgent supervisorAgentDefinition(ChatModel chatModel,
+                                                     SupervisorContextFactory supervisorContextFactory) {
+        return new HybridSupervisorAgent(chatModel, supervisorContextFactory);
     }
 
     @Bean
@@ -38,7 +41,7 @@ public class SupervisorAgentConfig {
                                          GroundedWriterAgent groundedWriterAgentDefinition,
                                          EvidenceReviewerAgent evidenceReviewerAgentDefinition) {
         WorkerRegistry workerRegistry = new WorkerRegistry();
-        workerRegistry.register(new WorkerDefinition(
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "researcher",
                 "Researcher",
                 "Collect grounded evidence from the knowledge base before downstream writing or review.",
@@ -46,7 +49,7 @@ public class SupervisorAgentConfig {
                 List.of("retrieveKnowledge"),
                 List.of("research")
         ));
-        workerRegistry.register(new WorkerDefinition(
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "writer",
                 "Writer",
                 "Produce grounded document updates and revisions without introducing unsupported claims.",
@@ -54,7 +57,7 @@ public class SupervisorAgentConfig {
                 List.of("editDocument", "appendToDocument", "getDocumentSnapshot", "searchContent"),
                 List.of("write", "edit")
         ));
-        workerRegistry.register(new WorkerDefinition(
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "reviewer",
                 "Reviewer",
                 "Review whether the response follows the user instruction and remains grounded in available evidence.",

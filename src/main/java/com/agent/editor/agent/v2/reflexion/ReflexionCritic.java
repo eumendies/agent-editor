@@ -5,7 +5,7 @@ import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
 import com.agent.editor.agent.v2.core.agent.ToolLoopAgent;
 import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.exception.NullChatModelException;
-import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
+import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -1,12 +1,14 @@
-package com.agent.editor.agent.v2.core.runtime;
+package com.agent.editor.agent.v2.core.context;
 
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.memory.ExecutionMemory;
+import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.util.List;
 import java.util.Objects;
@@ -16,6 +18,7 @@ import java.util.Objects;
  */
 @Data
 @NoArgsConstructor
+@SuperBuilder
 public class AgentRunContext {
 
     private ExecutionRequest request;

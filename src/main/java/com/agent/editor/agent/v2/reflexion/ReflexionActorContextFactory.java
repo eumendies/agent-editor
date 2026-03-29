@@ -1,7 +1,7 @@
 package com.agent.editor.agent.v2.reflexion;
 
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
-import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
+import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.react.ReactAgentContextFactory;
 import com.agent.editor.agent.v2.task.TaskRequest;

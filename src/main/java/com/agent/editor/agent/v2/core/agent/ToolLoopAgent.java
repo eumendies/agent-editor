@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.core.agent;
 
-import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
+import com.agent.editor.agent.v2.core.context.AgentRunContext;
 
 public interface ToolLoopAgent extends Agent {
     /**

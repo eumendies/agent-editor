@@ -1,7 +1,7 @@
 package com.agent.editor.agent.v2.supervisor.worker;
 
 import com.agent.editor.agent.v2.core.agent.*;
-import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
+import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;

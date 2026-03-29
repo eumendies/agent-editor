@@ -5,7 +5,7 @@ import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.memory.ExecutionMemory;
-import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
+import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.v2.task.TaskRequest;

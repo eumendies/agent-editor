@@ -1,4 +1,4 @@
-package com.agent.editor.agent.v2.supervisor;
+package com.agent.editor.agent.v2.core.agent;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

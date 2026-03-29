@@ -1,6 +1,7 @@
 package com.agent.editor.config;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.agent.SupervisorAgent;
 import com.agent.editor.agent.v2.core.memory.SessionMemoryStore;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.runtime.PlanningExecutionRuntime;
@@ -19,7 +20,7 @@ import com.agent.editor.agent.v2.reflexion.ReflexionActorContextFactory;
 import com.agent.editor.agent.v2.reflexion.ReflexionCritic;
 import com.agent.editor.agent.v2.reflexion.ReflexionCriticContextFactory;
 import com.agent.editor.agent.v2.reflexion.ReflexionOrchestrator;
-import com.agent.editor.agent.v2.supervisor.SupervisorAgentDefinition;
+import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
 import com.agent.editor.agent.v2.supervisor.SupervisorOrchestrator;
 import com.agent.editor.agent.v2.supervisor.worker.WorkerRegistry;
 import com.agent.editor.agent.v2.task.RoutingTaskOrchestrator;
@@ -85,6 +86,11 @@ public class TaskOrchestratorConfig {
     }
 
     @Bean
+    public SupervisorContextFactory supervisorContextFactory() {
+        return new SupervisorContextFactory();
+    }
+
+    @Bean
     public TaskOrchestrator taskOrchestrator(ToolLoopExecutionRuntime executionRuntime,
                                              PlanningExecutionRuntime planningExecutionRuntime,
                                              EventPublisher eventPublisher,
@@ -93,12 +99,13 @@ public class TaskOrchestratorConfig {
                                              ReactAgent reactAgentDefinition,
                                              ReflexionActor reflexionActorDefinition,
                                              ReflexionCritic reflexionCriticDefinition,
-                                             SupervisorAgentDefinition supervisorAgentDefinition,
+                                             SupervisorAgent supervisorAgentDefinition,
                                              SessionMemoryStore sessionMemoryStore,
                                              ReactAgentContextFactory reactAgentContextFactory,
                                              PlanningAgentContextFactory planningAgentContextFactory,
                                              ReflexionActorContextFactory reflexionActorContextFactory,
-                                             ReflexionCriticContextFactory reflexionCriticContextFactory) {
+                                             ReflexionCriticContextFactory reflexionCriticContextFactory,
+                                             SupervisorContextFactory supervisorContextFactory) {
         TaskOrchestrator reactOrchestrator = new ReActAgentOrchestrator(executionRuntime, reactAgentDefinition, reactAgentContextFactory);
         TaskOrchestrator planningOrchestrator = new PlanningThenExecutionOrchestrator(
                 planningExecutionRuntime,
@@ -111,7 +118,8 @@ public class TaskOrchestratorConfig {
                 supervisorAgentDefinition,
                 workerRegistry,
                 executionRuntime,
-                eventPublisher
+                eventPublisher,
+                supervisorContextFactory
         );
         TaskOrchestrator reflexionOrchestrator = new ReflexionOrchestrator(
                 executionRuntime,

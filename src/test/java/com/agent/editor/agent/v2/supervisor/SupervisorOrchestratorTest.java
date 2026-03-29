@@ -2,15 +2,18 @@ package com.agent.editor.agent.v2.supervisor;
 
 import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.agent.SupervisorAgent;
+import com.agent.editor.agent.v2.core.agent.SupervisorDecision;
 import com.agent.editor.agent.v2.core.agent.ToolLoopAgent;
 import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
+import com.agent.editor.agent.v2.core.context.SupervisorContext;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.*;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
-import com.agent.editor.agent.v2.core.runtime.AgentRunContext;
+import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
@@ -18,7 +21,6 @@ import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.trace.TraceStore;
-import com.agent.editor.agent.v2.supervisor.worker.WorkerDefinition;
 import com.agent.editor.agent.v2.supervisor.worker.WorkerRegistry;
 import org.junit.jupiter.api.Test;
 
@@ -33,14 +35,14 @@ class SupervisorOrchestratorTest {
     @Test
     void shouldCoordinateHeterogeneousWorkersAndReturnSupervisorSummary() {
         WorkerRegistry workerRegistry = new WorkerRegistry();
-        workerRegistry.register(new WorkerDefinition(
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "analyzer",
                 "Analyzer",
                 "Inspect the document",
                 new StubWorkerAgent("analysis complete"),
                 List.of("searchContent", "analyzeDocument")
         ));
-        workerRegistry.register(new WorkerDefinition(
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "editor",
                 "Editor",
                 "Apply document edits",
@@ -55,7 +57,8 @@ class SupervisorOrchestratorTest {
                 new ScriptedSupervisorAgentDefinition(),
                 workerRegistry,
                 runtime,
-                eventPublisher
+                eventPublisher,
+                new SupervisorContextFactory()
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -82,14 +85,14 @@ class SupervisorOrchestratorTest {
     @Test
     void shouldFinishOneWorkerPassEvenWhenTaskMaxIterationsIsLow() {
         WorkerRegistry workerRegistry = new WorkerRegistry();
-        workerRegistry.register(new WorkerDefinition(
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "analyzer",
                 "Analyzer",
                 "Inspect the document",
                 new StubWorkerAgent("analysis complete"),
                 List.of("searchContent")
         ));
-        workerRegistry.register(new WorkerDefinition(
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "editor",
                 "Editor",
                 "Apply document edits",
@@ -101,7 +104,8 @@ class SupervisorOrchestratorTest {
                 new ScriptedSupervisorAgentDefinition(),
                 workerRegistry,
                 new RecordingExecutionRuntime(),
-                event -> {}
+                event -> {},
+                new SupervisorContextFactory()
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -120,7 +124,7 @@ class SupervisorOrchestratorTest {
     @Test
     void shouldAllowRepeatedWorkerAssignmentsAndFeedBackResultsToLaterSupervisorTurns() {
         WorkerRegistry workerRegistry = new WorkerRegistry();
-        workerRegistry.register(new WorkerDefinition(
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "analyzer",
                 "Analyzer",
                 "Inspect the document",
@@ -130,11 +134,13 @@ class SupervisorOrchestratorTest {
 
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
         RepeatingWorkerSupervisorAgentDefinition supervisor = new RepeatingWorkerSupervisorAgentDefinition();
+        RecordingSupervisorContextFactory contextFactory = new RecordingSupervisorContextFactory();
         SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(
                 supervisor,
                 workerRegistry,
                 runtime,
-                event -> {}
+                event -> {},
+                contextFactory
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -150,6 +156,9 @@ class SupervisorOrchestratorTest {
         assertEquals("body -> analyzer -> analyzer", result.getFinalContent());
         assertEquals(List.of("analyzer", "analyzer"), runtime.workerIds());
         assertEquals(3, supervisor.contexts().size());
+        assertEquals(3, contextFactory.supervisorContextBuildCount);
+        assertEquals(2, contextFactory.workerExecutionContextBuildCount);
+        assertEquals(2, contextFactory.workerSummaryCount);
         assertEquals("body", supervisor.contexts().get(0).getCurrentContent());
         assertEquals("body -> analyzer", supervisor.contexts().get(1).getCurrentContent());
         assertEquals(1, supervisor.contexts().get(1).getWorkerResults().size());
@@ -159,14 +168,14 @@ class SupervisorOrchestratorTest {
     @Test
     void shouldIsolateWorkerRunMemoryWhilePassingStructuredWorkerResults() {
         WorkerRegistry workerRegistry = new WorkerRegistry();
-        workerRegistry.register(new WorkerDefinition(
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "analyzer",
                 "Analyzer",
                 "Inspect the document",
                 new StubWorkerAgent("analysis complete"),
                 List.of("searchContent")
         ));
-        workerRegistry.register(new WorkerDefinition(
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "editor",
                 "Editor",
                 "Apply document edits",
@@ -179,7 +188,8 @@ class SupervisorOrchestratorTest {
                 new ScriptedSupervisorAgentDefinition(),
                 workerRegistry,
                 runtime,
-                event -> {}
+                event -> {},
+                new SupervisorContextFactory()
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -207,14 +217,14 @@ class SupervisorOrchestratorTest {
     @Test
     void shouldSeedFirstWorkerStateWithSessionMemory() {
         WorkerRegistry workerRegistry = new WorkerRegistry();
-        workerRegistry.register(new WorkerDefinition(
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "analyzer",
                 "Analyzer",
                 "Inspect the document",
                 new StubWorkerAgent("analysis complete"),
                 List.of("searchContent")
         ));
-        workerRegistry.register(new WorkerDefinition(
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "editor",
                 "Editor",
                 "Apply document edits",
@@ -227,7 +237,8 @@ class SupervisorOrchestratorTest {
                 new ScriptedSupervisorAgentDefinition(),
                 workerRegistry,
                 runtime,
-                event -> {}
+                event -> {},
+                new SupervisorContextFactory()
         );
 
         orchestrator.execute(new TaskRequest(
@@ -246,7 +257,12 @@ class SupervisorOrchestratorTest {
         assertTrue(firstWorkerMemory.getMessages().stream().anyMatch(message -> "previous turn".equals(message.getText())));
     }
 
-    private static final class ScriptedSupervisorAgentDefinition implements SupervisorAgentDefinition {
+    private static final class ScriptedSupervisorAgentDefinition implements SupervisorAgent {
+
+        @Override
+        public AgentType type() {
+            return AgentType.SUPERVISOR;
+        }
 
         @Override
         public SupervisorDecision decide(SupervisorContext context) {
@@ -260,9 +276,14 @@ class SupervisorOrchestratorTest {
         }
     }
 
-    private static final class RepeatingWorkerSupervisorAgentDefinition implements SupervisorAgentDefinition {
+    private static final class RepeatingWorkerSupervisorAgentDefinition implements SupervisorAgent {
 
         private final List<SupervisorContext> contexts = new ArrayList<>();
+
+        @Override
+        public AgentType type() {
+            return AgentType.SUPERVISOR;
+        }
 
         @Override
         public SupervisorDecision decide(SupervisorContext context) {
@@ -276,6 +297,33 @@ class SupervisorOrchestratorTest {
         private List<SupervisorContext> contexts() {
             return contexts;
         }
+    }
+
+    private static SupervisorContext supervisorContext(String taskId,
+                                                       String sessionId,
+                                                       String instruction,
+                                                       String currentContent,
+                                                       List<SupervisorContext.WorkerDefinition> availableWorkers,
+                                                       List<SupervisorContext.WorkerResult> workerResults) {
+        SupervisorContext context = SupervisorContext.builder()
+                .request(new ExecutionRequest(
+                        taskId,
+                        sessionId,
+                        AgentType.SUPERVISOR,
+                        new DocumentSnapshot("doc-" + taskId, "Title", currentContent),
+                        instruction,
+                        5
+                ))
+                .iteration(0)
+                .currentContent(currentContent)
+                .memory(new ChatTranscriptMemory(List.of()))
+                .stage(ExecutionStage.RUNNING)
+                .pendingReason(null)
+                .toolSpecifications(List.of())
+                .availableWorkers(availableWorkers)
+                .workerResults(workerResults)
+                .build();
+        return context;
     }
 
     private static final class StubWorkerAgent implements ToolLoopAgent {
@@ -362,6 +410,36 @@ class SupervisorOrchestratorTest {
 
         private List<ExecutionEvent> events() {
             return events;
+        }
+    }
+
+    private static final class RecordingSupervisorContextFactory extends SupervisorContextFactory {
+
+        private int supervisorContextBuildCount;
+        private int workerExecutionContextBuildCount;
+        private int workerSummaryCount;
+
+        @Override
+        public SupervisorContext buildSupervisorContext(TaskRequest request,
+                                                        AgentRunContext conversationState,
+                                                        List<SupervisorContext.WorkerResult> workerResults,
+                                                        List<SupervisorContext.WorkerDefinition> availableWorkers) {
+            supervisorContextBuildCount++;
+            return super.buildSupervisorContext(request, conversationState, workerResults, availableWorkers);
+        }
+
+        @Override
+        public AgentRunContext buildWorkerExecutionContext(AgentRunContext conversationState, String currentContent) {
+            workerExecutionContextBuildCount++;
+            return super.buildWorkerExecutionContext(conversationState, currentContent);
+        }
+
+        @Override
+        public AgentRunContext summarizeWorkerResult(AgentRunContext conversationState,
+                                                     String workerId,
+                                                     ExecutionResult<?> result) {
+            workerSummaryCount++;
+            return super.summarizeWorkerResult(conversationState, workerId, result);
         }
     }
 }

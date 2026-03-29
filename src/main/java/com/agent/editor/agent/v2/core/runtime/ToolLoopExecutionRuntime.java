@@ -4,6 +4,7 @@ import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.agent.ToolCall;
 import com.agent.editor.agent.v2.core.agent.ToolLoopAgent;
+import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.exception.InCorrectAgentException;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.event.EventPublisher;
