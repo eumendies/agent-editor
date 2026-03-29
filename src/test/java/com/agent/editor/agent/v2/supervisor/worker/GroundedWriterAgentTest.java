@@ -75,6 +75,23 @@ class GroundedWriterAgentTest {
         assertEquals("editDocument", toolCalls.getCalls().get(0).getName());
     }
 
+    @Test
+    void shouldUseContextFactoryProvidedMessages() {
+        RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
+                .aiMessage(AiMessage.from("Document updated"))
+                .build());
+        StubGroundedWriterContextFactory contextFactory = new StubGroundedWriterContextFactory();
+        GroundedWriterAgent definition = new GroundedWriterAgent(chatModel, contextFactory);
+
+        definition.decide(context(List.of(editDocumentTool())));
+
+        assertEquals(1, contextFactory.buildInvocationCount);
+        SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
+        assertEquals("custom writer system", systemMessage.text());
+        UserMessage userMessage = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
+        assertEquals("custom writer input", userMessage.singleText());
+    }
+
     private AgentRunContext context(List<ToolSpecification> toolSpecifications) {
         return new AgentRunContext(
                 new ExecutionRequest(
@@ -141,6 +158,24 @@ class GroundedWriterAgentTest {
         public ChatResponse chat(ChatRequest request) {
             this.lastRequest = request;
             return response;
+        }
+    }
+
+    private static final class StubGroundedWriterContextFactory extends GroundedWriterAgentContextFactory {
+
+        private int buildInvocationCount;
+
+        @Override
+        public com.agent.editor.agent.v2.core.context.ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {
+            buildInvocationCount++;
+            return new com.agent.editor.agent.v2.core.context.ModelInvocationContext(
+                    List.of(
+                            SystemMessage.from("custom writer system"),
+                            UserMessage.from("custom writer input")
+                    ),
+                    context.getToolSpecifications(),
+                    null
+            );
         }
     }
 }

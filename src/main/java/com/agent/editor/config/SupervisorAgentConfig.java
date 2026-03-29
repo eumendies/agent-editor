@@ -23,18 +23,36 @@ public class SupervisorAgentConfig {
     }
 
     @Bean
-    public ResearcherAgent researcherAgentDefinition(ChatModel chatModel) {
-        return new ResearcherAgent(chatModel);
+    public ResearcherAgentContextFactory researcherAgentContextFactory() {
+        return new ResearcherAgentContextFactory();
     }
 
     @Bean
-    public GroundedWriterAgent groundedWriterAgentDefinition(ChatModel chatModel) {
-        return new GroundedWriterAgent(chatModel);
+    public GroundedWriterAgentContextFactory groundedWriterAgentContextFactory() {
+        return new GroundedWriterAgentContextFactory();
     }
 
     @Bean
-    public EvidenceReviewerAgent evidenceReviewerAgentDefinition(ChatModel chatModel) {
-        return new EvidenceReviewerAgent(chatModel);
+    public EvidenceReviewerAgentContextFactory evidenceReviewerAgentContextFactory() {
+        return new EvidenceReviewerAgentContextFactory();
+    }
+
+    @Bean
+    public ResearcherAgent researcherAgentDefinition(ChatModel chatModel,
+                                                     ResearcherAgentContextFactory researcherAgentContextFactory) {
+        return new ResearcherAgent(chatModel, researcherAgentContextFactory);
+    }
+
+    @Bean
+    public GroundedWriterAgent groundedWriterAgentDefinition(ChatModel chatModel,
+                                                             GroundedWriterAgentContextFactory groundedWriterAgentContextFactory) {
+        return new GroundedWriterAgent(chatModel, groundedWriterAgentContextFactory);
+    }
+
+    @Bean
+    public EvidenceReviewerAgent evidenceReviewerAgentDefinition(ChatModel chatModel,
+                                                                 EvidenceReviewerAgentContextFactory evidenceReviewerAgentContextFactory) {
+        return new EvidenceReviewerAgent(chatModel, evidenceReviewerAgentContextFactory);
     }
 
     @Bean

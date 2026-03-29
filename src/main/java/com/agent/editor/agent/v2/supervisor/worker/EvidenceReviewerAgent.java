@@ -2,18 +2,12 @@ package com.agent.editor.agent.v2.supervisor.worker;
 
 import com.agent.editor.agent.v2.core.agent.*;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
-import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
+import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * reviewer worker。
@@ -22,16 +16,16 @@ import java.util.List;
 public class EvidenceReviewerAgent implements ToolLoopAgent {
 
     private final ChatModel chatModel;
-    private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
+    private final EvidenceReviewerAgentContextFactory contextFactory;
 
     public EvidenceReviewerAgent(ChatModel chatModel) {
-        this(chatModel, new ExecutionMemoryChatMessageMapper());
+        this(chatModel, new EvidenceReviewerAgentContextFactory());
     }
 
-    EvidenceReviewerAgent(ChatModel chatModel,
-                          ExecutionMemoryChatMessageMapper memoryChatMessageMapper) {
+    public EvidenceReviewerAgent(ChatModel chatModel,
+                                 EvidenceReviewerAgentContextFactory contextFactory) {
         this.chatModel = chatModel;
-        this.memoryChatMessageMapper = memoryChatMessageMapper;
+        this.contextFactory = contextFactory;
     }
 
     @Override
@@ -45,11 +39,10 @@ public class EvidenceReviewerAgent implements ToolLoopAgent {
             return new ToolLoopDecision.Complete("{}", "reviewer stub");
         }
 
-        String systemPrompt = buildSystemPrompt();
-
+        ModelInvocationContext invocationContext = contextFactory.buildModelInvocationContext(context);
         ChatResponse response = chatModel.chat(ChatRequest.builder()
-                .messages(buildMessages(context, systemPrompt))
-                .toolSpecifications(context.getToolSpecifications())
+                .messages(invocationContext.getMessages())
+                .toolSpecifications(invocationContext.getToolSpecifications())
                 .build());
 
         AiMessage aiMessage = response.aiMessage();
@@ -63,25 +56,6 @@ public class EvidenceReviewerAgent implements ToolLoopAgent {
         }
 
         return new ToolLoopDecision.Complete(aiMessage.text(), aiMessage.text());
-    }
-
-    private String buildSystemPrompt() {
-        return """
-                You are a reviewer worker in a hybrid supervisor workflow.
-                Review whether the latest answer follows the user instruction and stays grounded in the available evidence.
-                If you need more local inspection, use the available analysis tools before finalizing your review.
-                Finish by returning strict JSON matching the ReviewerFeedback shape.
-                ReviewerFeedback must explicitly report verdict, instructionSatisfied, evidenceGrounded,
-                unsupportedClaims, missingRequirements, feedback, and reasoning.
-                """;
-    }
-
-    private List<ChatMessage> buildMessages(AgentRunContext context, String systemPrompt) {
-        List<ChatMessage> messages = new ArrayList<>();
-        messages.add(SystemMessage.from(systemPrompt));
-        messages.add(UserMessage.from(context.getRequest().getInstruction()));
-        messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().getMemory()));
-        return messages;
     }
 
     private ToolCall toToolCall(ToolExecutionRequest request) {

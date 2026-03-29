@@ -111,6 +111,23 @@ class ResearcherAgentTest {
         assertEquals("ground this answer", currentTurn.singleText());
     }
 
+    @Test
+    void shouldUseContextFactoryProvidedMessages() {
+        RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
+                .aiMessage(AiMessage.from("{}"))
+                .build());
+        StubResearcherContextFactory contextFactory = new StubResearcherContextFactory();
+        ResearcherAgent definition = new ResearcherAgent(chatModel, contextFactory);
+
+        definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of())));
+
+        assertEquals(1, contextFactory.buildInvocationCount);
+        SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
+        assertEquals("custom researcher system", systemMessage.text());
+        UserMessage userMessage = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
+        assertEquals("custom researcher input", userMessage.singleText());
+    }
+
     private AgentRunContext context(List<ToolSpecification> toolSpecifications, ChatTranscriptMemory memory) {
         return new AgentRunContext(
                 new ExecutionRequest(
@@ -154,6 +171,24 @@ class ResearcherAgentTest {
         public ChatResponse chat(ChatRequest request) {
             this.lastRequest = request;
             return response;
+        }
+    }
+
+    private static final class StubResearcherContextFactory extends ResearcherAgentContextFactory {
+
+        private int buildInvocationCount;
+
+        @Override
+        public com.agent.editor.agent.v2.core.context.ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {
+            buildInvocationCount++;
+            return new com.agent.editor.agent.v2.core.context.ModelInvocationContext(
+                    List.of(
+                            SystemMessage.from("custom researcher system"),
+                            UserMessage.from("custom researcher input")
+                    ),
+                    context.getToolSpecifications(),
+                    null
+            );
         }
     }
 }

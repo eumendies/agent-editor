@@ -12,6 +12,7 @@ import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -67,6 +68,23 @@ class EvidenceReviewerAgentTest {
         assertEquals("analyzeDocument", toolCalls.getCalls().get(0).getName());
     }
 
+    @Test
+    void shouldUseContextFactoryProvidedMessages() {
+        RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
+                .aiMessage(AiMessage.from("{}"))
+                .build());
+        StubEvidenceReviewerContextFactory contextFactory = new StubEvidenceReviewerContextFactory();
+        EvidenceReviewerAgent definition = new EvidenceReviewerAgent(chatModel, contextFactory);
+
+        definition.decide(context(List.of(searchContentTool(), analyzeDocumentTool())));
+
+        assertEquals(1, contextFactory.buildInvocationCount);
+        SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
+        assertEquals("custom reviewer system", systemMessage.text());
+        UserMessage userMessage = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
+        assertEquals("custom reviewer input", userMessage.singleText());
+    }
+
     private AgentRunContext context(List<ToolSpecification> toolSpecifications) {
         return new AgentRunContext(
                 new ExecutionRequest(
@@ -119,6 +137,24 @@ class EvidenceReviewerAgentTest {
         public ChatResponse chat(ChatRequest request) {
             this.lastRequest = request;
             return response;
+        }
+    }
+
+    private static final class StubEvidenceReviewerContextFactory extends EvidenceReviewerAgentContextFactory {
+
+        private int buildInvocationCount;
+
+        @Override
+        public com.agent.editor.agent.v2.core.context.ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {
+            buildInvocationCount++;
+            return new com.agent.editor.agent.v2.core.context.ModelInvocationContext(
+                    List.of(
+                            SystemMessage.from("custom reviewer system"),
+                            UserMessage.from("custom reviewer input")
+                    ),
+                    context.getToolSpecifications(),
+                    null
+            );
         }
     }
 }

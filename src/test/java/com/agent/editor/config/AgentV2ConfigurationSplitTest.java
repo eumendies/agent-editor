@@ -62,6 +62,9 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(ReflexionActor.class);
             assertThat(context).hasSingleBean(ReflexionCritic.class);
             assertThat(context).hasSingleBean(SupervisorContextFactory.class);
+            assertThat(context).hasSingleBean(ResearcherAgentContextFactory.class);
+            assertThat(context).hasSingleBean(GroundedWriterAgentContextFactory.class);
+            assertThat(context).hasSingleBean(EvidenceReviewerAgentContextFactory.class);
             assertThat(context.containsBean("agentV2Config")).isFalse();
         });
     }
@@ -88,6 +91,12 @@ class AgentV2ConfigurationSplitTest {
             assertThat(workerRegistry.get(SupervisorWorkerIds.RESEARCHER).getAgent()).isInstanceOf(ResearcherAgent.class);
             assertThat(workerRegistry.get(SupervisorWorkerIds.WRITER).getAgent()).isInstanceOf(GroundedWriterAgent.class);
             assertThat(workerRegistry.get(SupervisorWorkerIds.REVIEWER).getAgent()).isInstanceOf(EvidenceReviewerAgent.class);
+            assertThat(ReflectionTestUtils.getField(workerRegistry.get(SupervisorWorkerIds.RESEARCHER).getAgent(), "contextFactory"))
+                    .isSameAs(context.getBean(ResearcherAgentContextFactory.class));
+            assertThat(ReflectionTestUtils.getField(workerRegistry.get(SupervisorWorkerIds.WRITER).getAgent(), "contextFactory"))
+                    .isSameAs(context.getBean(GroundedWriterAgentContextFactory.class));
+            assertThat(ReflectionTestUtils.getField(workerRegistry.get(SupervisorWorkerIds.REVIEWER).getAgent(), "contextFactory"))
+                    .isSameAs(context.getBean(EvidenceReviewerAgentContextFactory.class));
         });
     }
 
