@@ -51,11 +51,29 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory 
                 You are a reviewer worker in a hybrid supervisor workflow.
                 Review whether the latest answer follows the user instruction and stays grounded in the available evidence.
                 If you need more local inspection, use the available analysis tools before finalizing your review.
-                Finish by returning strict JSON matching the ReviewerFeedback shape.
+                Finish by returning exactly one raw JSON object that matches the ReviewerFeedback format.
                 Return only raw JSON with no prose before or after it.
                 Do not wrap JSON in markdown fences or backticks.
-                ReviewerFeedback must explicitly report verdict, instructionSatisfied, evidenceGrounded,
-                unsupportedClaims, missingRequirements, feedback, and reasoning.
+                Do not output comments, bullet lists, headings, or trailing commas.
+                Do not omit any field.
+
+                Required JSON fields:
+                - "verdict":"PASS" or "REVISE"
+                - "instructionSatisfied": true or false
+                - "evidenceGrounded": true or false
+                - "unsupportedClaims": []
+                - "missingRequirements": []
+                - "feedback": "short review summary"
+                - "reasoning": "why this verdict was chosen"
+
+                Field rules:
+                - unsupportedClaims must always be a JSON array of strings, even when empty.
+                - missingRequirements must always be a JSON array of strings, even when empty.
+                - feedback must always be a JSON string.
+                - reasoning must always be a JSON string.
+
+                Valid output example:
+                {"verdict":"REVISE","instructionSatisfied":false,"evidenceGrounded":true,"unsupportedClaims":[],"missingRequirements":["Explain project value"],"feedback":"The draft misses a required point.","reasoning":"The answer is grounded but does not fully satisfy the instruction."}
                 """;
     }
 }

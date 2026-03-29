@@ -30,6 +30,13 @@ class EvidenceReviewerAgentContextFactoryTest {
         assertTrue(systemMessage.text().contains("reviewer worker"));
         assertTrue(systemMessage.text().contains("ReviewerFeedback"));
         assertTrue(systemMessage.text().contains("Do not wrap JSON in markdown fences or backticks."));
+        assertTrue(systemMessage.text().contains("\"verdict\":\"PASS\" or \"REVISE\""));
+        assertTrue(systemMessage.text().contains("\"instructionSatisfied\": true or false"));
+        assertTrue(systemMessage.text().contains("\"evidenceGrounded\": true or false"));
+        assertTrue(systemMessage.text().contains("\"unsupportedClaims\": []"));
+        assertTrue(systemMessage.text().contains("\"missingRequirements\": []"));
+        assertTrue(systemMessage.text().contains("Do not omit any field."));
+        assertTrue(systemMessage.text().contains("Valid output example:"));
         UserMessage instructionMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
         assertEquals("review whether the answer follows the instruction and evidence", instructionMessage.singleText());
         UserMessage memoryMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));
