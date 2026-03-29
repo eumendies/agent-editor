@@ -1,8 +1,8 @@
 package com.agent.editor.service;
 
-import com.agent.editor.agent.AgentExecutor;
-import com.agent.editor.agent.AgentFactory;
-import com.agent.editor.agent.AgentState;
+import com.agent.editor.agent.v1.AgentExecutor;
+import com.agent.editor.agent.v1.AgentFactory;
+import com.agent.editor.agent.v1.AgentState;
 import com.agent.editor.dto.AgentTaskRequest;
 import com.agent.editor.dto.AgentTaskResponse;
 import com.agent.editor.model.AgentMode;

@@ -1,11 +1,9 @@
-package com.agent.editor.agent;
+package com.agent.editor.agent.v1;
 
 import com.agent.editor.dto.WebSocketMessage;
 import com.agent.editor.model.*;
-import com.agent.editor.websocket.WebSocketService;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.model.chat.ChatModel;
 import lombok.experimental.SuperBuilder;
 
 import java.util.*;

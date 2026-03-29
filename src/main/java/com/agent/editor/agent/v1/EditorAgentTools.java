@@ -1,4 +1,4 @@
-package com.agent.editor.agent;
+package com.agent.editor.agent.v1;
 
 import com.agent.editor.dto.WebSocketMessage;
 import com.agent.editor.model.AgentStepType;
@@ -8,12 +8,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.service.tool.DefaultToolExecutor;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 @Data

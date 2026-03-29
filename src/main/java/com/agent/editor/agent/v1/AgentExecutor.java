@@ -1,7 +1,6 @@
-package com.agent.editor.agent;
+package com.agent.editor.agent.v1;
 
 import com.agent.editor.model.*;
-import java.util.Map;
 
 public interface AgentExecutor {
     AgentState execute(Document document, String instruction, String sessionId, 

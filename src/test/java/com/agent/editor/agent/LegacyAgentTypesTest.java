@@ -1,5 +1,6 @@
 package com.agent.editor.agent;
 
+import com.agent.editor.agent.v1.*;
 import com.agent.editor.model.AgentMode;
 import com.agent.editor.websocket.WebSocketService;
 import dev.langchain4j.model.chat.ChatModel;
