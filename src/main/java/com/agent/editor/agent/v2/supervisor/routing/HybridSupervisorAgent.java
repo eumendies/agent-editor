@@ -16,6 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * 混合式 supervisor。
+ * 先执行本地硬规则，再把候选集交给模型做细粒度路由；模型失效时仍可回退到确定性规则。
+ */
 public class HybridSupervisorAgent implements SupervisorAgent {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
@@ -49,6 +53,7 @@ public class HybridSupervisorAgent implements SupervisorAgent {
     @Override
     public SupervisorDecision decide(SupervisorContext context) {
         ReviewerFeedback reviewerFeedback = latestReviewerFeedback(context);
+        // reviewer 满足三项硬条件时直接收口，避免再次把已验收的内容送回 writer/researcher 造成抖动。
         if (reviewerFeedback != null
                 && reviewerFeedback.getVerdict() == ReviewerVerdict.PASS
                 && reviewerFeedback.isInstructionSatisfied()
@@ -61,6 +66,7 @@ public class HybridSupervisorAgent implements SupervisorAgent {
         }
 
         if (shouldStopForNoProgress(context)) {
+            // 连续两轮没有正文和摘要层面的变化时直接停止，避免 supervisor 在无效循环里持续调度。
             return new SupervisorDecision.Complete(
                     context.getCurrentContent(),
                     summarize(context),
@@ -120,6 +126,7 @@ public class HybridSupervisorAgent implements SupervisorAgent {
 
     private List<SupervisorContext.WorkerDefinition> selectCandidates(SupervisorContext context) {
         String demotedWorkerId = consecutiveWorkerId(context);
+        // 连续两轮重复命中同一 worker 时，下一轮先把它降级移出候选，强制 supervisor 尝试别的路径。
         List<SupervisorContext.WorkerDefinition> allowedWorkers = context.getAvailableWorkers().stream()
                 .filter(worker -> !worker.getWorkerId().equals(demotedWorkerId))
                 .toList();
@@ -159,6 +166,7 @@ public class HybridSupervisorAgent implements SupervisorAgent {
 
         SupervisorContext.WorkerResult latest = context.getWorkerResults().get(context.getWorkerResults().size() - 1);
         SupervisorContext.WorkerResult previous = context.getWorkerResults().get(context.getWorkerResults().size() - 2);
+        // 同时比较“正文内容”和“worker 摘要”，避免仅内容相同但解释变化时被误判为无进展。
         return Objects.equals(latest.getUpdatedContent(), context.getCurrentContent())
                 && Objects.equals(previous.getUpdatedContent(), context.getCurrentContent())
                 && Objects.equals(latest.getUpdatedContent(), previous.getUpdatedContent())
@@ -192,6 +200,7 @@ public class HybridSupervisorAgent implements SupervisorAgent {
                     contextFactory.renderWorkerResults(context.getWorkerResults())
             );
         } catch (RuntimeException ignored) {
+            // 模型路由失败不应打断主流程，调用方会回退到规则路由保证最小可用性。
             return null;
         }
     }

@@ -4,8 +4,15 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
+/**
+ * 提供给模型的 supervisor 路由接口定义。
+ */
 interface SupervisorRoutingAiService {
 
+    /**
+     * supervisor 的模型路由协议。
+     * 这里约束模型只能在候选 worker 与 complete 之间选择，外层代码再做一层结果校验和回退。
+     */
     @SystemMessage("""
             You are a hybrid supervisor for a document workflow with specialized workers.
             Decide whether the next step should be:

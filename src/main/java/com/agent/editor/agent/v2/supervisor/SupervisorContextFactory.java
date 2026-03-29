@@ -17,6 +17,10 @@ import dev.langchain4j.data.message.UserMessage;
 
 import java.util.List;
 
+/**
+ * supervisor 工作流的上下文装配器。
+ * 负责在 supervisor 视角和 worker 视角之间切换上下文形态，并控制跨轮记忆的压缩方式。
+ */
 public class SupervisorContextFactory implements AgentContextFactory {
 
     @Override
@@ -36,6 +40,7 @@ public class SupervisorContextFactory implements AgentContextFactory {
                                                     AgentRunContext conversationState,
                                                     List<SupervisorContext.WorkerResult> workerResults,
                                                     List<SupervisorContext.WorkerDefinition> availableWorkers) {
+        // 每轮都基于最新 conversationState 重建 SupervisorContext，确保路由决策只依赖当前快照而不是旧引用。
         return SupervisorContext.builder()
                 .request(new ExecutionRequest(
                         request.getTaskId(),
@@ -65,6 +70,7 @@ public class SupervisorContextFactory implements AgentContextFactory {
                 null,
                 conversationState.getIteration(),
                 currentContent,
+                // worker 执行前只保留摘要型记忆，避免工具调用明细污染下一轮 prompt。
                 keepSummaryMemory(conversationState.getMemory()),
                 ExecutionStage.RUNNING,
                 conversationState.getPendingReason(),
@@ -75,6 +81,7 @@ public class SupervisorContextFactory implements AgentContextFactory {
     public AgentRunContext summarizeWorkerResult(AgentRunContext conversationState,
                                                  String workerId,
                                                  ExecutionResult<?> result) {
+        // supervisor 只需要知道“谁做了什么、产出了什么”，不需要把 worker 的内部推理全文重新塞回记忆。
         return conversationState.appendMemory(new ChatMessage.UserChatMessage("""
                 Previous worker result:
                 workerId: %s
@@ -94,6 +101,7 @@ public class SupervisorContextFactory implements AgentContextFactory {
 
     public ModelInvocationContext buildRoutingInvocationContext(SupervisorContext context,
                                                                 List<SupervisorContext.WorkerDefinition> candidates) {
+        // 路由 prompt 明确拆成任务、当前正文、候选 worker、历史结果四段，方便模型做局部决策而不是重建全局状态。
         return new ModelInvocationContext(
                 List.of(UserMessage.from("""
                         Task: %s
@@ -124,6 +132,7 @@ public class SupervisorContextFactory implements AgentContextFactory {
         if (!(memory instanceof ChatTranscriptMemory transcriptMemory)) {
             return memory;
         }
+        // supervisor/worker 的跨轮记忆以结果摘要为主，工具调用与结果明细在这里被裁掉，防止上下文指数膨胀。
         return new ChatTranscriptMemory(transcriptMemory.getMessages().stream()
                 .filter(message -> !(message instanceof ChatMessage.AiToolCallChatMessage))
                 .filter(message -> !(message instanceof ChatMessage.ToolExecutionResultChatMessage))

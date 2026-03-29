@@ -15,6 +15,10 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * writer worker。
+ * 基于已有上下文和证据修改文档，边界是不生成缺乏证据支撑的新事实。
+ */
 public class GroundedWriterAgent implements ToolLoopAgent {
 
     private final ChatModel chatModel;
@@ -77,6 +81,7 @@ public class GroundedWriterAgent implements ToolLoopAgent {
     private List<ChatMessage> buildMessages(AgentRunContext context, String systemPrompt) {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt));
+        // writer 显式带上本轮指令，确保它优先围绕 supervisor 当前下发的改写目标行动。
         messages.add(UserMessage.from(context.getRequest().getInstruction()));
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().getMemory()));
         return messages;

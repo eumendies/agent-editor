@@ -7,8 +7,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * supervisor 可调度 worker 的注册表。
+ */
 public class WorkerRegistry {
 
+    // 使用 LinkedHashMap 保留注册顺序，规则回退时“第一个候选”具有稳定且可预测的含义。
     private final Map<String, SupervisorContext.WorkerDefinition> workers = new LinkedHashMap<>();
 
     public void register(SupervisorContext.WorkerDefinition workerDefinition) {

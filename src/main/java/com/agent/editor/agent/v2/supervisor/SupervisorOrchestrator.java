@@ -23,7 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 多 agent 编排入口：supervisor 决定下一个 worker，runtime 执行 worker，最后再由 supervisor 汇总。
+ * supervisor 编排入口。
+ * 关键职责是维护当前文档内容、累计 worker 结果，并在每一轮把最新上下文重新交给 supervisor 做下一跳决策。
  */
 public class SupervisorOrchestrator implements TaskOrchestrator {
 
@@ -50,6 +51,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
 
     @Override
     public TaskResult execute(TaskRequest request) {
+        // conversationState 保存“对后续 agent 可见的会话态”，currentContent 则单独保留当前文档正文。
         AgentRunContext conversationState = supervisorContextFactory.prepareInitialContext(request);
         String currentContent = conversationState.getCurrentContent();
         List<SupervisorContext.WorkerResult> workerResults = new ArrayList<>();
@@ -112,7 +114,9 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                         supervisorContextFactory.buildWorkerExecutionContext(conversationState, currentContent)
                 );
 
+                // worker 产出的正文会立即成为下一轮 supervisor 看到的最新文档。
                 currentContent = result.getFinalContent();
+                // 这里只把 worker 结果压缩成摘要写回记忆，避免把完整工具调用轨迹不断滚雪球式传递下去。
                 conversationState = supervisorContextFactory.summarizeWorkerResult(
                         conversationState,
                         worker.getWorkerId(),

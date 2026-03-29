@@ -14,6 +14,10 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * reviewer worker。
+ * 负责把“是否完成指令”和“是否证据扎实”拆成结构化反馈，供 supervisor 继续路由。
+ */
 public class EvidenceReviewerAgent implements ToolLoopAgent {
 
     private final ChatModel chatModel;
@@ -74,6 +78,7 @@ public class EvidenceReviewerAgent implements ToolLoopAgent {
     private List<ChatMessage> buildMessages(AgentRunContext context, String systemPrompt) {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt));
+        // reviewer 主要依据累积记忆审查当前结果，因此不再单独注入新的 user message，避免审查目标漂移。
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().getMemory()));
         return messages;
     }

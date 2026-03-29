@@ -14,6 +14,10 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * research worker。
+ * 只负责拉取与整理证据，不直接改写文档正文。
+ */
 public class ResearcherAgent implements ToolLoopAgent {
 
     private final ChatModel chatModel;
@@ -73,6 +77,7 @@ public class ResearcherAgent implements ToolLoopAgent {
     private List<ChatMessage> buildMessages(AgentRunContext context, String systemPrompt) {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt));
+        // researcher 只消费现有记忆，不直接接收一份单独的用户指令消息，避免和 supervisor 下发摘要形成重复指令。
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().getMemory()));
         return messages;
     }
