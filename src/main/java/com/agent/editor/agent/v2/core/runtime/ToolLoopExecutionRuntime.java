@@ -15,6 +15,7 @@ import com.agent.editor.agent.v2.tool.ToolHandler;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
 import com.agent.editor.agent.v2.tool.ToolResult;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -26,6 +27,8 @@ import java.util.List;
  * 它只负责 decision -> tool execution -> next decision 的循环，不负责多 agent 编排或跨 agent 上下文策略。
  */
 public class ToolLoopExecutionRuntime implements ExecutionRuntime {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final ToolRegistry toolRegistry;
     private final EventPublisher eventPublisher;
@@ -66,11 +69,12 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
 
             if (toolLoopDecision instanceof ToolLoopDecision.Complete complete) {
                 // Complete 表示 agent 明确结束，本轮状态里的 currentContent 就是最终文档内容。
-                eventPublisher.publish(new ExecutionEvent(EventType.TASK_COMPLETED, request.getTaskId(), complete.getResult().toString()));
+                String finalMessage = normalizeCompletionMessage(complete.getResult());
+                eventPublisher.publish(new ExecutionEvent(EventType.TASK_COMPLETED, request.getTaskId(), finalMessage));
                 AgentRunContext completedState = state
-                        .appendMemory(new ChatMessage.AiChatMessage(complete.getResult().toString()))
+                        .appendMemory(new ChatMessage.AiChatMessage(finalMessage))
                         .markCompleted();
-                return new ExecutionResult(complete.getResult(), complete.getResult().toString(), state.getCurrentContent(), completedState);
+                return new ExecutionResult(complete.getResult(), finalMessage, state.getCurrentContent(), completedState);
             }
 
             if (toolLoopDecision instanceof ToolLoopDecision.ToolCalls toolCalls) {
@@ -158,6 +162,21 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
                 .map(ChatMessage.class::cast)
                 .toList());
         return messages;
+    }
+
+    private String normalizeCompletionMessage(Object result) {
+        if (result == null) {
+            return "";
+        }
+        if (result instanceof String text) {
+            return text;
+        }
+        try {
+            // 结构化完成结果需要落成稳定 JSON，供 memory/supervisor 后续继续消费，而不是依赖对象 toString。
+            return OBJECT_MAPPER.writeValueAsString(result);
+        } catch (Exception ignored) {
+            return String.valueOf(result);
+        }
     }
 
 }

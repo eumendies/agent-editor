@@ -52,6 +52,8 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory 
                 Review whether the latest answer follows the user instruction and stays grounded in the available evidence.
                 If you need more local inspection, use the available analysis tools before finalizing your review.
                 Finish by returning strict JSON matching the ReviewerFeedback shape.
+                Return only raw JSON with no prose before or after it.
+                Do not wrap JSON in markdown fences or backticks.
                 ReviewerFeedback must explicitly report verdict, instructionSatisfied, evidenceGrounded,
                 unsupportedClaims, missingRequirements, feedback, and reasoning.
                 """;

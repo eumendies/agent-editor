@@ -72,6 +72,26 @@ class ReflexionCriticDefinitionTest {
     }
 
     @Test
+    void shouldParseCritiqueWrappedInMarkdownFence() {
+        ReflexionCritic definition = new ReflexionCritic(
+                new RecordingChatModel(ChatResponse.builder()
+                        .aiMessage(AiMessage.from("""
+                                ```json
+                                {"verdict":"PASS","feedback":"Looks good","reasoning":"All key requirements are satisfied"}
+                                ```
+                                """))
+                        .build())
+        );
+
+        ToolLoopDecision toolLoopDecision = definition.decide(context());
+
+        ToolLoopDecision.Complete complete = assertInstanceOf(ToolLoopDecision.Complete.class, toolLoopDecision);
+        ReflexionCritique critique = assertInstanceOf(ReflexionCritique.class, complete.getResult());
+        assertEquals(ReflexionVerdict.PASS, critique.getVerdict());
+        assertEquals("Looks good", critique.getFeedback());
+    }
+
+    @Test
     void shouldRejectInvalidCritiquePayload() {
         ReflexionCritic definition = new ReflexionCritic(
                 new RecordingChatModel(ChatResponse.builder()
@@ -84,6 +104,22 @@ class ReflexionCriticDefinitionTest {
         assertThrows(IllegalArgumentException.class, () -> definition.parseCritique("""
                 {"verdict":"MAYBE","feedback":"unclear","reasoning":"invalid verdict"}
                 """));
+    }
+
+    @Test
+    void shouldAllowStrictCritiqueParsingFromMarkdownFencedJson() {
+        ReflexionCritic definition = new ReflexionCritic(new RecordingChatModel(
+                ChatResponse.builder().aiMessage(AiMessage.from("{}")).build()
+        ));
+
+        ReflexionCritique critique = definition.parseCritique("""
+                ```json
+                {"verdict":"PASS","feedback":"Looks good","reasoning":"All key requirements are satisfied"}
+                ```
+                """);
+
+        assertEquals(ReflexionVerdict.PASS, critique.getVerdict());
+        assertEquals("Looks good", critique.getFeedback());
     }
 
     @Test

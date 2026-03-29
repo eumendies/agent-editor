@@ -6,9 +6,7 @@ import com.agent.editor.agent.v2.core.agent.ToolLoopAgent;
 import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.exception.NullChatModelException;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.agent.editor.agent.v2.util.StructuredOutputParsers;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -17,7 +15,6 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 public class ReflexionCritic implements ToolLoopAgent {
 
     private final ChatModel chatModel;
-    private final ObjectMapper objectMapper;
     private final ReflexionCriticContextFactory contextFactory;
 
     public ReflexionCritic(ChatModel chatModel) {
@@ -28,8 +25,6 @@ public class ReflexionCritic implements ToolLoopAgent {
                            ReflexionCriticContextFactory contextFactory) {
         this.chatModel = chatModel;
         this.contextFactory = contextFactory;
-        this.objectMapper = new ObjectMapper()
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
     @Override
@@ -81,27 +76,20 @@ public class ReflexionCritic implements ToolLoopAgent {
     }
 
     public ReflexionCritique parseCritique(String rawText) {
-        try {
-            // critic 与 orchestrator 之间只通过结构化 verdict 交互，避免靠自然语言猜测流程分支。
-            ReflexionCritique critique = objectMapper.readValue(rawText, ReflexionCritique.class);
-            if (critique.getVerdict() == null) {
-                throw new IllegalArgumentException("Critique verdict is required");
-            }
-            return critique;
-        } catch (JsonProcessingException exception) {
-            throw new IllegalArgumentException("Invalid reflexion critique payload", exception);
+        // critic 与 orchestrator 之间只通过结构化 verdict 交互，避免靠自然语言猜测流程分支。
+        ReflexionCritique critique = StructuredOutputParsers.parseJsonOrThrow(
+                rawText,
+                ReflexionCritique.class,
+                "Invalid reflexion critique payload"
+        );
+        if (critique.getVerdict() == null) {
+            throw new IllegalArgumentException("Critique verdict is required");
         }
+        return critique;
     }
 
     private ReflexionCritique tryParseCritique(String rawText) {
-        if (rawText == null || rawText.isBlank()) {
-            return null;
-        }
-        try {
-            return objectMapper.readValue(rawText, ReflexionCritique.class);
-        } catch (JsonProcessingException exception) {
-            return null;
-        }
+        return StructuredOutputParsers.parseJsonWithMarkdownCleanup(rawText, ReflexionCritique.class);
     }
 
     private ChatRequest toChatRequest(ModelInvocationContext invocationContext) {

@@ -21,3 +21,4 @@ logs/
 .worktrees/
 AGENTS.md
 TODO.md
+.vscode

@@ -9,8 +9,7 @@ import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
 import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
 import com.agent.editor.agent.v2.supervisor.worker.ReviewerFeedback;
 import com.agent.editor.agent.v2.supervisor.worker.ReviewerVerdict;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.agent.editor.agent.v2.util.StructuredOutputParsers;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -24,9 +23,6 @@ import java.util.Objects;
  * 先执行本地硬规则，再把候选集交给模型做细粒度路由；模型失效时仍可回退到确定性规则。
  */
 public class HybridSupervisorAgent implements SupervisorAgent {
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private final ChatModel chatModel;
     private final SupervisorContextFactory contextFactory;
@@ -196,7 +192,10 @@ public class HybridSupervisorAgent implements SupervisorAgent {
             if (response == null || response.aiMessage() == null || response.aiMessage().text() == null) {
                 return null;
             }
-            return OBJECT_MAPPER.readValue(response.aiMessage().text(), SupervisorRoutingResponse.class);
+            return StructuredOutputParsers.parseJsonWithMarkdownCleanup(
+                    response.aiMessage().text(),
+                    SupervisorRoutingResponse.class
+            );
         } catch (RuntimeException ignored) {
             // 模型路由失败不应打断主流程，调用方会回退到规则路由保证最小可用性。
             return null;
@@ -234,14 +233,7 @@ public class HybridSupervisorAgent implements SupervisorAgent {
     }
 
     private ReviewerFeedback parseReviewerFeedback(String summary) {
-        if (summary == null || summary.isBlank()) {
-            return null;
-        }
-        try {
-            return OBJECT_MAPPER.readValue(summary, ReviewerFeedback.class);
-        } catch (Exception ignored) {
-            return null;
-        }
+        return StructuredOutputParsers.parseJsonWithMarkdownCleanup(summary, ReviewerFeedback.class);
     }
 
     private void addByCapability(List<SupervisorContext.WorkerDefinition> ordered,

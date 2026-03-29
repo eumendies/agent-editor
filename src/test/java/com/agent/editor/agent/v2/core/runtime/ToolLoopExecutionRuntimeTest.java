@@ -5,6 +5,8 @@ import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.*;
+import com.agent.editor.agent.v2.supervisor.worker.ReviewerFeedback;
+import com.agent.editor.agent.v2.supervisor.worker.ReviewerVerdict;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.trace.TraceStore;
 import com.agent.editor.agent.v2.tool.ToolContext;
@@ -204,6 +206,33 @@ class ToolLoopExecutionRuntimeTest {
     }
 
     @Test
+    void shouldSerializeStructuredCompletionResultIntoFinalMessage() {
+        Agent agent = new StructuredCompletingAgent();
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
+                new ToolRegistry(),
+                event -> {}
+        );
+        ExecutionRequest request = new ExecutionRequest(
+                "task-6b",
+                "session-6b",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-6b", "title", "body"),
+                "finish",
+                3
+        );
+
+        ExecutionResult<ReviewerFeedback> result = runtime.run(agent, request);
+
+        assertEquals(ReviewerVerdict.PASS, result.getResult().getVerdict());
+        assertTrue(result.getFinalMessage().contains("\"verdict\":\"PASS\""));
+        assertTrue(result.getFinalMessage().contains("\"feedback\":\"ok\""));
+        ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) result.getFinalState().getMemory();
+        ChatMessage.AiChatMessage aiMessage =
+                (ChatMessage.AiChatMessage) transcriptMemory.getMessages().get(0);
+        assertEquals(result.getFinalMessage(), aiMessage.getText());
+    }
+
+    @Test
     void shouldPreserveExistingMemoryWhenToolResultsAreAppended() {
         ToolRegistry registry = new ToolRegistry();
         registry.register(new AppendToolHandler());
@@ -376,6 +405,30 @@ class ToolLoopExecutionRuntimeTest {
             seenIteration = context.state().getIteration();
             seenContent = context.state().getCurrentContent();
             return new ToolLoopDecision.Complete("resumed", "resumed execution");
+        }
+    }
+
+    private static final class StructuredCompletingAgent implements ToolLoopAgent {
+
+        @Override
+        public AgentType type() {
+            return AgentType.REACT;
+        }
+
+        @Override
+        public ToolLoopDecision decide(AgentRunContext context) {
+            return new ToolLoopDecision.Complete<>(
+                    new ReviewerFeedback(
+                            ReviewerVerdict.PASS,
+                            true,
+                            true,
+                            List.of(),
+                            List.of(),
+                            "ok",
+                            "complete"
+                    ),
+                    "structured completion"
+            );
         }
     }
 

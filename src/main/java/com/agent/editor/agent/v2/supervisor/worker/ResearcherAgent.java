@@ -3,6 +3,7 @@ package com.agent.editor.agent.v2.supervisor.worker;
 import com.agent.editor.agent.v2.core.agent.*;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
+import com.agent.editor.agent.v2.util.StructuredOutputParsers;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -55,10 +56,18 @@ public class ResearcherAgent implements ToolLoopAgent {
             );
         }
 
-        return new ToolLoopDecision.Complete(aiMessage.text(), aiMessage.text());
+        EvidencePackage evidencePackage = parseEvidencePackage(aiMessage.text());
+        if (evidencePackage != null) {
+            return new ToolLoopDecision.Complete<>(evidencePackage, aiMessage.text());
+        }
+        return new ToolLoopDecision.Complete<>(aiMessage.text(), aiMessage.text());
     }
 
     private ToolCall toToolCall(ToolExecutionRequest request) {
         return new ToolCall(request.id(), request.name(), request.arguments());
+    }
+
+    private EvidencePackage parseEvidencePackage(String text) {
+        return StructuredOutputParsers.parseJsonWithMarkdownCleanup(text, EvidencePackage.class);
     }
 }

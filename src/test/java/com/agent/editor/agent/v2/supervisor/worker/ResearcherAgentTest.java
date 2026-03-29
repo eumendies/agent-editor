@@ -112,6 +112,24 @@ class ResearcherAgentTest {
     }
 
     @Test
+    void shouldParseStructuredEvidencePackageWhenCompleting() {
+        RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
+                .aiMessage(AiMessage.from("""
+                        {"queries":["agentic rag"],"evidenceSummary":"supports supervisor", "limitations":"no metrics", "uncoveredPoints":[], "chunks":[]}
+                        """))
+                .build());
+        ResearcherAgent definition = new ResearcherAgent(chatModel);
+
+        ToolLoopDecision decision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
+                new ChatMessage.UserChatMessage("ground this answer")
+        ))));
+
+        ToolLoopDecision.Complete<?> complete = assertInstanceOf(ToolLoopDecision.Complete.class, decision);
+        EvidencePackage evidencePackage = assertInstanceOf(EvidencePackage.class, complete.getResult());
+        assertEquals("supports supervisor", evidencePackage.getEvidenceSummary());
+    }
+
+    @Test
     void shouldUseContextFactoryProvidedMessages() {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("{}"))

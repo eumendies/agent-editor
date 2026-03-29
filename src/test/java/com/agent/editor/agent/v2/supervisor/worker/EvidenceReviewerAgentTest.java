@@ -69,6 +69,42 @@ class EvidenceReviewerAgentTest {
     }
 
     @Test
+    void shouldParseStructuredReviewerFeedbackWhenCompleting() {
+        RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
+                .aiMessage(AiMessage.from("""
+                        {"verdict":"PASS","instructionSatisfied":true,"evidenceGrounded":true,"unsupportedClaims":[],"missingRequirements":[],"feedback":"ok","reasoning":"complete"}
+                        """))
+                .build());
+        EvidenceReviewerAgent definition = new EvidenceReviewerAgent(chatModel);
+
+        ToolLoopDecision decision = definition.decide(context(List.of(searchContentTool(), analyzeDocumentTool())));
+
+        ToolLoopDecision.Complete<?> complete = assertInstanceOf(ToolLoopDecision.Complete.class, decision);
+        ReviewerFeedback feedback = assertInstanceOf(ReviewerFeedback.class, complete.getResult());
+        assertEquals(ReviewerVerdict.PASS, feedback.getVerdict());
+        assertEquals("ok", feedback.getFeedback());
+    }
+
+    @Test
+    void shouldParseStructuredReviewerFeedbackWrappedInMarkdownFence() {
+        RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
+                .aiMessage(AiMessage.from("""
+                        ```json
+                        {"verdict":"PASS","instructionSatisfied":true,"evidenceGrounded":true,"unsupportedClaims":[],"missingRequirements":[],"feedback":"wrapped","reasoning":"complete"}
+                        ```
+                        """))
+                .build());
+        EvidenceReviewerAgent definition = new EvidenceReviewerAgent(chatModel);
+
+        ToolLoopDecision decision = definition.decide(context(List.of(searchContentTool(), analyzeDocumentTool())));
+
+        ToolLoopDecision.Complete<?> complete = assertInstanceOf(ToolLoopDecision.Complete.class, decision);
+        ReviewerFeedback feedback = assertInstanceOf(ReviewerFeedback.class, complete.getResult());
+        assertEquals(ReviewerVerdict.PASS, feedback.getVerdict());
+        assertEquals("wrapped", feedback.getFeedback());
+    }
+
+    @Test
     void shouldUseContextFactoryProvidedMessages() {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("{}"))

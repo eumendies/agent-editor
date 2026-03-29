@@ -29,6 +29,7 @@ class EvidenceReviewerAgentContextFactoryTest {
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains("reviewer worker"));
         assertTrue(systemMessage.text().contains("ReviewerFeedback"));
+        assertTrue(systemMessage.text().contains("Do not wrap JSON in markdown fences or backticks."));
         UserMessage instructionMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
         assertEquals("review whether the answer follows the instruction and evidence", instructionMessage.singleText());
         UserMessage memoryMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));

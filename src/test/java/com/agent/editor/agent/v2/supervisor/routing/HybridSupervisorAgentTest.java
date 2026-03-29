@@ -81,6 +81,28 @@ class HybridSupervisorAgentTest {
     }
 
     @Test
+    void shouldMapMarkdownFencedRoutingResponseThroughDirectChatModelCall() {
+        RecordingChatModel chatModel = new RecordingChatModel("""
+                ```json
+                {"action":"assign_worker","workerId":"editor","instruction":"Start editing","summary":null,"finalContent":null,"reasoning":"guess"}
+                ```
+                """);
+        HybridSupervisorAgent definition = new HybridSupervisorAgent(chatModel, new SupervisorContextFactory());
+
+        SupervisorDecision decision = definition.decide(supervisorContext(
+                "task-1c",
+                "session-1",
+                "Inspect the document before making changes",
+                "Draft body",
+                workers(),
+                List.of(new SupervisorContext.WorkerResult("analyzer", TaskStatus.COMPLETED, "analysis complete", "Draft body"))
+        ));
+
+        SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
+        assertEquals("editor", assignWorker.getWorkerId());
+    }
+
+    @Test
     void shouldReturnAssignedWorkerSelectedByServiceWithinCandidates() {
         HybridSupervisorAgent definition = new HybridSupervisorAgent(
                 new RecordingChatModel(routingJson(
@@ -352,6 +374,31 @@ class HybridSupervisorAgentTest {
                         new SupervisorContext.WorkerResult(SupervisorWorkerIds.RESEARCHER, TaskStatus.COMPLETED, evidenceSummary(), "Draft body"),
                         new SupervisorContext.WorkerResult(SupervisorWorkerIds.WRITER, TaskStatus.COMPLETED, "updated answer", "Final answer"),
                         new SupervisorContext.WorkerResult(SupervisorWorkerIds.REVIEWER, TaskStatus.COMPLETED, reviewerPass(), "Final answer")
+                )
+        ));
+
+        SupervisorDecision.Complete complete = assertInstanceOf(SupervisorDecision.Complete.class, decision);
+        assertEquals("Final answer", complete.getFinalContent());
+    }
+
+    @Test
+    void shouldCompleteWhenReviewerPassJsonIsWrappedInMarkdownFence() {
+        HybridSupervisorAgent definition = new HybridSupervisorAgent((ChatModel) null);
+
+        SupervisorDecision decision = definition.decide(supervisorContext(
+                "task-10b",
+                "session-1",
+                "Write an answer grounded in my project materials",
+                "Final answer",
+                ragWorkers(),
+                List.of(
+                        new SupervisorContext.WorkerResult(SupervisorWorkerIds.RESEARCHER, TaskStatus.COMPLETED, evidenceSummary(), "Draft body"),
+                        new SupervisorContext.WorkerResult(SupervisorWorkerIds.WRITER, TaskStatus.COMPLETED, "updated answer", "Final answer"),
+                        new SupervisorContext.WorkerResult(SupervisorWorkerIds.REVIEWER, TaskStatus.COMPLETED, """
+                                ```json
+                                {"verdict":"PASS","instructionSatisfied":true,"evidenceGrounded":true,"unsupportedClaims":[],"missingRequirements":[],"feedback":"looks good","reasoning":"complete"}
+                                ```
+                                """, "Final answer")
                 )
         ));
 
