@@ -4,13 +4,16 @@ import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.SupervisorAgent;
 import com.agent.editor.agent.v2.core.context.SupervisorContext;
 import com.agent.editor.agent.v2.core.agent.SupervisorDecision;
+import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
 import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
+import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
 import com.agent.editor.agent.v2.supervisor.worker.ReviewerFeedback;
 import com.agent.editor.agent.v2.supervisor.worker.ReviewerVerdict;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.service.AiServices;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,23 +28,15 @@ public class HybridSupervisorAgent implements SupervisorAgent {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-    private final SupervisorRoutingAiService routingAiService;
+    private final ChatModel chatModel;
     private final SupervisorContextFactory contextFactory;
 
     public HybridSupervisorAgent(ChatModel chatModel) {
-        this(createRoutingAiService(chatModel), new SupervisorContextFactory());
+        this(chatModel, new SupervisorContextFactory());
     }
 
     public HybridSupervisorAgent(ChatModel chatModel, SupervisorContextFactory contextFactory) {
-        this(createRoutingAiService(chatModel), contextFactory);
-    }
-
-    HybridSupervisorAgent(SupervisorRoutingAiService routingAiService) {
-        this(routingAiService, new SupervisorContextFactory());
-    }
-
-    HybridSupervisorAgent(SupervisorRoutingAiService routingAiService, SupervisorContextFactory contextFactory) {
-        this.routingAiService = routingAiService;
+        this.chatModel = chatModel;
         this.contextFactory = contextFactory;
     }
 
@@ -118,12 +113,6 @@ public class HybridSupervisorAgent implements SupervisorAgent {
         );
     }
 
-    private static SupervisorRoutingAiService createRoutingAiService(ChatModel chatModel) {
-        return AiServices.builder(SupervisorRoutingAiService.class)
-                .chatModel(chatModel)
-                .build();
-    }
-
     private List<SupervisorContext.WorkerDefinition> selectCandidates(SupervisorContext context) {
         String demotedWorkerId = consecutiveWorkerId(context);
         // 连续两轮重复命中同一 worker 时，下一轮先把它降级移出候选，强制 supervisor 尝试别的路径。
@@ -141,7 +130,10 @@ public class HybridSupervisorAgent implements SupervisorAgent {
         }
 
         SupervisorContext.WorkerResult latest = context.getWorkerResults().get(context.getWorkerResults().size() - 1);
-        if ("reviewer".equals(latest.getWorkerId())) {
+        if (SupervisorWorkerIds.WRITER.equals(latest.getWorkerId())) {
+            // writer 产出后的下一跳默认先进入 reviewer 复查，避免未审查内容直接被判断完成或再次写作。
+            addByCapability(ordered, allowedWorkers, "review");
+        } else if (SupervisorWorkerIds.REVIEWER.equals(latest.getWorkerId())) {
             ReviewerFeedback reviewerFeedback = parseReviewerFeedback(latest.getSummary());
             if (reviewerFeedback != null) {
                 // reviewer 只报告问题类型，不直接命令下一跳；是否重新 research 仍由 supervisor 控制。
@@ -188,19 +180,27 @@ public class HybridSupervisorAgent implements SupervisorAgent {
     }
 
     private SupervisorRoutingResponse requestModelDecision(SupervisorContext context, List<SupervisorContext.WorkerDefinition> candidates) {
-        if (routingAiService == null) {
+        if (chatModel == null) {
             return null;
         }
 
         try {
-            return routingAiService.route(
-                    context.getRequest().getInstruction(),
-                    context.getCurrentContent(),
-                    contextFactory.renderCandidates(candidates),
-                    contextFactory.renderWorkerResults(context.getWorkerResults())
-            );
+            ModelInvocationContext invocationContext = contextFactory.buildRoutingInvocationContext(context, candidates);
+            ChatRequest.Builder requestBuilder = ChatRequest.builder()
+                    .messages(invocationContext.getMessages())
+                    .toolSpecifications(invocationContext.getToolSpecifications());
+            if (invocationContext.getResponseFormat() != null) {
+                requestBuilder.responseFormat(invocationContext.getResponseFormat());
+            }
+            ChatResponse response = chatModel.chat(requestBuilder.build());
+            if (response == null || response.aiMessage() == null || response.aiMessage().text() == null) {
+                return null;
+            }
+            return OBJECT_MAPPER.readValue(response.aiMessage().text(), SupervisorRoutingResponse.class);
         } catch (RuntimeException ignored) {
             // 模型路由失败不应打断主流程，调用方会回退到规则路由保证最小可用性。
+            return null;
+        } catch (Exception ignored) {
             return null;
         }
     }
@@ -227,7 +227,7 @@ public class HybridSupervisorAgent implements SupervisorAgent {
             return null;
         }
         SupervisorContext.WorkerResult latest = context.getWorkerResults().get(context.getWorkerResults().size() - 1);
-        if (!"reviewer".equals(latest.getWorkerId())) {
+        if (!SupervisorWorkerIds.REVIEWER.equals(latest.getWorkerId())) {
             return null;
         }
         return parseReviewerFeedback(latest.getSummary());

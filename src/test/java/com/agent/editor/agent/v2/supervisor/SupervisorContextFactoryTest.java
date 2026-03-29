@@ -13,7 +13,11 @@ import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskRequest;
+import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.request.ResponseFormatType;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -58,9 +62,9 @@ class SupervisorContextFactoryTest {
                 null,
                 List.of()
         );
-        ArrayList<SupervisorContext.WorkerDefinition> availableWorkers = new ArrayList<>(List.of(worker("writer")));
+        ArrayList<SupervisorContext.WorkerDefinition> availableWorkers = new ArrayList<>(List.of(worker(SupervisorWorkerIds.WRITER)));
         ArrayList<SupervisorContext.WorkerResult> workerResults = new ArrayList<>(List.of(
-                new SupervisorContext.WorkerResult("researcher", TaskStatus.COMPLETED, "evidence collected", "draft")
+                new SupervisorContext.WorkerResult(SupervisorWorkerIds.RESEARCHER, TaskStatus.COMPLETED, "evidence collected", "draft")
         ));
 
         SupervisorContext context = factory.buildSupervisorContext(
@@ -69,8 +73,8 @@ class SupervisorContextFactoryTest {
                 workerResults,
                 availableWorkers
         );
-        availableWorkers.add(worker("reviewer"));
-        workerResults.add(new SupervisorContext.WorkerResult("writer", TaskStatus.COMPLETED, "draft updated", "draft 2"));
+        availableWorkers.add(worker(SupervisorWorkerIds.REVIEWER));
+        workerResults.add(new SupervisorContext.WorkerResult(SupervisorWorkerIds.WRITER, TaskStatus.COMPLETED, "draft updated", "draft 2"));
 
         assertEquals(1, context.getAvailableWorkers().size());
         assertEquals(1, context.getWorkerResults().size());
@@ -118,14 +122,14 @@ class SupervisorContextFactoryTest {
 
         AgentRunContext nextState = factory.summarizeWorkerResult(
                 conversationState,
-                "writer",
+                SupervisorWorkerIds.WRITER,
                 new ExecutionResult<>("summary", "summary", "draft updated")
         );
 
         assertEquals("draft updated", nextState.getCurrentContent());
         ChatTranscriptMemory memory = (ChatTranscriptMemory) nextState.getMemory();
         ChatMessage.UserChatMessage summary = assertInstanceOf(ChatMessage.UserChatMessage.class, memory.getMessages().get(0));
-        assertTrue(summary.getText().contains("workerId: writer"));
+        assertTrue(summary.getText().contains("workerId: " + SupervisorWorkerIds.WRITER));
         assertTrue(summary.getText().contains("summary: summary"));
     }
 
@@ -135,17 +139,32 @@ class SupervisorContextFactoryTest {
         SupervisorContext context = factory.buildSupervisorContext(
                 taskRequest(),
                 factory.prepareInitialContext(taskRequest()),
-                List.of(new SupervisorContext.WorkerResult("researcher", TaskStatus.COMPLETED, "evidence collected", "body")),
-                List.of(worker("writer"))
+                List.of(
+                        new SupervisorContext.WorkerResult(SupervisorWorkerIds.RESEARCHER, TaskStatus.COMPLETED, "evidence collected", "body"),
+                        new SupervisorContext.WorkerResult(SupervisorWorkerIds.WRITER, TaskStatus.COMPLETED, "draft updated", "body v2")
+                ),
+                List.of(worker(SupervisorWorkerIds.WRITER))
         );
 
         ModelInvocationContext invocationContext = factory.buildRoutingInvocationContext(context, context.getAvailableWorkers());
 
-        assertEquals(1, invocationContext.getMessages().size());
-        UserMessage message = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(0));
+        assertEquals(4, invocationContext.getMessages().size());
+        SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
+        assertTrue(systemMessage.text().contains("You are a hybrid supervisor for a document workflow"));
+        UserMessage message = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
         assertTrue(message.singleText().contains("Task: Improve this document"));
         assertTrue(message.singleText().contains("writer | role=Writer"));
-        assertTrue(message.singleText().contains("researcher: evidence collected"));
+        AiMessage firstWorkerResult = assertInstanceOf(AiMessage.class, invocationContext.getMessages().get(2));
+        assertTrue(firstWorkerResult.text().contains("workerId: " + SupervisorWorkerIds.RESEARCHER));
+        assertTrue(firstWorkerResult.text().contains("summary: evidence collected"));
+        assertTrue(!firstWorkerResult.text().contains("updatedContent:"));
+        AiMessage secondWorkerResult = assertInstanceOf(AiMessage.class, invocationContext.getMessages().get(3));
+        assertTrue(secondWorkerResult.text().contains("workerId: " + SupervisorWorkerIds.WRITER));
+        assertTrue(secondWorkerResult.text().contains("updatedContent: body v2"));
+        assertEquals(ResponseFormatType.JSON, invocationContext.getResponseFormat().type());
+        assertEquals("supervisor_routing", invocationContext.getResponseFormat().jsonSchema().name());
+        assertTrue(systemMessage.text().contains("If the latest worker result is from writer, the default next step is reviewer."));
+        assertTrue(systemMessage.text().contains("Only choose complete when the latest content has already been reviewed"));
     }
 
     private static TaskRequest taskRequest() {
@@ -162,11 +181,11 @@ class SupervisorContextFactoryTest {
     private static SupervisorContext.WorkerDefinition worker(String workerId) {
         return new SupervisorContext.WorkerDefinition(
                 workerId,
-                workerId.equals("writer") ? "Writer" : "Reviewer",
-                workerId.equals("writer") ? "Update the document" : "Review the document",
+                workerId.equals(SupervisorWorkerIds.WRITER) ? "Writer" : "Reviewer",
+                workerId.equals(SupervisorWorkerIds.WRITER) ? "Update the document" : "Review the document",
                 new NoOpAgent(),
                 List.of("editDocument"),
-                List.of(workerId.equals("writer") ? "write" : "review")
+                List.of(workerId.equals(SupervisorWorkerIds.WRITER) ? "write" : "review")
         );
     }
 

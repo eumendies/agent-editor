@@ -17,7 +17,7 @@ langchain4j:
       model-name: qwen3.5-plus
       base-url: https://coding.dashscope.aliyuncs.com/v1
       temperature: 0.7
-      max-tokens: 4000
+      max-tokens: 2000
     embedding-model:
       model-name: text-embedding-v4
       base-url: https://dashscope.aliyuncs.com/compatible-mode/v1

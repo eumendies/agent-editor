@@ -9,6 +9,7 @@ import com.agent.editor.agent.v2.core.runtime.ToolLoopExecutionRuntime;
 import com.agent.editor.agent.v2.reflexion.ReflexionActor;
 import com.agent.editor.agent.v2.reflexion.ReflexionCritic;
 import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
+import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
 import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgent;
 import com.agent.editor.agent.v2.supervisor.worker.*;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
@@ -72,17 +73,21 @@ class AgentV2ConfigurationSplitTest {
 
             assertThat(workerRegistry.all())
                     .extracting(SupervisorContext.WorkerDefinition::getWorkerId)
-                    .containsExactly("researcher", "writer", "reviewer");
+                    .containsExactly(
+                            SupervisorWorkerIds.RESEARCHER,
+                            SupervisorWorkerIds.WRITER,
+                            SupervisorWorkerIds.REVIEWER
+                    );
             assertThat(workerRegistry.all())
                     .extracting(SupervisorContext.WorkerDefinition::getCapabilities)
                     .allSatisfy(capabilities -> assertThat(capabilities).isNotEmpty());
-            assertThat(workerRegistry.get("researcher").getCapabilities()).containsExactly("research");
-            assertThat(workerRegistry.get("writer").getCapabilities()).containsExactly("write", "edit");
-            assertThat(workerRegistry.get("writer").getDescription()).contains("grounded");
-            assertThat(workerRegistry.get("reviewer").getCapabilities()).containsExactly("review");
-            assertThat(workerRegistry.get("researcher").getAgent()).isInstanceOf(ResearcherAgent.class);
-            assertThat(workerRegistry.get("writer").getAgent()).isInstanceOf(GroundedWriterAgent.class);
-            assertThat(workerRegistry.get("reviewer").getAgent()).isInstanceOf(EvidenceReviewerAgent.class);
+            assertThat(workerRegistry.get(SupervisorWorkerIds.RESEARCHER).getCapabilities()).containsExactly("research");
+            assertThat(workerRegistry.get(SupervisorWorkerIds.WRITER).getCapabilities()).containsExactly("write", "edit");
+            assertThat(workerRegistry.get(SupervisorWorkerIds.WRITER).getDescription()).contains("grounded");
+            assertThat(workerRegistry.get(SupervisorWorkerIds.REVIEWER).getCapabilities()).containsExactly("review");
+            assertThat(workerRegistry.get(SupervisorWorkerIds.RESEARCHER).getAgent()).isInstanceOf(ResearcherAgent.class);
+            assertThat(workerRegistry.get(SupervisorWorkerIds.WRITER).getAgent()).isInstanceOf(GroundedWriterAgent.class);
+            assertThat(workerRegistry.get(SupervisorWorkerIds.REVIEWER).getAgent()).isInstanceOf(EvidenceReviewerAgent.class);
         });
     }
 
@@ -92,6 +97,8 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(SupervisorAgent.class);
             assertThat(context.getBean(SupervisorAgent.class))
                     .isInstanceOf(HybridSupervisorAgent.class);
+            assertThat(ReflectionTestUtils.getField(context.getBean(SupervisorAgent.class), "chatModel"))
+                    .isSameAs(context.getBean(ChatModel.class));
             assertThat(ReflectionTestUtils.getField(context.getBean(SupervisorAgent.class), "contextFactory"))
                     .isSameAs(context.getBean(SupervisorContextFactory.class));
             assertThat(context).hasSingleBean(TaskOrchestrator.class);

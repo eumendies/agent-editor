@@ -13,8 +13,16 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.task.TaskRequest;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.request.ResponseFormat;
+import dev.langchain4j.model.chat.request.ResponseFormatType;
+import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.request.json.JsonSchema;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -22,6 +30,26 @@ import java.util.List;
  * 负责在 supervisor 视角和 worker 视角之间切换上下文形态，并控制跨轮记忆的压缩方式。
  */
 public class SupervisorContextFactory implements AgentContextFactory {
+
+    private static final String ASSIGN_WORKER_ACTION = "assign_worker";
+    private static final String COMPLETE_ACTION = "complete";
+
+    private static final JsonSchema SUPERVISOR_ROUTING_SCHEMA = JsonSchema.builder()
+            .name("supervisor_routing")
+            .rootElement(JsonObjectSchema.builder()
+                    .addProperty("action", JsonEnumSchema.builder()
+                            .description("Next routing action")
+                            .enumValues(ASSIGN_WORKER_ACTION, COMPLETE_ACTION)
+                            .build())
+                    .addStringProperty("workerId", "Candidate worker id when assigning")
+                    .addStringProperty("instruction", "Instruction for the selected worker when assigning")
+                    .addStringProperty("summary", "Final completion summary when action is complete")
+                    .addStringProperty("finalContent", "Final content when action is complete")
+                    .addStringProperty("reasoning", "Concise explanation for the routing choice")
+                    .required("action", "reasoning")
+                    .additionalProperties(false)
+                    .build())
+            .build();
 
     @Override
     public AgentRunContext prepareInitialContext(TaskRequest request) {
@@ -101,26 +129,31 @@ public class SupervisorContextFactory implements AgentContextFactory {
 
     public ModelInvocationContext buildRoutingInvocationContext(SupervisorContext context,
                                                                 List<SupervisorContext.WorkerDefinition> candidates) {
-        // 路由 prompt 明确拆成任务、当前正文、候选 worker、历史结果四段，方便模型做局部决策而不是重建全局状态。
+        // 历史 worker result 逐条映射为 AI 消息，避免把执行轨迹挤成一大段字符串后丢失轮次边界。
+        List<dev.langchain4j.data.message.ChatMessage> messages = new ArrayList<>();
+        messages.add(SystemMessage.from(routingSystemPrompt()));
+        messages.add(UserMessage.from("""
+                Task: %s
+                Current content:
+                %s
+
+                Candidate workers:
+                %s
+                """.formatted(
+                context.getRequest().getInstruction(),
+                context.getCurrentContent(),
+                renderCandidates(candidates)
+        )));
+        context.getWorkerResults().stream()
+                .map(this::toRoutingHistoryMessage)
+                .forEach(messages::add);
         return new ModelInvocationContext(
-                List.of(UserMessage.from("""
-                        Task: %s
-                        Current content:
-                        %s
-
-                        Candidate workers:
-                        %s
-
-                        Previous worker results:
-                        %s
-                        """.formatted(
-                        context.getRequest().getInstruction(),
-                        context.getCurrentContent(),
-                        renderCandidates(candidates),
-                        renderWorkerResults(context.getWorkerResults())
-                ))),
+                messages,
                 List.of(),
-                null
+                ResponseFormat.builder()
+                        .type(ResponseFormatType.JSON)
+                        .jsonSchema(SUPERVISOR_ROUTING_SCHEMA)
+                        .build()
         );
     }
 
@@ -152,16 +185,6 @@ public class SupervisorContextFactory implements AgentContextFactory {
                 .orElse("No candidate workers");
     }
 
-    public String renderWorkerResults(List<SupervisorContext.WorkerResult> workerResults) {
-        if (workerResults.isEmpty()) {
-            return "No worker steps executed";
-        }
-        return workerResults.stream()
-                .map(result -> result.getWorkerId() + ": " + result.getSummary())
-                .reduce((left, right) -> left + "\n" + right)
-                .orElse("No worker steps executed");
-    }
-
     private String normalizeWorkerSummary(ExecutionResult<?> result) {
         if (result.getFinalMessage() != null && !result.getFinalMessage().isBlank()) {
             return result.getFinalMessage();
@@ -170,5 +193,51 @@ public class SupervisorContextFactory implements AgentContextFactory {
             return result.getFinalContent();
         }
         return "worker completed";
+    }
+
+    private AiMessage toRoutingHistoryMessage(SupervisorContext.WorkerResult workerResult) {
+        String updatedContentSection = SupervisorWorkerIds.WRITER.equals(workerResult.getWorkerId())
+                ? "\nupdatedContent: %s".formatted(emptyIfBlank(workerResult.getUpdatedContent()))
+                : "";
+        return AiMessage.from("""
+                Previous worker result:
+                workerId: %s
+                status: %s
+                summary: %s%s
+                """.formatted(
+                workerResult.getWorkerId(),
+                workerResult.getStatus(),
+                emptyIfBlank(workerResult.getSummary()),
+                updatedContentSection
+        ));
+    }
+
+    private String routingSystemPrompt() {
+        return """
+                You are a hybrid supervisor for a document workflow with specialized workers.
+                Decide whether the next step should be:
+                - researcher: gather evidence from the knowledge base
+                - writer: write or revise the document using available context and evidence
+                - reviewer: verify both instruction completion and evidence grounding
+                - complete: stop when the task is already complete
+                Routing policy:
+                - If the latest worker result is from writer, the default next step is reviewer.
+                - After writer finishes, assign reviewer unless there is a clear reason that more research is required before review.
+                - Do not assign writer again immediately after writer unless reviewer feedback or explicit missing evidence makes another writing pass necessary.
+                - Only choose complete when the latest content has already been reviewed and no further verification is needed.
+                Choose one of the candidate workers or complete the task.
+                Return only JSON using:
+                - action: assign_worker or complete
+                - workerId: candidate worker id when assigning
+                - instruction: required when assigning
+                - summary: required when completing
+                - finalContent: required when completing
+                - reasoning: concise explanation
+                The workerId must be one of the candidate workers listed in the user message.
+                """;
+    }
+
+    private String emptyIfBlank(String value) {
+        return value == null ? "" : value;
     }
 }

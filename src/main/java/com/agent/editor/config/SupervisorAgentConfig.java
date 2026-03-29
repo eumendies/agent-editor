@@ -3,6 +3,7 @@ package com.agent.editor.config;
 import com.agent.editor.agent.v2.core.agent.SupervisorAgent;
 import com.agent.editor.agent.v2.core.context.SupervisorContext;
 import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
+import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
 import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgent;
 import com.agent.editor.agent.v2.supervisor.worker.*;
 import com.agent.editor.agent.v2.supervisor.worker.ResearcherAgent;
@@ -42,7 +43,7 @@ public class SupervisorAgentConfig {
                                          EvidenceReviewerAgent evidenceReviewerAgentDefinition) {
         WorkerRegistry workerRegistry = new WorkerRegistry();
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
-                "researcher",
+                SupervisorWorkerIds.RESEARCHER,
                 "Researcher",
                 "Collect grounded evidence from the knowledge base before downstream writing or review.",
                 researcherAgentDefinition,
@@ -50,7 +51,7 @@ public class SupervisorAgentConfig {
                 List.of("research")
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
-                "writer",
+                SupervisorWorkerIds.WRITER,
                 "Writer",
                 "Produce grounded document updates and revisions without introducing unsupported claims.",
                 groundedWriterAgentDefinition,
@@ -58,11 +59,11 @@ public class SupervisorAgentConfig {
                 List.of("write", "edit")
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
-                "reviewer",
+                SupervisorWorkerIds.REVIEWER,
                 "Reviewer",
                 "Review whether the response follows the user instruction and remains grounded in available evidence.",
                 evidenceReviewerAgentDefinition,
-                List.of("searchContent", "analyzeDocument"),
+                List.of("searchContent", "analyzeDocument", "getDocumentSnapshot"),
                 List.of("review")
         ));
         return workerRegistry;

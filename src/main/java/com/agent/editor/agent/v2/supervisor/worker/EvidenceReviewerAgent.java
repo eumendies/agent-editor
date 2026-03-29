@@ -7,6 +7,7 @@ import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -78,7 +79,7 @@ public class EvidenceReviewerAgent implements ToolLoopAgent {
     private List<ChatMessage> buildMessages(AgentRunContext context, String systemPrompt) {
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt));
-        // reviewer 主要依据累积记忆审查当前结果，因此不再单独注入新的 user message，避免审查目标漂移。
+        messages.add(UserMessage.from(context.getRequest().getInstruction()));
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().getMemory()));
         return messages;
     }
