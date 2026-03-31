@@ -49,3 +49,10 @@ milvus:
   port: 19530
   collection-name: knowledge_chunks_v2
   embedding-dimension: 1024
+  hybrid:
+    dense:
+      radius: 0.55
+      range-filter: 1.0
+    sparse:
+      radius: ~
+      range-filter: ~

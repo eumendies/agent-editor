@@ -96,6 +96,34 @@ class MilvusKnowledgeChunkRepositoryTest {
     }
 
     @Test
+    void shouldApplyConfiguredHybridRangeFilters() {
+        MilvusClientV2 milvusClient = mock(MilvusClientV2.class);
+        when(milvusClient.hybridSearch(any(HybridSearchReq.class))).thenReturn(SearchResp.builder()
+                .searchResults(List.of(List.of()))
+                .build());
+        MilvusProperties properties = new MilvusProperties("localhost", 19530, "knowledge_chunks_v2", 3);
+        MilvusProperties.HybridProperties hybrid = new MilvusProperties.HybridProperties();
+        hybrid.setDense(new MilvusProperties.RangeSearchProperties(0.82d, 1.0d));
+        hybrid.setSparse(new MilvusProperties.RangeSearchProperties(0.15d, 1.0d));
+        properties.setHybrid(hybrid);
+        MilvusKnowledgeChunkRepository repository = new MilvusKnowledgeChunkRepository(milvusClient, properties);
+
+        repository.searchHybrid(
+                "Spring Boot",
+                new float[]{0.1f, 0.2f, 0.3f},
+                null,
+                3
+        );
+
+        ArgumentCaptor<HybridSearchReq> requestCaptor = ArgumentCaptor.forClass(HybridSearchReq.class);
+        verify(milvusClient).hybridSearch(requestCaptor.capture());
+
+        HybridSearchReq request = requestCaptor.getValue();
+        assertEquals("{\"radius\":0.82,\"range_filter\":1.0}", request.getSearchRequests().get(0).getParams());
+        assertEquals("{\"radius\":0.15,\"range_filter\":1.0}", request.getSearchRequests().get(1).getParams());
+    }
+
+    @Test
     void shouldUpsertChunkEmbeddingPayloads() {
         MilvusClientV2 milvusClient = mock(MilvusClientV2.class);
         MilvusKnowledgeChunkRepository repository = new MilvusKnowledgeChunkRepository(

@@ -61,6 +61,7 @@ public class MilvusKnowledgeChunkRepository implements KnowledgeChunkRepository 
     @Override
     public List<RetrievedKnowledgeChunk> searchHybrid(String query, float[] queryVector, List<String> documentIds, int topK) {
         int candidateTopK = Math.max(topK * 3, 20);
+        MilvusProperties.HybridProperties hybridProperties = resolveHybridProperties();
         try {
             SearchResp response = milvusClient.hybridSearch(HybridSearchReq.builder()
                     .collectionName(properties.getCollectionName())
@@ -70,6 +71,7 @@ public class MilvusKnowledgeChunkRepository implements KnowledgeChunkRepository 
                                     .metricType(IndexParam.MetricType.COSINE)
                                     .topK(candidateTopK)
                                     .filter(buildDocumentFilter(documentIds))
+                                    .params(buildHybridSearchParams(hybridProperties.getDense()))
                                     .vectors(List.of(new FloatVec(queryVector)))
                                     .build(),
                             AnnSearchReq.builder()
@@ -77,6 +79,7 @@ public class MilvusKnowledgeChunkRepository implements KnowledgeChunkRepository 
                                     .metricType(IndexParam.MetricType.BM25)
                                     .topK(candidateTopK)
                                     .filter(buildDocumentFilter(documentIds))
+                                    .params(buildHybridSearchParams(hybridProperties.getSparse()))
                                     .vectors(List.of(new EmbeddedText(query)))
                                     .build()
                     ))
@@ -109,6 +112,18 @@ public class MilvusKnowledgeChunkRepository implements KnowledgeChunkRepository 
                 .flatMap(List::stream)
                 .map(this::toRetrievedChunk)
                 .toList();
+    }
+
+    private MilvusProperties.HybridProperties resolveHybridProperties() {
+        return properties.getHybrid() == null ? new MilvusProperties.HybridProperties() : properties.getHybrid();
+    }
+
+    private String buildHybridSearchParams(MilvusProperties.RangeSearchProperties rangeProperties) {
+        if (rangeProperties == null || rangeProperties.getRadius() == null || rangeProperties.getRangeFilter() == null) {
+            return null;
+        }
+        // 这里直接透传 Milvus 原生 range search 参数，避免在应用层再引入一层自定义分数语义。
+        return "{\"radius\":" + rangeProperties.getRadius() + ",\"range_filter\":" + rangeProperties.getRangeFilter() + "}";
     }
 
     private JsonObject toRow(KnowledgeChunk chunk) {
