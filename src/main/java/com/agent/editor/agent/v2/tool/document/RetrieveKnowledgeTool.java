@@ -4,10 +4,13 @@ import com.agent.editor.agent.v2.tool.ToolContext;
 import com.agent.editor.agent.v2.tool.ToolHandler;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
 import com.agent.editor.agent.v2.tool.ToolResult;
+import com.agent.editor.model.EvidenceChunk;
 import com.agent.editor.service.KnowledgeRetrievalService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+
+import java.util.List;
 
 public class RetrieveKnowledgeTool implements ToolHandler {
 
@@ -45,8 +48,13 @@ public class RetrieveKnowledgeTool implements ToolHandler {
                 name()
         );
         try {
+            // researcher 只需要判断证据是否充分，不需要看到内部检索定位和打分字段。
+            List<EvidenceChunk> chunks = retrievalService.retrieve(arguments.getQuery(), arguments.getDocumentIds(), arguments.getTopK())
+                    .stream()
+                    .map(EvidenceChunk::fromRetrieved)
+                    .toList();
             return new ToolResult(OBJECT_MAPPER.writeValueAsString(
-                    retrievalService.retrieve(arguments.getQuery(), arguments.getDocumentIds(), arguments.getTopK())
+                    chunks
             ));
         } catch (Exception exception) {
             throw new IllegalArgumentException("Failed to serialize tool result for " + name(), exception);

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -35,6 +36,10 @@ class RetrieveKnowledgeToolTest {
         );
 
         assertTrue(result.getMessage().contains("\"fileName\":\"resume.md\""));
-        assertTrue(result.getMessage().contains("\"score\":2.0"));
+        assertTrue(result.getMessage().contains("\"heading\":\"项目经历\""));
+        assertTrue(result.getMessage().contains("\"chunkText\":\"Spring Boot 项目经验\""));
+        assertFalse(result.getMessage().contains("\"documentId\""));
+        assertFalse(result.getMessage().contains("\"chunkIndex\""));
+        assertFalse(result.getMessage().contains("\"score\""));
     }
 }

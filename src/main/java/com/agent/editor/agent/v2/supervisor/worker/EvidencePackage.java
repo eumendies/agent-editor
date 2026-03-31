@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.supervisor.worker;
 
-import com.agent.editor.model.RetrievedKnowledgeChunk;
+import com.agent.editor.model.EvidenceChunk;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,5 +20,5 @@ public class EvidencePackage {
     private String evidenceSummary;
     private String limitations;
     private List<String> uncoveredPoints;
-    private List<RetrievedKnowledgeChunk> chunks;
+    private List<EvidenceChunk> chunks;
 }

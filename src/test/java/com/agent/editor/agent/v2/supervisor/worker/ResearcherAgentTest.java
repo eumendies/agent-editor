@@ -163,7 +163,7 @@ class ResearcherAgentTest {
                         DocumentToolNames.RETRIEVE_KNOWLEDGE,
                         "{\"query\":\"rewritten query\"}",
                         """
-                        [{"documentId":"doc-1","fileName":"resume.md","chunkIndex":1,"heading":"项目经历","chunkText":"supports supervisor","score":0.91}]
+                        [{"fileName":"resume.md","heading":"项目经历","chunkText":"supports supervisor"}]
                         """
                 ),
                 new ChatMessage.UserChatMessage("ground this answer")
@@ -175,7 +175,9 @@ class ResearcherAgentTest {
         assertEquals("supports supervisor", evidencePackage.getEvidenceSummary());
         assertEquals(List.of("benchmark data"), evidencePackage.getUncoveredPoints());
         assertEquals(1, evidencePackage.getChunks().size());
-        assertEquals("doc-1", evidencePackage.getChunks().get(0).getDocumentId());
+        assertEquals("resume.md", evidencePackage.getChunks().get(0).getFileName());
+        assertEquals("项目经历", evidencePackage.getChunks().get(0).getHeading());
+        assertEquals("supports supervisor", evidencePackage.getChunks().get(0).getChunkText());
     }
 
     @Test

@@ -37,12 +37,9 @@ class EvidenceContractsTest {
                   "uncoveredPoints":["online performance"],
                   "chunks":[
                     {
-                      "documentId":"doc-1",
                       "fileName":"resume.md",
-                      "chunkIndex":1,
                       "heading":"项目经历",
-                      "chunkText":"支持 supervisor",
-                      "score":0.91
+                      "chunkText":"支持 supervisor"
                     }
                   ]
                 }
@@ -50,6 +47,10 @@ class EvidenceContractsTest {
 
         assertEquals(List.of("online performance"), evidence.getUncoveredPoints());
         assertEquals(1, evidence.getChunks().size());
+        String serialized = objectMapper.writeValueAsString(evidence);
+        assertFalse(serialized.contains("documentId"));
+        assertFalse(serialized.contains("chunkIndex"));
+        assertFalse(serialized.contains("score"));
     }
 
     @Test

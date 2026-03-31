@@ -1,6 +1,6 @@
 package com.agent.editor.agent.v2.supervisor.worker;
 
-import com.agent.editor.model.RetrievedKnowledgeChunk;
+import com.agent.editor.model.EvidenceChunk;
 import com.agent.editor.agent.v2.core.agent.*;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
@@ -164,12 +164,12 @@ public class ResearcherAgent implements ToolLoopAgent {
         }
     }
 
-    private List<RetrievedKnowledgeChunk> extractChunks(String text) {
+    private List<EvidenceChunk> extractChunks(String text) {
         if (text == null || text.isBlank()) {
             return List.of();
         }
         try {
-            return OBJECT_MAPPER.readValue(text, new TypeReference<List<RetrievedKnowledgeChunk>>() {
+            return OBJECT_MAPPER.readValue(text, new TypeReference<List<EvidenceChunk>>() {
             });
         } catch (Exception exception) {
             return List.of();
@@ -183,7 +183,7 @@ public class ResearcherAgent implements ToolLoopAgent {
         return Collections.unmodifiableList(new ArrayList<>(values));
     }
 
-    private record LastRetrieveKnowledgeSnapshot(List<String> queries, List<RetrievedKnowledgeChunk> chunks) {
+    private record LastRetrieveKnowledgeSnapshot(List<String> queries, List<EvidenceChunk> chunks) {
 
         private static LastRetrieveKnowledgeSnapshot empty() {
             return new LastRetrieveKnowledgeSnapshot(List.of(), List.of());
