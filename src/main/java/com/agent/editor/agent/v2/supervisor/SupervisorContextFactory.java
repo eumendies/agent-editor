@@ -110,7 +110,7 @@ public class SupervisorContextFactory implements AgentContextFactory {
                                                  String workerId,
                                                  ExecutionResult<?> result) {
         // supervisor 只需要知道“谁做了什么、产出了什么”，不需要把 worker 的内部推理全文重新塞回记忆。
-        return conversationState.appendMemory(new ChatMessage.UserChatMessage("""
+        return conversationState.appendMemory(new ChatMessage.AiChatMessage("""
                 Previous worker result:
                 workerId: %s
                 summary: %s
