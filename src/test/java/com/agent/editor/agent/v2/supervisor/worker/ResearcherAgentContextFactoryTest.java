@@ -33,6 +33,9 @@ class ResearcherAgentContextFactoryTest {
         assertTrue(systemMessage.text().contains("rewrite the query"));
         assertTrue(systemMessage.text().contains("multiple retrieveKnowledge tool calls"));
         assertTrue(systemMessage.text().contains("ResearcherSummary"));
+        assertTrue(systemMessage.text().contains("\"evidenceSummary\": \"string\""));
+        assertTrue(systemMessage.text().contains("\"limitations\": \"string\""));
+        assertTrue(systemMessage.text().contains("\"uncoveredPoints\": [\"string\"]"));
         UserMessage firstUserMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
         assertEquals("initial grounding request", firstUserMessage.singleText());
         ToolExecutionResultMessage toolMessage = assertInstanceOf(

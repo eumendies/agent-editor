@@ -52,7 +52,12 @@ public class ResearcherAgentContextFactory implements AgentContextFactory {
                 If major information points remain uncovered, you may rewrite the query and retrieve again.
                 If the task benefits from exploring multiple angles, you may emit multiple retrieveKnowledge tool calls in one turn.
                 Do not edit the document.
-                Finish by returning strict JSON matching the ResearcherSummary shape.
+                Finish by returning strict JSON matching the ResearcherSummary shape:
+                {
+                  "evidenceSummary": "string",
+                  "limitations": "string",
+                  "uncoveredPoints": ["string"]
+                }
                 """;
     }
 }
