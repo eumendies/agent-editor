@@ -268,6 +268,48 @@ class SupervisorOrchestratorTest {
         assertTrue(firstWorkerMemory.getMessages().stream().anyMatch(message -> "previous turn".equals(message.getText())));
     }
 
+    @Test
+    void shouldCapResearcherWorkerIterationsAtFour() {
+        WorkerRegistry workerRegistry = new WorkerRegistry();
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
+                "researcher",
+                "Researcher",
+                "Gather evidence",
+                new StubWorkerAgent("research complete"),
+                List.of("retrieveKnowledge")
+        ));
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
+                "editor",
+                "Editor",
+                "Apply document edits",
+                new StubWorkerAgent("edited content"),
+                List.of("editDocument")
+        ));
+
+        RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
+        SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(
+                new ResearchThenEditSupervisorAgent(),
+                new RecordingSupervisorExecutionRuntime(),
+                workerRegistry,
+                runtime,
+                event -> {},
+                new SupervisorContextFactory()
+        );
+
+        TaskResult result = orchestrator.execute(new TaskRequest(
+                "task-6",
+                "session-6",
+                AgentType.SUPERVISOR,
+                new DocumentSnapshot("doc-6", "Title", "body"),
+                "Ground and edit this document",
+                12
+        ));
+
+        assertEquals(TaskStatus.COMPLETED, result.getStatus());
+        assertEquals(List.of("researcher", "editor"), runtime.workerIds());
+        assertEquals(List.of(4, 12), runtime.maxIterations());
+    }
+
     private static final class ScriptedSupervisorAgentDefinition implements SupervisorAgent {
 
         @Override
@@ -307,6 +349,25 @@ class SupervisorOrchestratorTest {
 
         private List<SupervisorContext> contexts() {
             return contexts;
+        }
+    }
+
+    private static final class ResearchThenEditSupervisorAgent implements SupervisorAgent {
+
+        @Override
+        public AgentType type() {
+            return AgentType.SUPERVISOR;
+        }
+
+        @Override
+        public SupervisorDecision decide(SupervisorContext context) {
+            if (context.getWorkerResults().isEmpty()) {
+                return new SupervisorDecision.AssignWorker("researcher", "Gather evidence", "start with research");
+            }
+            if (context.getWorkerResults().size() == 1) {
+                return new SupervisorDecision.AssignWorker("editor", "Apply the recommended edits", "move to editing");
+            }
+            return new SupervisorDecision.Complete(context.getCurrentContent(), "workers done", "finalized by supervisor");
         }
     }
 
@@ -403,6 +464,10 @@ class SupervisorOrchestratorTest {
 
         private List<List<String>> allowedTools() {
             return requests.stream().map(ExecutionRequest::getAllowedTools).toList();
+        }
+
+        private List<Integer> maxIterations() {
+            return requests.stream().map(ExecutionRequest::getMaxIterations).toList();
         }
 
         private List<AgentRunContext> states() {

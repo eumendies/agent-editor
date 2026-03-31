@@ -28,6 +28,8 @@ import java.util.List;
  */
 public class SupervisorOrchestrator implements TaskOrchestrator {
 
+    private static final int RESEARCHER_MAX_ITERATIONS = 4;
+
     private final SupervisorAgent supervisorAgent;
     private final SupervisorExecutionRuntime supervisorExecutionRuntime;
     private final WorkerRegistry workerRegistry;
@@ -107,7 +109,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                                         currentContent
                                 ),
                                 assignWorker.getInstruction(),
-                                request.getMaxIterations(),
+                                resolveWorkerMaxIterations(request, worker),
                                 worker.getWorkerId(),
                                 worker.getAllowedTools()
                         ),
@@ -148,5 +150,13 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
         }
 
         throw new IllegalStateException("Supervisor terminated without completion");
+    }
+
+    private int resolveWorkerMaxIterations(TaskRequest request, SupervisorContext.WorkerDefinition worker) {
+        if (SupervisorWorkerIds.RESEARCHER.equals(worker.getWorkerId())) {
+            // researcher 的工具循环以检索收敛为主，给过大的预算只会放大重复改写/重试的概率。
+            return Math.min(request.getMaxIterations(), RESEARCHER_MAX_ITERATIONS);
+        }
+        return request.getMaxIterations();
     }
 }
