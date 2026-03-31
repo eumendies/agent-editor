@@ -23,6 +23,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ResearcherAgentTest {
@@ -35,6 +37,24 @@ class ResearcherAgentTest {
     }
 
     @Test
+    void shouldReturnDeterministicInitialRetrieveKnowledgeCall() {
+        RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
+                .aiMessage(AiMessage.from("{}"))
+                .build());
+        ResearcherAgent definition = new ResearcherAgent(chatModel);
+
+        ToolLoopDecision decision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
+                new ChatMessage.UserChatMessage("ground this answer")
+        ))));
+
+        ToolLoopDecision.ToolCalls toolCalls = assertInstanceOf(ToolLoopDecision.ToolCalls.class, decision);
+        assertEquals(1, toolCalls.getCalls().size());
+        assertEquals("retrieveKnowledge", toolCalls.getCalls().get(0).getName());
+        assertEquals("{\"query\":\"ground this answer\"}", toolCalls.getCalls().get(0).getArguments());
+        assertNull(chatModel.lastRequest);
+    }
+
+    @Test
     void shouldExposeRetrieveKnowledgeOnly() {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("""
@@ -44,6 +64,13 @@ class ResearcherAgentTest {
         ResearcherAgent definition = new ResearcherAgent(chatModel);
 
         definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
+                new ChatMessage.UserChatMessage("ground this answer"),
+                new ChatMessage.ToolExecutionResultChatMessage(
+                        "tool-1",
+                        "retrieveKnowledge",
+                        "{\"query\":\"ground this answer\"}",
+                        "[{\"chunkText\":\"supports supervisor\"}]"
+                ),
                 new ChatMessage.UserChatMessage("ground this answer")
         ))));
 
@@ -66,6 +93,13 @@ class ResearcherAgentTest {
         ResearcherAgent definition = new ResearcherAgent(chatModel);
 
         ToolLoopDecision toolLoopDecision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
+                new ChatMessage.UserChatMessage("ground this answer"),
+                new ChatMessage.ToolExecutionResultChatMessage(
+                        "tool-1",
+                        "retrieveKnowledge",
+                        "{\"query\":\"ground this answer\"}",
+                        "[{\"chunkText\":\"supports supervisor\"}]"
+                ),
                 new ChatMessage.UserChatMessage("ground this answer")
         ))));
 
@@ -121,6 +155,13 @@ class ResearcherAgentTest {
         ResearcherAgent definition = new ResearcherAgent(chatModel);
 
         ToolLoopDecision decision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
+                new ChatMessage.UserChatMessage("ground this answer"),
+                new ChatMessage.ToolExecutionResultChatMessage(
+                        "tool-1",
+                        "retrieveKnowledge",
+                        "{\"query\":\"ground this answer\"}",
+                        "[{\"chunkText\":\"supports supervisor\"}]"
+                ),
                 new ChatMessage.UserChatMessage("ground this answer")
         ))));
 
@@ -137,13 +178,46 @@ class ResearcherAgentTest {
         StubResearcherContextFactory contextFactory = new StubResearcherContextFactory();
         ResearcherAgent definition = new ResearcherAgent(chatModel, contextFactory);
 
-        definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of())));
+        definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
+                new ChatMessage.UserChatMessage("ground this answer"),
+                new ChatMessage.ToolExecutionResultChatMessage(
+                        "tool-1",
+                        "retrieveKnowledge",
+                        "{\"query\":\"ground this answer\"}",
+                        "[{\"chunkText\":\"supports supervisor\"}]"
+                ),
+                new ChatMessage.UserChatMessage("ground this answer")
+        ))));
 
         assertEquals(1, contextFactory.buildInvocationCount);
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
         assertEquals("custom researcher system", systemMessage.text());
         UserMessage userMessage = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
         assertEquals("custom researcher input", userMessage.singleText());
+    }
+
+    @Test
+    void shouldInvokeModelAfterInitialRetrievalResultExists() {
+        RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
+                .aiMessage(AiMessage.from("""
+                        {"queries":["rewritten"],"evidenceSummary":"...", "limitations":"...", "uncoveredPoints":[], "chunks":[]}
+                        """))
+                .build());
+        ResearcherAgent definition = new ResearcherAgent(chatModel);
+
+        ToolLoopDecision decision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
+                new ChatMessage.UserChatMessage("ground this answer"),
+                new ChatMessage.ToolExecutionResultChatMessage(
+                        "tool-1",
+                        "retrieveKnowledge",
+                        "{\"query\":\"ground this answer\"}",
+                        "[{\"chunkText\":\"supports supervisor\"}]"
+                ),
+                new ChatMessage.UserChatMessage("ground this answer")
+        ))));
+
+        assertInstanceOf(ToolLoopDecision.Complete.class, decision);
+        assertNotNull(chatModel.lastRequest);
     }
 
     private AgentRunContext context(List<ToolSpecification> toolSpecifications, ChatTranscriptMemory memory) {
