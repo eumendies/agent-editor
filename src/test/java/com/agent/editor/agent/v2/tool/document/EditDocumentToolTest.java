@@ -15,13 +15,13 @@ class EditDocumentToolTest {
         EditDocumentTool tool = new EditDocumentTool();
 
         ToolResult result = tool.execute(
-                new ToolInvocation("editDocument", "{\"content\":\"rewritten\"}"),
+                new ToolInvocation(DocumentToolNames.EDIT_DOCUMENT, "{\"content\":\"rewritten\"}"),
                 new ToolContext("task-1", "original")
         );
 
         assertEquals("Document content edited successfully.", result.getMessage());
         assertEquals("rewritten", result.getUpdatedContent());
-        assertEquals("editDocument", tool.specification().name());
+        assertEquals(DocumentToolNames.EDIT_DOCUMENT, tool.specification().name());
     }
 
     @Test
@@ -29,7 +29,7 @@ class EditDocumentToolTest {
         EditDocumentTool tool = new EditDocumentTool();
 
         ToolResult result = tool.execute(
-                new ToolInvocation("editDocument", "{}"),
+                new ToolInvocation(DocumentToolNames.EDIT_DOCUMENT, "{}"),
                 new ToolContext("task-1", "original")
         );
 
@@ -42,10 +42,10 @@ class EditDocumentToolTest {
         EditDocumentTool tool = new EditDocumentTool();
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> tool.execute(
-                new ToolInvocation("editDocument", "{not-json}"),
+                new ToolInvocation(DocumentToolNames.EDIT_DOCUMENT, "{not-json}"),
                 new ToolContext("task-1", "original")
         ));
 
-        assertEquals("Failed to parse tool arguments for editDocument", exception.getMessage());
+        assertEquals("Failed to parse tool arguments for " + DocumentToolNames.EDIT_DOCUMENT, exception.getMessage());
     }
 }

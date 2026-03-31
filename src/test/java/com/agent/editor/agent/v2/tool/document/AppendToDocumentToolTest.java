@@ -16,13 +16,13 @@ class AppendToDocumentToolTest {
         AppendToDocumentTool tool = new AppendToDocumentTool();
 
         ToolResult result = tool.execute(
-                new ToolInvocation("appendToDocument", "{\"content\":\"\\nmore\"}"),
+                new ToolInvocation(DocumentToolNames.APPEND_TO_DOCUMENT, "{\"content\":\"\\nmore\"}"),
                 new ToolContext("task-1", "original")
         );
 
         assertEquals("Document content appended successfully.", result.getMessage());
         assertEquals("original\nmore", result.getUpdatedContent());
-        assertEquals("appendToDocument", tool.specification().name());
+        assertEquals(DocumentToolNames.APPEND_TO_DOCUMENT, tool.specification().name());
     }
 
     @Test
@@ -30,7 +30,7 @@ class AppendToDocumentToolTest {
         AppendToDocumentTool tool = new AppendToDocumentTool();
 
         ToolResult result = tool.execute(
-                new ToolInvocation("appendToDocument", "{\"content\":\"hello\"}"),
+                new ToolInvocation(DocumentToolNames.APPEND_TO_DOCUMENT, "{\"content\":\"hello\"}"),
                 new ToolContext("task-1", null)
         );
 
@@ -42,7 +42,7 @@ class AppendToDocumentToolTest {
         AppendToDocumentTool tool = new AppendToDocumentTool();
 
         ToolResult result = tool.execute(
-                new ToolInvocation("appendToDocument", "{}"),
+                new ToolInvocation(DocumentToolNames.APPEND_TO_DOCUMENT, "{}"),
                 new ToolContext("task-1", "original")
         );
 
@@ -55,10 +55,10 @@ class AppendToDocumentToolTest {
         AppendToDocumentTool tool = new AppendToDocumentTool();
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> tool.execute(
-                new ToolInvocation("appendToDocument", "{not-json}"),
+                new ToolInvocation(DocumentToolNames.APPEND_TO_DOCUMENT, "{not-json}"),
                 new ToolContext("task-1", "original")
         ));
 
-        assertEquals("Failed to parse tool arguments for appendToDocument", exception.getMessage());
+        assertEquals("Failed to parse tool arguments for " + DocumentToolNames.APPEND_TO_DOCUMENT, exception.getMessage());
     }
 }

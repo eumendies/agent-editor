@@ -11,7 +11,7 @@ public class AnalyzeDocumentTool implements ToolHandler {
 
     @Override
     public String name() {
-        return "analyzeDocument";
+        return DocumentToolNames.ANALYZE_DOCUMENT;
     }
 
     @Override

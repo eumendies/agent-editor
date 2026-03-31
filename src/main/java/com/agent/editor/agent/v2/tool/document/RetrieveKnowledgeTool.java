@@ -21,7 +21,7 @@ public class RetrieveKnowledgeTool implements ToolHandler {
 
     @Override
     public String name() {
-        return "retrieveKnowledge";
+        return DocumentToolNames.RETRIEVE_KNOWLEDGE;
     }
 
     @Override

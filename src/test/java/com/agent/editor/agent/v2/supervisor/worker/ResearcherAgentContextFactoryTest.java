@@ -7,6 +7,7 @@ import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -29,9 +30,9 @@ class ResearcherAgentContextFactoryTest {
         assertEquals(5, invocationContext.getMessages().size());
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains("researcher worker"));
-        assertTrue(systemMessage.text().contains("Use retrieveKnowledge"));
+        assertTrue(systemMessage.text().contains("Use " + DocumentToolNames.RETRIEVE_KNOWLEDGE));
         assertTrue(systemMessage.text().contains("rewrite the query"));
-        assertTrue(systemMessage.text().contains("multiple retrieveKnowledge tool calls"));
+        assertTrue(systemMessage.text().contains("multiple " + DocumentToolNames.RETRIEVE_KNOWLEDGE + " tool calls"));
         assertTrue(systemMessage.text().contains("ResearcherSummary"));
         assertTrue(systemMessage.text().contains("\"evidenceSummary\": \"string\""));
         assertTrue(systemMessage.text().contains("\"limitations\": \"string\""));
@@ -42,7 +43,7 @@ class ResearcherAgentContextFactoryTest {
                 ToolExecutionResultMessage.class,
                 invocationContext.getMessages().get(2)
         );
-        assertEquals("retrieveKnowledge", toolMessage.toolName());
+        assertEquals(DocumentToolNames.RETRIEVE_KNOWLEDGE, toolMessage.toolName());
         UserMessage currentTurn = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(4));
         assertEquals("ground this answer", currentTurn.singleText());
     }
@@ -63,7 +64,7 @@ class ResearcherAgentContextFactoryTest {
                         new ChatMessage.UserChatMessage("initial grounding request"),
                         new ChatMessage.ToolExecutionResultChatMessage(
                                 "tool-1",
-                                "retrieveKnowledge",
+                                DocumentToolNames.RETRIEVE_KNOWLEDGE,
                                 "{\"query\":\"agentic rag\"}",
                                 "[{\"chunkText\":\"supports supervisor\"}]"
                         ),

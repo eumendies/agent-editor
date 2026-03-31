@@ -15,7 +15,7 @@ class SearchContentToolTest {
         SearchContentTool tool = new SearchContentTool();
 
         ToolResult result = tool.execute(
-                new ToolInvocation("searchContent", "{\"pattern\":\"agent\"}"),
+                new ToolInvocation(DocumentToolNames.SEARCH_CONTENT, "{\"pattern\":\"agent\"}"),
                 new ToolContext("task-1", "hello agent")
         );
 
@@ -28,7 +28,7 @@ class SearchContentToolTest {
         SearchContentTool tool = new SearchContentTool();
 
         ToolResult result = tool.execute(
-                new ToolInvocation("searchContent", "{}"),
+                new ToolInvocation(DocumentToolNames.SEARCH_CONTENT, "{}"),
                 new ToolContext("task-1", "hello agent")
         );
 
@@ -41,10 +41,10 @@ class SearchContentToolTest {
         SearchContentTool tool = new SearchContentTool();
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> tool.execute(
-                new ToolInvocation("searchContent", "{not-json}"),
+                new ToolInvocation(DocumentToolNames.SEARCH_CONTENT, "{not-json}"),
                 new ToolContext("task-1", "hello agent")
         ));
 
-        assertEquals("Failed to parse tool arguments for searchContent", exception.getMessage());
+        assertEquals("Failed to parse tool arguments for " + DocumentToolNames.SEARCH_CONTENT, exception.getMessage());
     }
 }

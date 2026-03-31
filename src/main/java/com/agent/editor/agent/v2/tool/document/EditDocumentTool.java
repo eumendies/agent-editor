@@ -11,7 +11,7 @@ public class EditDocumentTool implements ToolHandler {
 
     @Override
     public String name() {
-        return "editDocument";
+        return DocumentToolNames.EDIT_DOCUMENT;
     }
 
     @Override

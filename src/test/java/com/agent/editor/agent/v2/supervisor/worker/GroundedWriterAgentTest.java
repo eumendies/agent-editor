@@ -8,6 +8,7 @@ import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -47,12 +48,17 @@ class GroundedWriterAgentTest {
                 searchContentTool()
         )));
 
-        assertEquals(List.of("editDocument", "appendToDocument", "getDocumentSnapshot", "searchContent"), assertThatToolNames(chatModel.lastRequest));
+        assertEquals(List.of(
+                DocumentToolNames.EDIT_DOCUMENT,
+                DocumentToolNames.APPEND_TO_DOCUMENT,
+                DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
+                DocumentToolNames.SEARCH_CONTENT
+        ), assertThatToolNames(chatModel.lastRequest));
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
         assertTrue(systemMessage.text().contains("grounded writer worker"));
         assertTrue(systemMessage.text().contains("Do not introduce claims"));
-        assertTrue(systemMessage.text().contains("appendToDocument"));
-        assertTrue(systemMessage.text().contains("getDocumentSnapshot"));
+        assertTrue(systemMessage.text().contains(DocumentToolNames.APPEND_TO_DOCUMENT));
+        assertTrue(systemMessage.text().contains(DocumentToolNames.GET_DOCUMENT_SNAPSHOT));
         UserMessage currentTurn = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
         assertEquals("rewrite the answer using available evidence", currentTurn.singleText());
     }
@@ -61,7 +67,7 @@ class GroundedWriterAgentTest {
     void shouldConvertToolRequestsToToolCallDecision() {
         ToolExecutionRequest toolRequest = ToolExecutionRequest.builder()
                 .id("tool-1")
-                .name("editDocument")
+                .name(DocumentToolNames.EDIT_DOCUMENT)
                 .arguments("{\"content\":\"updated\"}")
                 .build();
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
@@ -72,7 +78,7 @@ class GroundedWriterAgentTest {
         ToolLoopDecision toolLoopDecision = definition.decide(context(List.of(editDocumentTool())));
 
         ToolLoopDecision.ToolCalls toolCalls = assertInstanceOf(ToolLoopDecision.ToolCalls.class, toolLoopDecision);
-        assertEquals("editDocument", toolCalls.getCalls().get(0).getName());
+        assertEquals(DocumentToolNames.EDIT_DOCUMENT, toolCalls.getCalls().get(0).getName());
     }
 
     @Test
@@ -115,28 +121,28 @@ class GroundedWriterAgentTest {
 
     private ToolSpecification editDocumentTool() {
         return ToolSpecification.builder()
-                .name("editDocument")
+                .name(DocumentToolNames.EDIT_DOCUMENT)
                 .description("edit the document")
                 .build();
     }
 
     private ToolSpecification searchContentTool() {
         return ToolSpecification.builder()
-                .name("searchContent")
+                .name(DocumentToolNames.SEARCH_CONTENT)
                 .description("search current content")
                 .build();
     }
 
     private ToolSpecification appendToDocumentTool() {
         return ToolSpecification.builder()
-                .name("appendToDocument")
+                .name(DocumentToolNames.APPEND_TO_DOCUMENT)
                 .description("append to current content")
                 .build();
     }
 
     private ToolSpecification getDocumentSnapshotTool() {
         return ToolSpecification.builder()
-                .name("getDocumentSnapshot")
+                .name(DocumentToolNames.GET_DOCUMENT_SNAPSHOT)
                 .description("get latest document snapshot")
                 .build();
     }

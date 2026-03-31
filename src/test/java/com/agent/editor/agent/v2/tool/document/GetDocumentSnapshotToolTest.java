@@ -16,13 +16,13 @@ class GetDocumentSnapshotToolTest {
         GetDocumentSnapshotTool tool = new GetDocumentSnapshotTool();
 
         ToolResult result = tool.execute(
-                new ToolInvocation("getDocumentSnapshot", "{}"),
+                new ToolInvocation(DocumentToolNames.GET_DOCUMENT_SNAPSHOT, "{}"),
                 new ToolContext("task-1", "latest body")
         );
 
         assertEquals("latest body", result.getMessage());
         assertNull(result.getUpdatedContent());
-        assertEquals("getDocumentSnapshot", tool.specification().name());
+        assertEquals(DocumentToolNames.GET_DOCUMENT_SNAPSHOT, tool.specification().name());
     }
 
     @Test
@@ -30,7 +30,7 @@ class GetDocumentSnapshotToolTest {
         GetDocumentSnapshotTool tool = new GetDocumentSnapshotTool();
 
         ToolResult result = tool.execute(
-                new ToolInvocation("getDocumentSnapshot", "{}"),
+                new ToolInvocation(DocumentToolNames.GET_DOCUMENT_SNAPSHOT, "{}"),
                 new ToolContext("task-1", null)
         );
 
@@ -43,10 +43,10 @@ class GetDocumentSnapshotToolTest {
         GetDocumentSnapshotTool tool = new GetDocumentSnapshotTool();
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> tool.execute(
-                new ToolInvocation("getDocumentSnapshot", "{not-json}"),
+                new ToolInvocation(DocumentToolNames.GET_DOCUMENT_SNAPSHOT, "{not-json}"),
                 new ToolContext("task-1", "body")
         ));
 
-        assertEquals("Failed to parse tool arguments for getDocumentSnapshot", exception.getMessage());
+        assertEquals("Failed to parse tool arguments for " + DocumentToolNames.GET_DOCUMENT_SNAPSHOT, exception.getMessage());
     }
 }

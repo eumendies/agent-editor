@@ -11,7 +11,7 @@ public class GetDocumentSnapshotTool implements ToolHandler {
 
     @Override
     public String name() {
-        return "getDocumentSnapshot";
+        return DocumentToolNames.GET_DOCUMENT_SNAPSHOT;
     }
 
     @Override

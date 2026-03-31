@@ -12,6 +12,7 @@ import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
 import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
 import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgent;
 import com.agent.editor.agent.v2.supervisor.worker.*;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.supervisor.worker.EvidenceReviewerAgent;
 import com.agent.editor.agent.v2.trace.TraceCollector;
@@ -142,7 +143,7 @@ class AgentV2ConfigurationSplitTest {
         }).run(context -> {
             ToolRegistry toolRegistry = context.getBean(ToolRegistry.class);
 
-            assertThat(toolRegistry.get("retrieveKnowledge")).isNotNull();
+            assertThat(toolRegistry.get(DocumentToolNames.RETRIEVE_KNOWLEDGE)).isNotNull();
         });
     }
 
@@ -151,8 +152,8 @@ class AgentV2ConfigurationSplitTest {
         contextRunner.run(context -> {
             ToolRegistry toolRegistry = context.getBean(ToolRegistry.class);
 
-            assertThat(toolRegistry.get("appendToDocument")).isNotNull();
-            assertThat(toolRegistry.get("getDocumentSnapshot")).isNotNull();
+            assertThat(toolRegistry.get(DocumentToolNames.APPEND_TO_DOCUMENT)).isNotNull();
+            assertThat(toolRegistry.get(DocumentToolNames.GET_DOCUMENT_SNAPSHOT)).isNotNull();
         });
     }
 

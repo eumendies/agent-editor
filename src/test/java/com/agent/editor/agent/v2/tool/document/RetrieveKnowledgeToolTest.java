@@ -30,7 +30,7 @@ class RetrieveKnowledgeToolTest {
         RetrieveKnowledgeTool tool = new RetrieveKnowledgeTool(retrievalService);
 
         ToolResult result = tool.execute(
-                new ToolInvocation("retrieveKnowledge", "{\"query\":\"Spring\"}"),
+                new ToolInvocation(DocumentToolNames.RETRIEVE_KNOWLEDGE, "{\"query\":\"Spring\"}"),
                 new ToolContext("task-1", null)
         );
 

@@ -7,6 +7,7 @@ import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
 import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgent;
 import com.agent.editor.agent.v2.supervisor.worker.*;
 import com.agent.editor.agent.v2.supervisor.worker.ResearcherAgent;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -65,7 +66,7 @@ public class SupervisorAgentConfig {
                 "Researcher",
                 "Collect grounded evidence from the knowledge base before downstream writing or review.",
                 researcherAgentDefinition,
-                List.of("retrieveKnowledge"),
+                List.of(DocumentToolNames.RETRIEVE_KNOWLEDGE),
                 List.of("research")
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
@@ -73,7 +74,12 @@ public class SupervisorAgentConfig {
                 "Writer",
                 "Produce grounded document updates and revisions without introducing unsupported claims.",
                 groundedWriterAgentDefinition,
-                List.of("editDocument", "appendToDocument", "getDocumentSnapshot", "searchContent"),
+                List.of(
+                        DocumentToolNames.EDIT_DOCUMENT,
+                        DocumentToolNames.APPEND_TO_DOCUMENT,
+                        DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
+                        DocumentToolNames.SEARCH_CONTENT
+                ),
                 List.of("write", "edit")
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
@@ -81,7 +87,11 @@ public class SupervisorAgentConfig {
                 "Reviewer",
                 "Review whether the response follows the user instruction and remains grounded in available evidence.",
                 evidenceReviewerAgentDefinition,
-                List.of("searchContent", "analyzeDocument", "getDocumentSnapshot"),
+                List.of(
+                        DocumentToolNames.SEARCH_CONTENT,
+                        DocumentToolNames.ANALYZE_DOCUMENT,
+                        DocumentToolNames.GET_DOCUMENT_SNAPSHOT
+                ),
                 List.of("review")
         ));
         return workerRegistry;

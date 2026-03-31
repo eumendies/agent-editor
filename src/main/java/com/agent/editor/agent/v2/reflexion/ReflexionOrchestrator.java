@@ -10,12 +10,21 @@ import com.agent.editor.agent.v2.core.state.*;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import java.util.List;
 
 public class ReflexionOrchestrator implements TaskOrchestrator {
 
-    private static final List<String> ACTOR_ALLOWED_TOOLS = List.of("editDocument", "appendToDocument", "getDocumentSnapshot", "searchContent");
-    private static final List<String> CRITIC_ALLOWED_TOOLS = List.of("searchContent", "analyzeDocument");
+    private static final List<String> ACTOR_ALLOWED_TOOLS = List.of(
+            DocumentToolNames.EDIT_DOCUMENT,
+            DocumentToolNames.APPEND_TO_DOCUMENT,
+            DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
+            DocumentToolNames.SEARCH_CONTENT
+    );
+    private static final List<String> CRITIC_ALLOWED_TOOLS = List.of(
+            DocumentToolNames.SEARCH_CONTENT,
+            DocumentToolNames.ANALYZE_DOCUMENT
+    );
 
     private final ExecutionRuntime runtime;
     private final Agent actorDefinition;

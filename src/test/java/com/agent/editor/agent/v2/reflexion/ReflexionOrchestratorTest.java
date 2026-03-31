@@ -20,6 +20,7 @@ import com.agent.editor.agent.v2.tool.ToolHandler;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
 import com.agent.editor.agent.v2.tool.ToolResult;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -68,8 +69,16 @@ class ReflexionOrchestratorTest {
                 message instanceof ChatMessage.UserChatMessage userMessage
                         && "Improve the draft".equals(userMessage.getText())
         ));
-        assertEquals(List.of("editDocument", "appendToDocument", "getDocumentSnapshot", "searchContent"), runtime.actorAllowedTools.get(0));
-        assertEquals(List.of("searchContent", "analyzeDocument"), runtime.criticAllowedTools.get(0));
+        assertEquals(List.of(
+                DocumentToolNames.EDIT_DOCUMENT,
+                DocumentToolNames.APPEND_TO_DOCUMENT,
+                DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
+                DocumentToolNames.SEARCH_CONTENT
+        ), runtime.actorAllowedTools.get(0));
+        assertEquals(List.of(
+                DocumentToolNames.SEARCH_CONTENT,
+                DocumentToolNames.ANALYZE_DOCUMENT
+        ), runtime.criticAllowedTools.get(0));
         ChatTranscriptMemory criticMemory = (ChatTranscriptMemory) runtime.criticStates.get(0).getMemory();
         assertTrue(criticMemory.getMessages().stream().anyMatch(message ->
                 message instanceof ChatMessage.UserChatMessage userMessage
@@ -192,7 +201,7 @@ class ReflexionOrchestratorTest {
                                 "need evidence",
                                 List.of(ToolExecutionRequest.builder()
                                         .id("critic-tool-1")
-                                        .name("analyzeDocument")
+                                        .name(DocumentToolNames.ANALYZE_DOCUMENT)
                                         .arguments("{\"focus\":\"intro\"}")
                                         .build())
                         ))
@@ -224,7 +233,7 @@ class ReflexionOrchestratorTest {
         assertEquals(2, criticModel.requests().size());
         assertTrue(criticModel.requests().get(0).toolSpecifications().stream()
                 .map(ToolSpecification::name)
-                .anyMatch("analyzeDocument"::equals));
+                .anyMatch(DocumentToolNames.ANALYZE_DOCUMENT::equals));
         assertTrue(criticModel.requests().get(1).messages().stream()
                 .map(Object::toString)
                 .anyMatch(text -> text.contains("analyzeDocument => intro needs tightening")));
@@ -329,13 +338,13 @@ class ReflexionOrchestratorTest {
 
         @Override
         public String name() {
-            return "analyzeDocument";
+            return DocumentToolNames.ANALYZE_DOCUMENT;
         }
 
         @Override
         public ToolSpecification specification() {
             return ToolSpecification.builder()
-                    .name("analyzeDocument")
+                    .name(DocumentToolNames.ANALYZE_DOCUMENT)
                     .description("analyze document")
                     .parameters(JsonObjectSchema.builder()
                             .addStringProperty("focus")

@@ -8,6 +8,7 @@ import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -44,7 +45,10 @@ class EvidenceReviewerAgentTest {
 
         definition.decide(context(List.of(searchContentTool(), analyzeDocumentTool())));
 
-        assertEquals(List.of("searchContent", "analyzeDocument"), assertThatToolNames(chatModel.lastRequest));
+        assertEquals(List.of(
+                DocumentToolNames.SEARCH_CONTENT,
+                DocumentToolNames.ANALYZE_DOCUMENT
+        ), assertThatToolNames(chatModel.lastRequest));
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
         assertTrue(systemMessage.text().contains("reviewer worker"));
         assertTrue(systemMessage.text().contains("ReviewerFeedback"));
@@ -54,7 +58,7 @@ class EvidenceReviewerAgentTest {
     void shouldConvertToolRequestsToToolCallDecision() {
         ToolExecutionRequest toolRequest = ToolExecutionRequest.builder()
                 .id("tool-1")
-                .name("analyzeDocument")
+                .name(DocumentToolNames.ANALYZE_DOCUMENT)
                 .arguments("{\"focus\":\"unsupported claims\"}")
                 .build();
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
@@ -65,7 +69,7 @@ class EvidenceReviewerAgentTest {
         ToolLoopDecision toolLoopDecision = definition.decide(context(List.of(analyzeDocumentTool())));
 
         ToolLoopDecision.ToolCalls toolCalls = assertInstanceOf(ToolLoopDecision.ToolCalls.class, toolLoopDecision);
-        assertEquals("analyzeDocument", toolCalls.getCalls().get(0).getName());
+        assertEquals(DocumentToolNames.ANALYZE_DOCUMENT, toolCalls.getCalls().get(0).getName());
     }
 
     @Test
@@ -144,14 +148,14 @@ class EvidenceReviewerAgentTest {
 
     private ToolSpecification searchContentTool() {
         return ToolSpecification.builder()
-                .name("searchContent")
+                .name(DocumentToolNames.SEARCH_CONTENT)
                 .description("search current content")
                 .build();
     }
 
     private ToolSpecification analyzeDocumentTool() {
         return ToolSpecification.builder()
-                .name("analyzeDocument")
+                .name(DocumentToolNames.ANALYZE_DOCUMENT)
                 .description("analyze current document")
                 .build();
     }

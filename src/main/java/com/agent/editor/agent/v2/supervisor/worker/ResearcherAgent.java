@@ -6,6 +6,7 @@ import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import com.agent.editor.agent.v2.util.StructuredOutputParsers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -54,7 +55,7 @@ public class ResearcherAgent implements ToolLoopAgent {
         // 首轮先用用户原始 instruction 做一次固定召回，避免模型在没有证据前过早改写查询导致召回偏移。
         if (shouldRunInitialInstructionRetrieval(context)) {
             return new ToolLoopDecision.ToolCalls(
-                    List.of(new ToolCall("retrieveKnowledge", initialRetrieveKnowledgeArguments(context))),
+                    List.of(new ToolCall(DocumentToolNames.RETRIEVE_KNOWLEDGE, initialRetrieveKnowledgeArguments(context))),
                     "initial instruction retrieval"
             );
         }
@@ -109,7 +110,7 @@ public class ResearcherAgent implements ToolLoopAgent {
         return transcriptMemory.getMessages().stream()
                 .filter(ChatMessage.ToolExecutionResultChatMessage.class::isInstance)
                 .map(ChatMessage.ToolExecutionResultChatMessage.class::cast)
-                .noneMatch(message -> "retrieveKnowledge".equals(message.getName()));
+                .noneMatch(message -> DocumentToolNames.RETRIEVE_KNOWLEDGE.equals(message.getName()));
     }
 
     private String initialRetrieveKnowledgeArguments(AgentRunContext context) {
@@ -138,7 +139,7 @@ public class ResearcherAgent implements ToolLoopAgent {
         for (int index = messages.size() - 1; index >= 0; index--) {
             ChatMessage message = messages.get(index);
             if (message instanceof ChatMessage.ToolExecutionResultChatMessage toolResultMessage
-                    && "retrieveKnowledge".equals(toolResultMessage.getName())) {
+                    && DocumentToolNames.RETRIEVE_KNOWLEDGE.equals(toolResultMessage.getName())) {
                 return new LastRetrieveKnowledgeSnapshot(
                         extractQueries(toolResultMessage.getArgument()),
                         extractChunks(toolResultMessage.getText())

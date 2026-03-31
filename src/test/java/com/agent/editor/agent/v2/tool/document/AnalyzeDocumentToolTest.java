@@ -14,7 +14,7 @@ class AnalyzeDocumentToolTest {
         AnalyzeDocumentTool tool = new AnalyzeDocumentTool();
 
         ToolResult result = tool.execute(
-                new ToolInvocation("analyzeDocument", "{}"),
+                new ToolInvocation(DocumentToolNames.ANALYZE_DOCUMENT, "{}"),
                 new ToolContext("task-1", "one two\nthree")
         );
 

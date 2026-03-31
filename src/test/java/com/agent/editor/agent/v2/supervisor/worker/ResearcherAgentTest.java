@@ -8,6 +8,7 @@ import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -49,7 +50,7 @@ class ResearcherAgentTest {
 
         ToolLoopDecision.ToolCalls toolCalls = assertInstanceOf(ToolLoopDecision.ToolCalls.class, decision);
         assertEquals(1, toolCalls.getCalls().size());
-        assertEquals("retrieveKnowledge", toolCalls.getCalls().get(0).getName());
+        assertEquals(DocumentToolNames.RETRIEVE_KNOWLEDGE, toolCalls.getCalls().get(0).getName());
         assertEquals("{\"query\":\"ground this answer\"}", toolCalls.getCalls().get(0).getArguments());
         assertNull(chatModel.lastRequest);
     }
@@ -67,17 +68,17 @@ class ResearcherAgentTest {
                 new ChatMessage.UserChatMessage("ground this answer"),
                 new ChatMessage.ToolExecutionResultChatMessage(
                         "tool-1",
-                        "retrieveKnowledge",
+                        DocumentToolNames.RETRIEVE_KNOWLEDGE,
                         "{\"query\":\"ground this answer\"}",
                         "[{\"chunkText\":\"supports supervisor\"}]"
                 ),
                 new ChatMessage.UserChatMessage("ground this answer")
         ))));
 
-        assertEquals(List.of("retrieveKnowledge"), assertThatToolNames(chatModel.lastRequest));
+        assertEquals(List.of(DocumentToolNames.RETRIEVE_KNOWLEDGE), assertThatToolNames(chatModel.lastRequest));
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
-        assertTrue(systemMessage.text().contains("Use retrieveKnowledge"));
-        assertTrue(systemMessage.text().contains("multiple retrieveKnowledge tool calls"));
+        assertTrue(systemMessage.text().contains("Use " + DocumentToolNames.RETRIEVE_KNOWLEDGE));
+        assertTrue(systemMessage.text().contains("multiple " + DocumentToolNames.RETRIEVE_KNOWLEDGE + " tool calls"));
         assertTrue(systemMessage.text().contains("ResearcherSummary"));
     }
 
@@ -85,7 +86,7 @@ class ResearcherAgentTest {
     void shouldConvertToolRequestsToToolCallDecision() {
         ToolExecutionRequest toolRequest = ToolExecutionRequest.builder()
                 .id("tool-1")
-                .name("retrieveKnowledge")
+                .name(DocumentToolNames.RETRIEVE_KNOWLEDGE)
                 .arguments("{\"query\":\"agentic rag\"}")
                 .build();
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
@@ -97,7 +98,7 @@ class ResearcherAgentTest {
                 new ChatMessage.UserChatMessage("ground this answer"),
                 new ChatMessage.ToolExecutionResultChatMessage(
                         "tool-1",
-                        "retrieveKnowledge",
+                        DocumentToolNames.RETRIEVE_KNOWLEDGE,
                         "{\"query\":\"ground this answer\"}",
                         "[{\"chunkText\":\"supports supervisor\"}]"
                 ),
@@ -106,7 +107,7 @@ class ResearcherAgentTest {
 
         ToolLoopDecision.ToolCalls toolCalls = assertInstanceOf(ToolLoopDecision.ToolCalls.class, toolLoopDecision);
         assertEquals(1, toolCalls.getCalls().size());
-        assertEquals("retrieveKnowledge", toolCalls.getCalls().get(0).getName());
+        assertEquals(DocumentToolNames.RETRIEVE_KNOWLEDGE, toolCalls.getCalls().get(0).getName());
     }
 
     @Test
@@ -122,7 +123,7 @@ class ResearcherAgentTest {
                 new ChatMessage.UserChatMessage("initial grounding request"),
                 new ChatMessage.ToolExecutionResultChatMessage(
                         "tool-1",
-                        "retrieveKnowledge",
+                        DocumentToolNames.RETRIEVE_KNOWLEDGE,
                         "{\"query\":\"agentic rag\"}",
                         "[{\"chunkText\":\"supports supervisor\"}]"
                 ),
@@ -140,7 +141,7 @@ class ResearcherAgentTest {
                 chatModel.lastRequest.messages().get(2)
         );
         assertEquals("tool-1", toolMessage.id());
-        assertEquals("retrieveKnowledge", toolMessage.toolName());
+        assertEquals(DocumentToolNames.RETRIEVE_KNOWLEDGE, toolMessage.toolName());
         assertInstanceOf(AiMessage.class, chatModel.lastRequest.messages().get(3));
         UserMessage currentTurn = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(4));
         assertEquals("ground this answer", currentTurn.singleText());
@@ -159,7 +160,7 @@ class ResearcherAgentTest {
                 new ChatMessage.UserChatMessage("ground this answer"),
                 new ChatMessage.ToolExecutionResultChatMessage(
                         "tool-1",
-                        "retrieveKnowledge",
+                        DocumentToolNames.RETRIEVE_KNOWLEDGE,
                         "{\"query\":\"rewritten query\"}",
                         """
                         [{"documentId":"doc-1","fileName":"resume.md","chunkIndex":1,"heading":"项目经历","chunkText":"supports supervisor","score":0.91}]
@@ -189,7 +190,7 @@ class ResearcherAgentTest {
                 new ChatMessage.UserChatMessage("ground this answer"),
                 new ChatMessage.ToolExecutionResultChatMessage(
                         "tool-1",
-                        "retrieveKnowledge",
+                        DocumentToolNames.RETRIEVE_KNOWLEDGE,
                         "{\"query\":\"ground this answer\"}",
                         "[{\"chunkText\":\"supports supervisor\"}]"
                 ),
@@ -216,7 +217,7 @@ class ResearcherAgentTest {
                 new ChatMessage.UserChatMessage("ground this answer"),
                 new ChatMessage.ToolExecutionResultChatMessage(
                         "tool-1",
-                        "retrieveKnowledge",
+                        DocumentToolNames.RETRIEVE_KNOWLEDGE,
                         "{\"query\":\"ground this answer\"}",
                         "[{\"chunkText\":\"supports supervisor\"}]"
                 ),
@@ -248,7 +249,7 @@ class ResearcherAgentTest {
 
     private ToolSpecification retrieveKnowledgeTool() {
         return ToolSpecification.builder()
-                .name("retrieveKnowledge")
+                .name(DocumentToolNames.RETRIEVE_KNOWLEDGE)
                 .description("retrieve relevant knowledge")
                 .build();
     }

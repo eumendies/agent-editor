@@ -11,7 +11,7 @@ public class SearchContentTool implements ToolHandler {
 
     @Override
     public String name() {
-        return "searchContent";
+        return DocumentToolNames.SEARCH_CONTENT;
     }
 
     @Override

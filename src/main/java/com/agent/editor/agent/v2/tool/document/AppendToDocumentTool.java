@@ -11,7 +11,7 @@ public class AppendToDocumentTool implements ToolHandler {
 
     @Override
     public String name() {
-        return "appendToDocument";
+        return DocumentToolNames.APPEND_TO_DOCUMENT;
     }
 
     @Override
