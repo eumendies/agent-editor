@@ -90,6 +90,10 @@ public class AgentRunContext {
         return new AgentRunContext(request, iteration, nextContent, memory, stage, pendingReason, toolSpecifications);
     }
 
+    public AgentRunContext withMemory(ExecutionMemory nextMemory) {
+        return new AgentRunContext(request, iteration, currentContent, nextMemory, stage, pendingReason, toolSpecifications);
+    }
+
     public AgentRunContext advance(String nextContent) {
         return new AgentRunContext(request, iteration + 1, nextContent, memory, ExecutionStage.RUNNING, pendingReason, toolSpecifications);
     }
@@ -120,7 +124,7 @@ public class AgentRunContext {
                 request,
                 iteration,
                 currentContent,
-                new ChatTranscriptMemory(merged),
+                new ChatTranscriptMemory(merged, transcriptMemory.getLastObservedTotalTokens()),
                 stage,
                 pendingReason,
                 toolSpecifications

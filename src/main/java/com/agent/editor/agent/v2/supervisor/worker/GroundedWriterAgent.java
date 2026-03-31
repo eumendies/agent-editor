@@ -3,6 +3,7 @@ package com.agent.editor.agent.v2.supervisor.worker;
 import com.agent.editor.agent.v2.core.agent.*;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
+import com.agent.editor.agent.v2.memory.ObservedTokenUsageRecorder;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -17,10 +18,6 @@ public class GroundedWriterAgent implements ToolLoopAgent {
 
     private final ChatModel chatModel;
     private final GroundedWriterAgentContextFactory contextFactory;
-
-    public GroundedWriterAgent(ChatModel chatModel) {
-        this(chatModel, new GroundedWriterAgentContextFactory());
-    }
 
     public GroundedWriterAgent(ChatModel chatModel,
                                GroundedWriterAgentContextFactory contextFactory) {
@@ -44,6 +41,7 @@ public class GroundedWriterAgent implements ToolLoopAgent {
                 .messages(invocationContext.getMessages())
                 .toolSpecifications(invocationContext.getToolSpecifications())
                 .build());
+        ObservedTokenUsageRecorder.record(context, response);
 
         AiMessage aiMessage = response.aiMessage();
         if (aiMessage.hasToolExecutionRequests()) {

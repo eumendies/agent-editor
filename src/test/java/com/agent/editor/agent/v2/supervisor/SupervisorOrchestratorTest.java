@@ -23,6 +23,7 @@ import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.trace.TraceStore;
 import com.agent.editor.agent.v2.supervisor.worker.WorkerRegistry;
+import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -61,7 +62,7 @@ class SupervisorOrchestratorTest {
                 workerRegistry,
                 runtime,
                 eventPublisher,
-                new SupervisorContextFactory()
+                new SupervisorContextFactory(NoOpMemoryCompressors.noop())
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -111,7 +112,7 @@ class SupervisorOrchestratorTest {
                 workerRegistry,
                 new RecordingExecutionRuntime(),
                 event -> {},
-                new SupervisorContextFactory()
+                new SupervisorContextFactory(NoOpMemoryCompressors.noop())
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -199,7 +200,7 @@ class SupervisorOrchestratorTest {
                 workerRegistry,
                 runtime,
                 event -> {},
-                new SupervisorContextFactory()
+                new SupervisorContextFactory(NoOpMemoryCompressors.noop())
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -218,8 +219,7 @@ class SupervisorOrchestratorTest {
         assertTrue(((ChatTranscriptMemory) runtime.states().get(0).getMemory()).getMessages().isEmpty());
         ChatTranscriptMemory secondWorkerMemory = (ChatTranscriptMemory) runtime.states().get(1).getMemory();
         assertTrue(secondWorkerMemory.getMessages().stream().anyMatch(message ->
-                message instanceof ChatMessage.UserChatMessage userMessage
-                        && userMessage.getText().contains("analyzer result")
+                message.getText().contains("analyzer result")
         ));
         assertTrue(secondWorkerMemory.getMessages().stream().noneMatch(ChatMessage.ToolExecutionResultChatMessage.class::isInstance));
     }
@@ -249,7 +249,7 @@ class SupervisorOrchestratorTest {
                 workerRegistry,
                 runtime,
                 event -> {},
-                new SupervisorContextFactory()
+                new SupervisorContextFactory(NoOpMemoryCompressors.noop())
         );
 
         orchestrator.execute(new TaskRequest(
@@ -293,7 +293,7 @@ class SupervisorOrchestratorTest {
                 workerRegistry,
                 runtime,
                 event -> {},
-                new SupervisorContextFactory()
+                new SupervisorContextFactory(NoOpMemoryCompressors.noop())
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -494,6 +494,10 @@ class SupervisorOrchestratorTest {
         private int supervisorContextBuildCount;
         private int workerExecutionContextBuildCount;
         private int workerSummaryCount;
+
+        private RecordingSupervisorContextFactory() {
+            super(NoOpMemoryCompressors.noop());
+        }
 
         @Override
         public SupervisorContext buildSupervisorContext(TaskRequest request,

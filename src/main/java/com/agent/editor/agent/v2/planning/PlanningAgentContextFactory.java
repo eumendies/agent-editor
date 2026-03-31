@@ -6,6 +6,7 @@ import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.memory.ExecutionMemory;
+import com.agent.editor.agent.v2.core.memory.MemoryCompressor;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
@@ -18,18 +19,21 @@ import java.util.List;
 public class PlanningAgentContextFactory implements AgentContextFactory {
 
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
+    private final MemoryCompressor memoryCompressor;
 
-    public PlanningAgentContextFactory() {
-        this(new ExecutionMemoryChatMessageMapper());
+    public PlanningAgentContextFactory(MemoryCompressor memoryCompressor) {
+        this(new ExecutionMemoryChatMessageMapper(), memoryCompressor);
     }
 
-    PlanningAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper) {
+    public PlanningAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
+                                       MemoryCompressor memoryCompressor) {
         this.memoryChatMessageMapper = memoryChatMessageMapper;
+        this.memoryCompressor = memoryCompressor;
     }
 
     @Override
     public AgentRunContext prepareInitialContext(TaskRequest request) {
-        return new AgentRunContext(
+        return compressContextMemory(new AgentRunContext(
                 null,
                 0,
                 request.getDocument().getContent(),
@@ -37,7 +41,7 @@ public class PlanningAgentContextFactory implements AgentContextFactory {
                 ExecutionStage.RUNNING,
                 null,
                 List.of()
-        );
+        ));
     }
 
     /**
@@ -46,7 +50,7 @@ public class PlanningAgentContextFactory implements AgentContextFactory {
      * @return
      */
     public AgentRunContext prepareExecutionInitialContext(TaskRequest request) {
-        return new AgentRunContext(
+        return compressContextMemory(new AgentRunContext(
                 null,
                 0,
                 request.getDocument().getContent(),
@@ -54,7 +58,7 @@ public class PlanningAgentContextFactory implements AgentContextFactory {
                 ExecutionStage.RUNNING,
                 null,
                 List.of()
-        );
+        ));
     }
 
     /**
@@ -64,7 +68,7 @@ public class PlanningAgentContextFactory implements AgentContextFactory {
      * @return
      */
     public AgentRunContext prepareExecutionStepContext(AgentRunContext currentState, PlanResult.PlanStep step) {
-        return new AgentRunContext(
+        return compressContextMemory(new AgentRunContext(
                 currentState.getRequest(),
                 currentState.getIteration(),
                 currentState.getCurrentContent(),
@@ -72,7 +76,7 @@ public class PlanningAgentContextFactory implements AgentContextFactory {
                 ExecutionStage.RUNNING,
                 currentState.getPendingReason(),
                 currentState.getToolSpecifications()
-        );
+        ));
     }
 
     /**
@@ -82,10 +86,10 @@ public class PlanningAgentContextFactory implements AgentContextFactory {
      * @return
      */
     public AgentRunContext summarizeCompletedStep(AgentRunContext stepContext, ExecutionResult<?> result) {
-        return stepContext
+        return compressContextMemory(stepContext
                 .withCurrentContent(result.getFinalContent())
                 .appendMemory(new ChatMessage.AiChatMessage("Step result: " + normalizeStepResult(result)))
-                .withStage(ExecutionStage.RUNNING);
+                .withStage(ExecutionStage.RUNNING));
     }
 
     @Override
@@ -103,7 +107,7 @@ public class PlanningAgentContextFactory implements AgentContextFactory {
         }
         ArrayList<ChatMessage> messages = new ArrayList<>(transcriptMemory.getMessages());
         messages.add(new ChatMessage.UserChatMessage(instruction));
-        return new ChatTranscriptMemory(messages);
+        return new ChatTranscriptMemory(messages, transcriptMemory.getLastObservedTotalTokens());
     }
 
     private String formatPlanStep(PlanResult.PlanStep step) {
@@ -118,5 +122,9 @@ public class PlanningAgentContextFactory implements AgentContextFactory {
             return result.getFinalContent();
         }
         return "step completed";
+    }
+
+    private AgentRunContext compressContextMemory(AgentRunContext context) {
+        return context.withMemory(memoryCompressor.compressOrOriginal(context.getMemory()));
     }
 }

@@ -8,6 +8,7 @@ import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
+import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -29,7 +30,7 @@ class GroundedWriterAgentTest {
 
     @Test
     void shouldReportReactType() {
-        GroundedWriterAgent definition = new GroundedWriterAgent(null);
+        GroundedWriterAgent definition = new GroundedWriterAgent(null, new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         assertEquals(AgentType.REACT, definition.type());
     }
@@ -39,7 +40,7 @@ class GroundedWriterAgentTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("Document updated"))
                 .build());
-        GroundedWriterAgent definition = new GroundedWriterAgent(chatModel);
+        GroundedWriterAgent definition = new GroundedWriterAgent(chatModel, new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         definition.decide(context(List.of(
                 editDocumentTool(),
@@ -73,7 +74,7 @@ class GroundedWriterAgentTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("apply grounded draft", List.of(toolRequest)))
                 .build());
-        GroundedWriterAgent definition = new GroundedWriterAgent(chatModel);
+        GroundedWriterAgent definition = new GroundedWriterAgent(chatModel, new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision toolLoopDecision = definition.decide(context(List.of(editDocumentTool())));
 
@@ -170,6 +171,10 @@ class GroundedWriterAgentTest {
     private static final class StubGroundedWriterContextFactory extends GroundedWriterAgentContextFactory {
 
         private int buildInvocationCount;
+
+        private StubGroundedWriterContextFactory() {
+            super(NoOpMemoryCompressors.noop());
+        }
 
         @Override
         public com.agent.editor.agent.v2.core.context.ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {

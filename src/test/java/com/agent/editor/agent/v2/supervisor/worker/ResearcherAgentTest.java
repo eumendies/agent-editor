@@ -8,6 +8,7 @@ import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
+import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -32,7 +33,7 @@ class ResearcherAgentTest {
 
     @Test
     void shouldReportReactType() {
-        ResearcherAgent definition = new ResearcherAgent(null);
+        ResearcherAgent definition = new ResearcherAgent(null, new ResearcherAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         assertEquals(AgentType.REACT, definition.type());
     }
@@ -42,7 +43,7 @@ class ResearcherAgentTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("{}"))
                 .build());
-        ResearcherAgent definition = new ResearcherAgent(chatModel);
+        ResearcherAgent definition = new ResearcherAgent(chatModel, new ResearcherAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision decision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("ground this answer")
@@ -62,7 +63,7 @@ class ResearcherAgentTest {
                         {"queries":["agentic rag"],"evidenceSummary":"...", "limitations":"...", "uncoveredPoints":[], "chunks":[]}
                         """))
                 .build());
-        ResearcherAgent definition = new ResearcherAgent(chatModel);
+        ResearcherAgent definition = new ResearcherAgent(chatModel, new ResearcherAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("ground this answer"),
@@ -92,7 +93,7 @@ class ResearcherAgentTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("need evidence", List.of(toolRequest)))
                 .build());
-        ResearcherAgent definition = new ResearcherAgent(chatModel);
+        ResearcherAgent definition = new ResearcherAgent(chatModel, new ResearcherAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision toolLoopDecision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("ground this answer"),
@@ -117,7 +118,7 @@ class ResearcherAgentTest {
                         {"queries":["agentic rag"],"evidenceSummary":"...", "limitations":"...", "uncoveredPoints":[], "chunks":[]}
                         """))
                 .build());
-        ResearcherAgent definition = new ResearcherAgent(chatModel);
+        ResearcherAgent definition = new ResearcherAgent(chatModel, new ResearcherAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision toolLoopDecision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("initial grounding request"),
@@ -154,7 +155,7 @@ class ResearcherAgentTest {
                         {"evidenceSummary":"supports supervisor", "limitations":"no metrics", "uncoveredPoints":["benchmark data"]}
                         """))
                 .build());
-        ResearcherAgent definition = new ResearcherAgent(chatModel);
+        ResearcherAgent definition = new ResearcherAgent(chatModel, new ResearcherAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision decision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("ground this answer"),
@@ -213,7 +214,7 @@ class ResearcherAgentTest {
                         {"queries":["rewritten"],"evidenceSummary":"...", "limitations":"...", "uncoveredPoints":[], "chunks":[]}
                         """))
                 .build());
-        ResearcherAgent definition = new ResearcherAgent(chatModel);
+        ResearcherAgent definition = new ResearcherAgent(chatModel, new ResearcherAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision decision = definition.decide(context(List.of(retrieveKnowledgeTool()), new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("ground this answer"),
@@ -279,6 +280,10 @@ class ResearcherAgentTest {
     private static final class StubResearcherContextFactory extends ResearcherAgentContextFactory {
 
         private int buildInvocationCount;
+
+        private StubResearcherContextFactory() {
+            super(NoOpMemoryCompressors.noop());
+        }
 
         @Override
         public com.agent.editor.agent.v2.core.context.ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {

@@ -8,6 +8,7 @@ import com.agent.editor.agent.v2.core.context.SupervisorContext;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.memory.ExecutionMemory;
+import com.agent.editor.agent.v2.core.memory.MemoryCompressor;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
@@ -51,9 +52,15 @@ public class SupervisorContextFactory implements AgentContextFactory {
                     .build())
             .build();
 
+    private final MemoryCompressor memoryCompressor;
+
+    public SupervisorContextFactory(MemoryCompressor memoryCompressor) {
+        this.memoryCompressor = memoryCompressor;
+    }
+
     @Override
     public AgentRunContext prepareInitialContext(TaskRequest request) {
-        return new AgentRunContext(
+        return compressContextMemory(new AgentRunContext(
                 null,
                 0,
                 request.getDocument().getContent(),
@@ -61,7 +68,7 @@ public class SupervisorContextFactory implements AgentContextFactory {
                 ExecutionStage.RUNNING,
                 null,
                 List.of()
-        );
+        ));
     }
 
     public SupervisorContext buildSupervisorContext(TaskRequest request,
@@ -99,7 +106,7 @@ public class SupervisorContextFactory implements AgentContextFactory {
                 conversationState.getIteration(),
                 currentContent,
                 // worker 执行前只保留摘要型记忆，避免工具调用明细污染下一轮 prompt。
-                keepSummaryMemory(conversationState.getMemory()),
+                keepSummaryMemory(memoryCompressor.compressOrOriginal(conversationState.getMemory())),
                 ExecutionStage.RUNNING,
                 conversationState.getPendingReason(),
                 List.of()
@@ -110,13 +117,13 @@ public class SupervisorContextFactory implements AgentContextFactory {
                                                  String workerId,
                                                  ExecutionResult<?> result) {
         // supervisor 只需要知道“谁做了什么、产出了什么”，不需要把 worker 的内部推理全文重新塞回记忆。
-        return conversationState.appendMemory(new ChatMessage.AiChatMessage("""
+        return compressContextMemory(conversationState.appendMemory(new ChatMessage.AiChatMessage("""
                 Previous worker result:
                 workerId: %s
                 summary: %s
                 """.formatted(workerId, normalizeWorkerSummary(result))))
                 .withCurrentContent(result.getFinalContent())
-                .withStage(ExecutionStage.RUNNING);
+                .withStage(ExecutionStage.RUNNING));
     }
 
     @Override
@@ -166,10 +173,17 @@ public class SupervisorContextFactory implements AgentContextFactory {
             return memory;
         }
         // supervisor/worker 的跨轮记忆以结果摘要为主，工具调用与结果明细在这里被裁掉，防止上下文指数膨胀。
-        return new ChatTranscriptMemory(transcriptMemory.getMessages().stream()
-                .filter(message -> !(message instanceof ChatMessage.AiToolCallChatMessage))
-                .filter(message -> !(message instanceof ChatMessage.ToolExecutionResultChatMessage))
-                .toList());
+        return new ChatTranscriptMemory(
+                transcriptMemory.getMessages().stream()
+                        .filter(message -> !(message instanceof ChatMessage.AiToolCallChatMessage))
+                        .filter(message -> !(message instanceof ChatMessage.ToolExecutionResultChatMessage))
+                        .toList(),
+                transcriptMemory.getLastObservedTotalTokens()
+        );
+    }
+
+    private AgentRunContext compressContextMemory(AgentRunContext context) {
+        return context.withMemory(memoryCompressor.compressOrOriginal(context.getMemory()));
     }
 
     public String renderCandidates(List<SupervisorContext.WorkerDefinition> candidates) {

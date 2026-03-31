@@ -66,7 +66,23 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(ResearcherAgentContextFactory.class);
             assertThat(context).hasSingleBean(GroundedWriterAgentContextFactory.class);
             assertThat(context).hasSingleBean(EvidenceReviewerAgentContextFactory.class);
+            assertThat(context).hasSingleBean(MemoryCompressionProperties.class);
             assertThat(context.containsBean("agentV2Config")).isFalse();
+        });
+    }
+
+    @Test
+    void shouldBindMemoryCompressionPropertiesFromConfiguration() {
+        contextRunner.withPropertyValues(
+                "agent.memory-compression.trigger-total-tokens=4321",
+                "agent.memory-compression.preserve-latest-message-count=5",
+                "agent.memory-compression.fallback-max-message-count=77"
+        ).run(context -> {
+            MemoryCompressionProperties properties = context.getBean(MemoryCompressionProperties.class);
+
+            assertThat(properties.getTriggerTotalTokens()).isEqualTo(4321);
+            assertThat(properties.getPreserveLatestMessageCount()).isEqualTo(5);
+            assertThat(properties.getFallbackMaxMessageCount()).isEqualTo(77);
         });
     }
 

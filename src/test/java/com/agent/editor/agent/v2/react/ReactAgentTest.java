@@ -8,6 +8,7 @@ import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
+import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -16,6 +17,7 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.output.TokenUsage;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,7 +30,7 @@ class ReactAgentTest {
 
     @Test
     void shouldReportReactType() {
-        ReactAgent definition = new ReactAgent(null);
+        ReactAgent definition = definition(null);
 
         assertEquals(AgentType.REACT, definition.type());
     }
@@ -37,13 +39,17 @@ class ReactAgentTest {
     void shouldConvertPlainModelResponseToCompleteDecision() {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("final answer"))
+                .tokenUsage(new TokenUsage(10, 5, 15))
                 .build());
-        ReactAgent definition = new ReactAgent(chatModel);
+        ReactAgent definition = definition(chatModel);
+        AgentRunContext context = context();
 
-        ToolLoopDecision toolLoopDecision = definition.decide(context());
+        ToolLoopDecision toolLoopDecision = definition.decide(context);
 
         ToolLoopDecision.Complete complete = assertInstanceOf(ToolLoopDecision.Complete.class, toolLoopDecision);
         assertEquals("final answer", complete.getResult());
+        ChatTranscriptMemory transcriptMemory = assertInstanceOf(ChatTranscriptMemory.class, context.getMemory());
+        assertEquals(15, transcriptMemory.getLastObservedTotalTokens());
         assertNotNull(chatModel.lastRequest);
         assertEquals(2, chatModel.lastRequest.messages().size());
         assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
@@ -62,7 +68,7 @@ class ReactAgentTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("need tool", java.util.List.of(toolRequest)))
                 .build());
-        ReactAgent definition = new ReactAgent(chatModel);
+        ReactAgent definition = definition(chatModel);
 
         ToolLoopDecision toolLoopDecision = definition.decide(context());
 
@@ -77,7 +83,7 @@ class ReactAgentTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("updated"))
                 .build());
-        ReactAgent definition = new ReactAgent(chatModel);
+        ReactAgent definition = definition(chatModel);
 
         definition.decide(context());
 
@@ -99,7 +105,7 @@ class ReactAgentTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("final answer"))
                 .build());
-        ReactAgent definition = new ReactAgent(chatModel);
+        ReactAgent definition = definition(chatModel);
 
         ToolLoopDecision toolLoopDecision = definition.decide(new AgentRunContext(
                 new ExecutionRequest(
@@ -155,11 +161,25 @@ class ReactAgentTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from(null, java.util.List.of(toolRequest)))
                 .build());
-        ReactAgent definition = new ReactAgent(chatModel);
+        ReactAgent definition = definition(chatModel);
 
         ToolLoopDecision toolLoopDecision = assertDoesNotThrow(() -> definition.decide(context()));
 
         assertInstanceOf(ToolLoopDecision.ToolCalls.class, toolLoopDecision);
+    }
+
+    @Test
+    void shouldLeaveObservedTokensUnsetWhenResponseUsageIsMissing() {
+        RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
+                .aiMessage(AiMessage.from("final answer"))
+                .build());
+        ReactAgent definition = definition(chatModel);
+        AgentRunContext context = context();
+
+        assertDoesNotThrow(() -> definition.decide(context));
+
+        ChatTranscriptMemory transcriptMemory = assertInstanceOf(ChatTranscriptMemory.class, context.getMemory());
+        assertEquals(null, transcriptMemory.getLastObservedTotalTokens());
     }
 
     private AgentRunContext context() {
@@ -181,6 +201,10 @@ class ReactAgentTest {
                 null,
                 java.util.List.of()
         );
+    }
+
+    private ReactAgent definition(ChatModel chatModel) {
+        return new ReactAgent(chatModel, new ReactAgentContextFactory(NoOpMemoryCompressors.noop()));
     }
 
     private static final class RecordingChatModel implements ChatModel {

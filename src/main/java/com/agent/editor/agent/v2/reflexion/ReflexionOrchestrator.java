@@ -34,12 +34,6 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
 
     public ReflexionOrchestrator(ExecutionRuntime runtime,
                                  Agent actorDefinition,
-                                 ReflexionCritic criticDefinition) {
-        this(runtime, actorDefinition, criticDefinition, new ReflexionActorContextFactory(), new ReflexionCriticContextFactory());
-    }
-
-    public ReflexionOrchestrator(ExecutionRuntime runtime,
-                                 Agent actorDefinition,
                                  ReflexionCritic criticDefinition,
                                  ReflexionActorContextFactory actorContextFactory,
                                  ReflexionCriticContextFactory criticContextFactory) {

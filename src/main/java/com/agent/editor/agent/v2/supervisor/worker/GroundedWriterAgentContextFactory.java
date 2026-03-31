@@ -3,6 +3,7 @@ package com.agent.editor.agent.v2.supervisor.worker;
 import com.agent.editor.agent.v2.core.context.AgentContextFactory;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
+import com.agent.editor.agent.v2.core.memory.MemoryCompressor;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.v2.task.TaskRequest;
@@ -15,18 +16,21 @@ import java.util.List;
 public class GroundedWriterAgentContextFactory implements AgentContextFactory {
 
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
+    private final MemoryCompressor memoryCompressor;
 
-    public GroundedWriterAgentContextFactory() {
-        this(new ExecutionMemoryChatMessageMapper());
+    public GroundedWriterAgentContextFactory(MemoryCompressor memoryCompressor) {
+        this(new ExecutionMemoryChatMessageMapper(), memoryCompressor);
     }
 
-    GroundedWriterAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper) {
+    public GroundedWriterAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
+                                             MemoryCompressor memoryCompressor) {
         this.memoryChatMessageMapper = memoryChatMessageMapper;
+        this.memoryCompressor = memoryCompressor;
     }
 
     @Override
     public AgentRunContext prepareInitialContext(TaskRequest request) {
-        return new AgentRunContext(
+        return compressContextMemory(new AgentRunContext(
                 null,
                 0,
                 request.getDocument().getContent(),
@@ -34,7 +38,7 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory {
                 ExecutionStage.RUNNING,
                 null,
                 List.of()
-        );
+        ));
     }
 
     @Override
@@ -44,6 +48,10 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory {
         messages.add(UserMessage.from(context.getRequest().getInstruction()));
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().getMemory()));
         return new ModelInvocationContext(messages, context.getToolSpecifications(), null);
+    }
+
+    private AgentRunContext compressContextMemory(AgentRunContext context) {
+        return context.withMemory(memoryCompressor.compressOrOriginal(context.getMemory()));
     }
 
     private String systemPrompt() {

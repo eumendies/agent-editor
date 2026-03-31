@@ -11,7 +11,9 @@ import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.react.ReActAgentOrchestrator;
+import com.agent.editor.agent.v2.react.ReactAgentContextFactory;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
+import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +31,11 @@ class SingleAgentOrchestratorTest {
                 event -> {}
         );
         Agent agent = new StubAgent();
-        ReActAgentOrchestrator orchestrator = new ReActAgentOrchestrator(runtime, agent);
+        ReActAgentOrchestrator orchestrator = new ReActAgentOrchestrator(
+                runtime,
+                agent,
+                new ReactAgentContextFactory(NoOpMemoryCompressors.noop())
+        );
 
         TaskRequest request = new TaskRequest(
                 "task-1",

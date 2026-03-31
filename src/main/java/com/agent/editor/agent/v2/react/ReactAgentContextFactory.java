@@ -5,6 +5,7 @@ import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.memory.ExecutionMemory;
+import com.agent.editor.agent.v2.core.memory.MemoryCompressor;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
@@ -17,18 +18,21 @@ import java.util.List;
 public class ReactAgentContextFactory implements AgentContextFactory {
 
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
+    private final MemoryCompressor memoryCompressor;
 
-    public ReactAgentContextFactory() {
-        this(new ExecutionMemoryChatMessageMapper());
+    public ReactAgentContextFactory(MemoryCompressor memoryCompressor) {
+        this(new ExecutionMemoryChatMessageMapper(), memoryCompressor);
     }
 
-    ReactAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper) {
+    public ReactAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
+                                    MemoryCompressor memoryCompressor) {
         this.memoryChatMessageMapper = memoryChatMessageMapper;
+        this.memoryCompressor = memoryCompressor;
     }
 
     @Override
     public AgentRunContext prepareInitialContext(TaskRequest request) {
-        return new AgentRunContext(
+        return compressContextMemory(new AgentRunContext(
                 null,
                 0,
                 request.getDocument().getContent(),
@@ -36,7 +40,7 @@ public class ReactAgentContextFactory implements AgentContextFactory {
                 ExecutionStage.RUNNING,
                 null,
                 List.of()
-        );
+        ));
     }
 
     @Override
@@ -53,7 +57,11 @@ public class ReactAgentContextFactory implements AgentContextFactory {
         }
         ArrayList<ChatMessage> messages = new ArrayList<>(transcriptMemory.getMessages());
         messages.add(new ChatMessage.UserChatMessage(instruction));
-        return new ChatTranscriptMemory(messages);
+        return new ChatTranscriptMemory(messages, transcriptMemory.getLastObservedTotalTokens());
+    }
+
+    protected AgentRunContext compressContextMemory(AgentRunContext context) {
+        return context.withMemory(memoryCompressor.compressOrOriginal(context.getMemory()));
     }
 
     private String systemPrompt() {
@@ -73,4 +81,5 @@ public class ReactAgentContextFactory implements AgentContextFactory {
                 After completing a document-writing task, keep your final text concise and only confirm that the document was updated.
                 """;
     }
+
 }

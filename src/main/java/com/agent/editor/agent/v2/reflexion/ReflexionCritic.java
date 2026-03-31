@@ -6,6 +6,7 @@ import com.agent.editor.agent.v2.core.agent.ToolLoopAgent;
 import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
 import com.agent.editor.agent.v2.core.exception.NullChatModelException;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
+import com.agent.editor.agent.v2.memory.ObservedTokenUsageRecorder;
 import com.agent.editor.agent.v2.util.StructuredOutputParsers;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -16,10 +17,6 @@ public class ReflexionCritic implements ToolLoopAgent {
 
     private final ChatModel chatModel;
     private final ReflexionCriticContextFactory contextFactory;
-
-    public ReflexionCritic(ChatModel chatModel) {
-        this(chatModel, new ReflexionCriticContextFactory());
-    }
 
     public ReflexionCritic(ChatModel chatModel,
                            ReflexionCriticContextFactory contextFactory) {
@@ -39,6 +36,7 @@ public class ReflexionCritic implements ToolLoopAgent {
         }
 
         ChatResponse response = chatModel.chat(toChatRequest(contextFactory.buildModelInvocationContext(context)));
+        ObservedTokenUsageRecorder.record(context, response);
 
         AiMessage aiMessage = response.aiMessage();
         if (aiMessage.hasToolExecutionRequests()) {
@@ -63,6 +61,7 @@ public class ReflexionCritic implements ToolLoopAgent {
         ChatResponse finalizationResponse = chatModel.chat(
                 toChatRequest(contextFactory.buildFinalizationInvocationContext(context, aiMessage.text()))
         );
+        ObservedTokenUsageRecorder.record(context, finalizationResponse);
 
         ReflexionCritique finalizedCritique = tryParseCritique(finalizationResponse.aiMessage().text());
         if (finalizedCritique == null) {

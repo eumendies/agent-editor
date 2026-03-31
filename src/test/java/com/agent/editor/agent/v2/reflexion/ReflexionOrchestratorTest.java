@@ -13,6 +13,7 @@ import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
+import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.tool.ToolContext;
@@ -48,7 +49,9 @@ class ReflexionOrchestratorTest {
                 new ActorAgent(),
                 criticWithResponses("""
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"done"}
-                        """)
+                        """),
+                new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
+                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -99,7 +102,9 @@ class ReflexionOrchestratorTest {
                         """
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"done"}
                         """
-                )
+                ),
+                new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
+                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -144,7 +149,9 @@ class ReflexionOrchestratorTest {
                         """
                         {"verdict":"REVISE","feedback":"Round 2","reasoning":"continue"}
                         """
-                )
+                ),
+                new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
+                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -175,7 +182,9 @@ class ReflexionOrchestratorTest {
                         """
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"done"}
                         """
-                )
+                ),
+                new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
+                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())
         );
 
         orchestrator.execute(new TaskRequest(
@@ -216,7 +225,9 @@ class ReflexionOrchestratorTest {
         ReflexionOrchestrator orchestrator = new ReflexionOrchestrator(
                 runtime,
                 new ActorAgent(),
-                new ReflexionCritic(criticModel)
+                new ReflexionCritic(criticModel, new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())),
+                new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
+                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -241,7 +252,8 @@ class ReflexionOrchestratorTest {
 
     private ReflexionCritic criticWithResponses(String... responses) {
         return new ReflexionCritic(
-                new QueueChatModel(responses)
+                new QueueChatModel(responses),
+                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())
         );
     }
 

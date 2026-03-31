@@ -7,11 +7,13 @@ import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
+import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -21,38 +23,70 @@ class GroundedWriterAgentContextFactoryTest {
 
     @Test
     void shouldBuildInvocationContextWithInstructionBeforeTranscript() {
-        GroundedWriterAgentContextFactory factory = new GroundedWriterAgentContextFactory();
+        AtomicInteger compressionCalls = new AtomicInteger();
+        GroundedWriterAgentContextFactory factory = new GroundedWriterAgentContextFactory(request -> {
+            compressionCalls.incrementAndGet();
+            return new com.agent.editor.agent.v2.core.memory.MemoryCompressionResult(
+                    new ChatTranscriptMemory(List.of(new ChatMessage.AiChatMessage("compressed writer memory"))),
+                    true,
+                    "compressed"
+            );
+        });
 
         var invocationContext = factory.buildModelInvocationContext(context());
 
-        assertEquals(4, invocationContext.getMessages().size());
+        assertEquals(3, invocationContext.getMessages().size());
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains("grounded writer worker"));
         UserMessage instructionMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
         assertEquals("rewrite the answer using available evidence", instructionMessage.singleText());
         UserMessage memoryMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));
-        assertEquals("existing summary", memoryMessage.singleText());
+        assertEquals("already compressed writer memory", memoryMessage.singleText());
+        assertEquals(0, compressionCalls.get());
+    }
+
+    @Test
+    void shouldPrepareInitialContextWithCompressedMemory() {
+        GroundedWriterAgentContextFactory factory = new GroundedWriterAgentContextFactory(request -> new com.agent.editor.agent.v2.core.memory.MemoryCompressionResult(
+                new ChatTranscriptMemory(List.of(new ChatMessage.AiChatMessage("compressed initial writer context"))),
+                true,
+                "compressed"
+        ));
+
+        AgentRunContext context = factory.prepareInitialContext(new com.agent.editor.agent.v2.task.TaskRequest(
+                "task-1",
+                "session-1",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-1", "title", "body"),
+                "rewrite the answer using available evidence",
+                3,
+                new ChatTranscriptMemory(List.of(new ChatMessage.UserChatMessage("raw writer memory")))
+        ));
+
+        ChatTranscriptMemory memory = assertInstanceOf(ChatTranscriptMemory.class, context.getMemory());
+        assertEquals(1, memory.getMessages().size());
+        assertEquals("compressed initial writer context", memory.getMessages().get(0).getText());
     }
 
     private AgentRunContext context() {
-        return new AgentRunContext(
-                new ExecutionRequest(
-                        "task-1",
-                        "session-1",
-                        AgentType.REACT,
-                        new DocumentSnapshot("doc-1", "title", "body"),
-                        "rewrite the answer using available evidence",
-                        3
-                ),
-                0,
-                "body",
+        GroundedWriterAgentContextFactory factory = new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop());
+        return factory.prepareInitialContext(new com.agent.editor.agent.v2.task.TaskRequest(
+                "task-1",
+                "session-1",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-1", "title", "body"),
+                "rewrite the answer using available evidence",
+                3,
                 new ChatTranscriptMemory(List.of(
-                        new ChatMessage.UserChatMessage("existing summary"),
-                        new ChatMessage.AiChatMessage("writer scratchpad")
-                )),
-                ExecutionStage.RUNNING,
-                null,
-                List.of()
-        );
+                        new ChatMessage.UserChatMessage("already compressed writer memory")
+                ))
+        )).withRequest(new ExecutionRequest(
+                "task-1",
+                "session-1",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-1", "title", "body"),
+                "rewrite the answer using available evidence",
+                3
+        ));
     }
 }

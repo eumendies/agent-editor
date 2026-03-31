@@ -14,6 +14,7 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
+import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.trace.TraceStore;
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,8 @@ class PlanningThenExecutionOrchestratorTest {
                 planningRuntime,
                 new FailIfCalledPlanningAgentImpl(),
                 executionRuntime,
-                new CompletingExecutionAgent()
+                new CompletingExecutionAgent(),
+                new PlanningAgentContextFactory(NoOpMemoryCompressors.noop())
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -66,7 +68,8 @@ class PlanningThenExecutionOrchestratorTest {
                 planningRuntime,
                 new StaticPlanningAgentImpl(plan("unused")),
                 runtime,
-                new CompletingExecutionAgent()
+                new CompletingExecutionAgent(),
+                new PlanningAgentContextFactory(NoOpMemoryCompressors.noop())
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(

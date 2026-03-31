@@ -16,10 +16,6 @@ public class ReActAgentOrchestrator implements TaskOrchestrator {
     private final Agent agent;
     private final ReactAgentContextFactory contextFactory;
 
-    public ReActAgentOrchestrator(ExecutionRuntime runtime, Agent agent) {
-        this(runtime, agent, new ReactAgentContextFactory());
-    }
-
     public ReActAgentOrchestrator(ExecutionRuntime runtime, Agent agent, ReactAgentContextFactory contextFactory) {
         this.runtime = runtime;
         this.agent = agent;

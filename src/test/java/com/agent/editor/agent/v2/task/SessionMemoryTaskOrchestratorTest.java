@@ -53,6 +53,38 @@ class SessionMemoryTaskOrchestratorTest {
         assertEquals("new answer", savedMemory.getMessages().get(1).getText());
     }
 
+    @Test
+    void shouldSaveTranscriptDirectlyWithoutCompressingSessionMemory() {
+        InMemorySessionMemoryStore store = new InMemorySessionMemoryStore();
+        RecordingOrchestrator delegate = new RecordingOrchestrator(new TaskResult(
+                TaskStatus.COMPLETED,
+                "rewritten",
+                new ChatTranscriptMemory(List.of(
+                        new ChatMessage.UserChatMessage("previous turn"),
+                        new ChatMessage.AiChatMessage("new answer")
+                ))
+        ));
+        SessionMemoryTaskOrchestrator orchestrator = new SessionMemoryTaskOrchestrator(
+                delegate,
+                store
+        );
+
+        orchestrator.execute(new TaskRequest(
+                "task-2",
+                "session-2",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-2", "Title", "body"),
+                "rewrite",
+                3,
+                null
+        ));
+
+        ChatTranscriptMemory savedMemory = store.load("session-2");
+        assertEquals(2, savedMemory.getMessages().size());
+        assertEquals("previous turn", savedMemory.getMessages().get(0).getText());
+        assertEquals("new answer", savedMemory.getMessages().get(1).getText());
+    }
+
     private static final class RecordingOrchestrator implements TaskOrchestrator {
 
         private final TaskResult result;

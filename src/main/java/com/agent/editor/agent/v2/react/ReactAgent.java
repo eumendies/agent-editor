@@ -5,6 +5,7 @@ import com.agent.editor.agent.v2.core.context.AgentContextFactory;
 import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
 import com.agent.editor.agent.v2.core.exception.NullChatModelException;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
+import com.agent.editor.agent.v2.memory.ObservedTokenUsageRecorder;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -15,10 +16,6 @@ public class ReactAgent implements ToolLoopAgent {
 
     private final ChatModel chatModel;
     private final AgentContextFactory contextFactory;
-
-    public ReactAgent(ChatModel chatModel) {
-        this(chatModel, new ReactAgentContextFactory());
-    }
 
     public ReactAgent(ChatModel chatModel,
                       AgentContextFactory contextFactory) {
@@ -45,6 +42,7 @@ public class ReactAgent implements ToolLoopAgent {
             requestBuilder.responseFormat(invocationContext.getResponseFormat());
         }
         ChatResponse response = chatModel.chat(requestBuilder.build());
+        ObservedTokenUsageRecorder.record(context, response);
 
         AiMessage aiMessage = response.aiMessage();
         if (aiMessage.hasToolExecutionRequests()) {

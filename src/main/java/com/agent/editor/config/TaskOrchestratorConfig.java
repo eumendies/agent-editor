@@ -2,6 +2,7 @@ package com.agent.editor.config;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.agent.SupervisorAgent;
+import com.agent.editor.agent.v2.core.memory.MemoryCompressor;
 import com.agent.editor.agent.v2.core.memory.SessionMemoryStore;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.runtime.PlanningExecutionRuntime;
@@ -11,6 +12,7 @@ import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.LegacyEventAdapter;
 import com.agent.editor.agent.v2.event.WebSocketEventPublisher;
 import com.agent.editor.agent.v2.memory.InMemorySessionMemoryStore;
+import com.agent.editor.agent.v2.memory.ModelBasedMemoryCompressor;
 import com.agent.editor.agent.v2.planning.PlanningAgentContextFactory;
 import com.agent.editor.agent.v2.planning.PlanningAgentImpl;
 import com.agent.editor.agent.v2.planning.PlanningThenExecutionOrchestrator;
@@ -31,11 +33,14 @@ import com.agent.editor.agent.v2.task.SessionMemoryTaskOrchestrator;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
 import com.agent.editor.service.TaskQueryService;
 import com.agent.editor.websocket.WebSocketService;
+import dev.langchain4j.model.chat.ChatModel;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import java.util.Map;
 
 @Configuration
+@EnableConfigurationProperties(MemoryCompressionProperties.class)
 public class TaskOrchestratorConfig {
 
     @Bean
@@ -72,28 +77,34 @@ public class TaskOrchestratorConfig {
     }
 
     @Bean
-    public ReactAgentContextFactory reactAgentContextFactory() {
-        return new ReactAgentContextFactory();
+    public MemoryCompressor memoryCompressor(ChatModel chatModel,
+                                             MemoryCompressionProperties memoryCompressionProperties) {
+        return new ModelBasedMemoryCompressor(chatModel, memoryCompressionProperties);
     }
 
     @Bean
-    public PlanningAgentContextFactory planningAgentContextFactory() {
-        return new PlanningAgentContextFactory();
+    public ReactAgentContextFactory reactAgentContextFactory(MemoryCompressor memoryCompressor) {
+        return new ReactAgentContextFactory(memoryCompressor);
     }
 
     @Bean
-    public ReflexionActorContextFactory reflexionActorContextFactory() {
-        return new ReflexionActorContextFactory();
+    public PlanningAgentContextFactory planningAgentContextFactory(MemoryCompressor memoryCompressor) {
+        return new PlanningAgentContextFactory(memoryCompressor);
     }
 
     @Bean
-    public ReflexionCriticContextFactory reflexionCriticContextFactory() {
-        return new ReflexionCriticContextFactory();
+    public ReflexionActorContextFactory reflexionActorContextFactory(MemoryCompressor memoryCompressor) {
+        return new ReflexionActorContextFactory(memoryCompressor);
     }
 
     @Bean
-    public SupervisorContextFactory supervisorContextFactory() {
-        return new SupervisorContextFactory();
+    public ReflexionCriticContextFactory reflexionCriticContextFactory(MemoryCompressor memoryCompressor) {
+        return new ReflexionCriticContextFactory(memoryCompressor);
+    }
+
+    @Bean
+    public SupervisorContextFactory supervisorContextFactory(MemoryCompressor memoryCompressor) {
+        return new SupervisorContextFactory(memoryCompressor);
     }
 
     @Bean
@@ -107,6 +118,7 @@ public class TaskOrchestratorConfig {
                                              ReflexionActor reflexionActorDefinition,
                                              ReflexionCritic reflexionCriticDefinition,
                                              SupervisorAgent supervisorAgentDefinition,
+                                             MemoryCompressor memoryCompressor,
                                              SessionMemoryStore sessionMemoryStore,
                                              ReactAgentContextFactory reactAgentContextFactory,
                                              PlanningAgentContextFactory planningAgentContextFactory,

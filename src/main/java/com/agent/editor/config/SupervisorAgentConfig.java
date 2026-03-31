@@ -2,6 +2,7 @@ package com.agent.editor.config;
 
 import com.agent.editor.agent.v2.core.agent.SupervisorAgent;
 import com.agent.editor.agent.v2.core.context.SupervisorContext;
+import com.agent.editor.agent.v2.core.memory.MemoryCompressor;
 import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
 import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
 import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgent;
@@ -24,18 +25,18 @@ public class SupervisorAgentConfig {
     }
 
     @Bean
-    public ResearcherAgentContextFactory researcherAgentContextFactory() {
-        return new ResearcherAgentContextFactory();
+    public ResearcherAgentContextFactory researcherAgentContextFactory(MemoryCompressor memoryCompressor) {
+        return new ResearcherAgentContextFactory(memoryCompressor);
     }
 
     @Bean
-    public GroundedWriterAgentContextFactory groundedWriterAgentContextFactory() {
-        return new GroundedWriterAgentContextFactory();
+    public GroundedWriterAgentContextFactory groundedWriterAgentContextFactory(MemoryCompressor memoryCompressor) {
+        return new GroundedWriterAgentContextFactory(memoryCompressor);
     }
 
     @Bean
-    public EvidenceReviewerAgentContextFactory evidenceReviewerAgentContextFactory() {
-        return new EvidenceReviewerAgentContextFactory();
+    public EvidenceReviewerAgentContextFactory evidenceReviewerAgentContextFactory(MemoryCompressor memoryCompressor) {
+        return new EvidenceReviewerAgentContextFactory(memoryCompressor);
     }
 
     @Bean

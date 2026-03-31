@@ -9,6 +9,7 @@ import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
 import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
 import com.agent.editor.agent.v2.supervisor.worker.ReviewerFeedback;
 import com.agent.editor.agent.v2.supervisor.worker.ReviewerVerdict;
+import com.agent.editor.agent.v2.memory.ObservedTokenUsageRecorder;
 import com.agent.editor.agent.v2.util.StructuredOutputParsers;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -26,10 +27,6 @@ public class HybridSupervisorAgent implements SupervisorAgent {
 
     private final ChatModel chatModel;
     private final SupervisorContextFactory contextFactory;
-
-    public HybridSupervisorAgent(ChatModel chatModel) {
-        this(chatModel, new SupervisorContextFactory());
-    }
 
     public HybridSupervisorAgent(ChatModel chatModel, SupervisorContextFactory contextFactory) {
         this.chatModel = chatModel;
@@ -189,6 +186,7 @@ public class HybridSupervisorAgent implements SupervisorAgent {
                 requestBuilder.responseFormat(invocationContext.getResponseFormat());
             }
             ChatResponse response = chatModel.chat(requestBuilder.build());
+            ObservedTokenUsageRecorder.record(context, response);
             if (response == null || response.aiMessage() == null || response.aiMessage().text() == null) {
                 return null;
             }

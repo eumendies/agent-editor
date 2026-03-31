@@ -3,6 +3,7 @@ package com.agent.editor.agent.v2.supervisor.worker;
 import com.agent.editor.agent.v2.core.context.AgentContextFactory;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
+import com.agent.editor.agent.v2.core.memory.MemoryCompressor;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.v2.task.TaskRequest;
@@ -14,18 +15,21 @@ import java.util.List;
 public class ResearcherAgentContextFactory implements AgentContextFactory {
 
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
+    private final MemoryCompressor memoryCompressor;
 
-    public ResearcherAgentContextFactory() {
-        this(new ExecutionMemoryChatMessageMapper());
+    public ResearcherAgentContextFactory(MemoryCompressor memoryCompressor) {
+        this(new ExecutionMemoryChatMessageMapper(), memoryCompressor);
     }
 
-    ResearcherAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper) {
+    public ResearcherAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
+                                         MemoryCompressor memoryCompressor) {
         this.memoryChatMessageMapper = memoryChatMessageMapper;
+        this.memoryCompressor = memoryCompressor;
     }
 
     @Override
     public AgentRunContext prepareInitialContext(TaskRequest request) {
-        return new AgentRunContext(
+        return compressContextMemory(new AgentRunContext(
                 null,
                 0,
                 request.getDocument().getContent(),
@@ -33,7 +37,7 @@ public class ResearcherAgentContextFactory implements AgentContextFactory {
                 ExecutionStage.RUNNING,
                 null,
                 List.of()
-        );
+        ));
     }
 
     @Override
@@ -42,6 +46,10 @@ public class ResearcherAgentContextFactory implements AgentContextFactory {
         messages.add(SystemMessage.from(systemPrompt()));
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.state().getMemory()));
         return new ModelInvocationContext(messages, context.getToolSpecifications(), null);
+    }
+
+    private AgentRunContext compressContextMemory(AgentRunContext context) {
+        return context.withMemory(memoryCompressor.compressOrOriginal(context.getMemory()));
     }
 
     private String systemPrompt() {

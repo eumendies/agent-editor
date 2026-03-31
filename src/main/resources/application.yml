@@ -43,6 +43,12 @@ rag:
   write-top-k: 8
   retrieve-top-k: 12
 
+agent:
+  memory-compression:
+    trigger-total-tokens: 128000
+    preserve-latest-message-count: 6
+    fallback-max-message-count: 100
+
 milvus:
   enabled: true
   host: localhost

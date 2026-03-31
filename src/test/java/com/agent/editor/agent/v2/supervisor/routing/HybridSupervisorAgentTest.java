@@ -15,11 +15,13 @@ import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
 import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
+import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.output.TokenUsage;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -38,21 +40,24 @@ class HybridSupervisorAgentTest {
                 null,
                 null,
                 "guess"
-        ));
-        HybridSupervisorAgent definition = new HybridSupervisorAgent(chatModel, new SupervisorContextFactory());
-
-        SupervisorDecision decision = definition.decide(supervisorContext(
+        ), new TokenUsage(12, 6, 18));
+        HybridSupervisorAgent definition = new HybridSupervisorAgent(chatModel, new SupervisorContextFactory(NoOpMemoryCompressors.noop()));
+        SupervisorContext context = supervisorContext(
                 "task-1",
                 "session-1",
                 "Inspect the document before making changes",
                 "Draft body",
                 workers(),
                 List.of(new SupervisorContext.WorkerResult("analyzer", TaskStatus.COMPLETED, "analysis complete", "Draft body"))
-        ));
+        );
+
+        SupervisorDecision decision = definition.decide(context);
 
         SupervisorDecision.AssignWorker assignWorker = assertInstanceOf(SupervisorDecision.AssignWorker.class, decision);
         assertEquals("editor", assignWorker.getWorkerId());
         assertEquals(ResponseFormatType.JSON, chatModel.lastRequest.responseFormat().type());
+        ChatTranscriptMemory transcriptMemory = assertInstanceOf(ChatTranscriptMemory.class, context.getMemory());
+        assertEquals(18, transcriptMemory.getLastObservedTotalTokens());
     }
 
     @Test
@@ -65,7 +70,7 @@ class HybridSupervisorAgentTest {
                 null,
                 "guess"
         ));
-        HybridSupervisorAgent definition = new HybridSupervisorAgent(chatModel, new SupervisorContextFactory());
+        HybridSupervisorAgent definition = new HybridSupervisorAgent(chatModel, new SupervisorContextFactory(NoOpMemoryCompressors.noop()));
 
         SupervisorDecision decision = definition.decide(supervisorContext(
                 "task-1b",
@@ -87,7 +92,7 @@ class HybridSupervisorAgentTest {
                 {"action":"assign_worker","workerId":"editor","instruction":"Start editing","summary":null,"finalContent":null,"reasoning":"guess"}
                 ```
                 """);
-        HybridSupervisorAgent definition = new HybridSupervisorAgent(chatModel, new SupervisorContextFactory());
+        HybridSupervisorAgent definition = new HybridSupervisorAgent(chatModel, new SupervisorContextFactory(NoOpMemoryCompressors.noop()));
 
         SupervisorDecision decision = definition.decide(supervisorContext(
                 "task-1c",
@@ -112,7 +117,8 @@ class HybridSupervisorAgentTest {
                         null,
                         null,
                         "editing is next"
-                ))
+                )),
+                new SupervisorContextFactory(NoOpMemoryCompressors.noop())
         );
 
         SupervisorDecision decision = definition.decide(supervisorContext(
@@ -171,7 +177,8 @@ class HybridSupervisorAgentTest {
                         "work complete",
                         "Final body",
                         "done"
-                ))
+                )),
+                new SupervisorContextFactory(NoOpMemoryCompressors.noop())
         );
 
         SupervisorDecision decision = definition.decide(supervisorContext(
@@ -202,7 +209,8 @@ class HybridSupervisorAgentTest {
                         null,
                         null,
                         "keep trying"
-                ))
+                )),
+                new SupervisorContextFactory(NoOpMemoryCompressors.noop())
         );
 
         SupervisorDecision decision = definition.decide(supervisorContext(
@@ -231,7 +239,8 @@ class HybridSupervisorAgentTest {
                         null,
                         null,
                         "continue"
-                ))
+                )),
+                new SupervisorContextFactory(NoOpMemoryCompressors.noop())
         );
 
         SupervisorDecision decision = definition.decide(supervisorContext(
@@ -260,7 +269,8 @@ class HybridSupervisorAgentTest {
                         null,
                         null,
                         "one more pass"
-                ))
+                )),
+                new SupervisorContextFactory(NoOpMemoryCompressors.noop())
         );
 
         SupervisorDecision decision = definition.decide(supervisorContext(
@@ -289,7 +299,8 @@ class HybridSupervisorAgentTest {
                         null,
                         null,
                         "bad output"
-                ))
+                )),
+                new SupervisorContextFactory(NoOpMemoryCompressors.noop())
         );
 
         SupervisorDecision decision = definition.decide(supervisorContext(
@@ -318,7 +329,8 @@ class HybridSupervisorAgentTest {
                         null,
                         null,
                         "fact-heavy task"
-                ))
+                )),
+                new SupervisorContextFactory(NoOpMemoryCompressors.noop())
         );
 
         SupervisorDecision decision = definition.decide(supervisorContext(
@@ -344,7 +356,8 @@ class HybridSupervisorAgentTest {
                         null,
                         null,
                         "rewrite task"
-                ))
+                )),
+                new SupervisorContextFactory(NoOpMemoryCompressors.noop())
         );
 
         SupervisorDecision decision = definition.decide(supervisorContext(
@@ -362,7 +375,7 @@ class HybridSupervisorAgentTest {
 
     @Test
     void shouldCompleteWhenReviewerPassesInstructionAndGroundingChecks() {
-        HybridSupervisorAgent definition = new HybridSupervisorAgent((ChatModel) null);
+        HybridSupervisorAgent definition = new HybridSupervisorAgent((ChatModel) null, new SupervisorContextFactory(NoOpMemoryCompressors.noop()));
 
         SupervisorDecision decision = definition.decide(supervisorContext(
                 "task-10",
@@ -383,7 +396,7 @@ class HybridSupervisorAgentTest {
 
     @Test
     void shouldCompleteWhenReviewerPassJsonIsWrappedInMarkdownFence() {
-        HybridSupervisorAgent definition = new HybridSupervisorAgent((ChatModel) null);
+        HybridSupervisorAgent definition = new HybridSupervisorAgent((ChatModel) null, new SupervisorContextFactory(NoOpMemoryCompressors.noop()));
 
         SupervisorDecision decision = definition.decide(supervisorContext(
                 "task-10b",
@@ -408,7 +421,7 @@ class HybridSupervisorAgentTest {
 
     @Test
     void shouldReturnToWriterWhenReviewerOnlyFindsInstructionGap() {
-        HybridSupervisorAgent definition = new HybridSupervisorAgent((ChatModel) null);
+        HybridSupervisorAgent definition = new HybridSupervisorAgent((ChatModel) null, new SupervisorContextFactory(NoOpMemoryCompressors.noop()));
 
         SupervisorDecision decision = definition.decide(supervisorContext(
                 "task-11",
@@ -429,7 +442,7 @@ class HybridSupervisorAgentTest {
 
     @Test
     void shouldMakeResearcherEligibleAgainWhenReviewerFlagsUnsupportedClaims() {
-        HybridSupervisorAgent definition = new HybridSupervisorAgent((ChatModel) null);
+        HybridSupervisorAgent definition = new HybridSupervisorAgent((ChatModel) null, new SupervisorContextFactory(NoOpMemoryCompressors.noop()));
 
         SupervisorDecision decision = definition.decide(supervisorContext(
                 "task-12",
@@ -584,10 +597,16 @@ class HybridSupervisorAgentTest {
     private static final class RecordingChatModel implements ChatModel {
 
         private final String response;
+        private final TokenUsage tokenUsage;
         private ChatRequest lastRequest;
 
         private RecordingChatModel(String response) {
+            this(response, null);
+        }
+
+        private RecordingChatModel(String response, TokenUsage tokenUsage) {
             this.response = response;
+            this.tokenUsage = tokenUsage;
         }
 
         @Override
@@ -595,6 +614,7 @@ class HybridSupervisorAgentTest {
             this.lastRequest = request;
             return ChatResponse.builder()
                     .aiMessage(AiMessage.from(response))
+                    .tokenUsage(tokenUsage)
                     .build();
         }
     }
@@ -603,6 +623,10 @@ class HybridSupervisorAgentTest {
 
         private int routingInvocationBuildCount;
         private int fallbackInstructionBuildCount;
+
+        private RecordingSupervisorContextFactory() {
+            super(NoOpMemoryCompressors.noop());
+        }
 
         @Override
         public ModelInvocationContext buildRoutingInvocationContext(SupervisorContext context,

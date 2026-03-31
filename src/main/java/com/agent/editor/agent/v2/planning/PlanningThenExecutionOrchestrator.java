@@ -27,13 +27,6 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
     public PlanningThenExecutionOrchestrator(ExecutionRuntime planningRuntime,
                                              PlanningAgentImpl planningAgentImpl,
                                              ExecutionRuntime toolLoopExecutionRuntime,
-                                             Agent executionAgent) {
-        this(planningRuntime, planningAgentImpl, toolLoopExecutionRuntime, executionAgent, new PlanningAgentContextFactory());
-    }
-
-    public PlanningThenExecutionOrchestrator(ExecutionRuntime planningRuntime,
-                                             PlanningAgentImpl planningAgentImpl,
-                                             ExecutionRuntime toolLoopExecutionRuntime,
                                              Agent executionAgent,
                                              PlanningAgentContextFactory planningContextFactory) {
         this.planningRuntime = planningRuntime;

@@ -8,6 +8,7 @@ import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
+import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -29,7 +30,7 @@ class EvidenceReviewerAgentTest {
 
     @Test
     void shouldReportReactType() {
-        EvidenceReviewerAgent definition = new EvidenceReviewerAgent(null);
+        EvidenceReviewerAgent definition = new EvidenceReviewerAgent(null, new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         assertEquals(AgentType.REACT, definition.type());
     }
@@ -41,7 +42,7 @@ class EvidenceReviewerAgentTest {
                         {"verdict":"PASS","instructionSatisfied":true,"evidenceGrounded":true,"unsupportedClaims":[],"missingRequirements":[],"feedback":"ok","reasoning":"complete"}
                         """))
                 .build());
-        EvidenceReviewerAgent definition = new EvidenceReviewerAgent(chatModel);
+        EvidenceReviewerAgent definition = new EvidenceReviewerAgent(chatModel, new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         definition.decide(context(List.of(searchContentTool(), analyzeDocumentTool())));
 
@@ -64,7 +65,7 @@ class EvidenceReviewerAgentTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("need one more verification step", List.of(toolRequest)))
                 .build());
-        EvidenceReviewerAgent definition = new EvidenceReviewerAgent(chatModel);
+        EvidenceReviewerAgent definition = new EvidenceReviewerAgent(chatModel, new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision toolLoopDecision = definition.decide(context(List.of(analyzeDocumentTool())));
 
@@ -79,7 +80,7 @@ class EvidenceReviewerAgentTest {
                         {"verdict":"PASS","instructionSatisfied":true,"evidenceGrounded":true,"unsupportedClaims":[],"missingRequirements":[],"feedback":"ok","reasoning":"complete"}
                         """))
                 .build());
-        EvidenceReviewerAgent definition = new EvidenceReviewerAgent(chatModel);
+        EvidenceReviewerAgent definition = new EvidenceReviewerAgent(chatModel, new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision decision = definition.decide(context(List.of(searchContentTool(), analyzeDocumentTool())));
 
@@ -98,7 +99,7 @@ class EvidenceReviewerAgentTest {
                         ```
                         """))
                 .build());
-        EvidenceReviewerAgent definition = new EvidenceReviewerAgent(chatModel);
+        EvidenceReviewerAgent definition = new EvidenceReviewerAgent(chatModel, new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision decision = definition.decide(context(List.of(searchContentTool(), analyzeDocumentTool())));
 
@@ -183,6 +184,10 @@ class EvidenceReviewerAgentTest {
     private static final class StubEvidenceReviewerContextFactory extends EvidenceReviewerAgentContextFactory {
 
         private int buildInvocationCount;
+
+        private StubEvidenceReviewerContextFactory() {
+            super(NoOpMemoryCompressors.noop());
+        }
 
         @Override
         public com.agent.editor.agent.v2.core.context.ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {

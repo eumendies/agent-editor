@@ -6,6 +6,7 @@ import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
+import com.agent.editor.agent.v2.memory.ObservedTokenUsageRecorder;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import com.agent.editor.agent.v2.util.StructuredOutputParsers;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,10 +32,6 @@ public class ResearcherAgent implements ToolLoopAgent {
 
     private final ChatModel chatModel;
     private final ResearcherAgentContextFactory contextFactory;
-
-    public ResearcherAgent(ChatModel chatModel) {
-        this(chatModel, new ResearcherAgentContextFactory());
-    }
 
     public ResearcherAgent(ChatModel chatModel,
                            ResearcherAgentContextFactory contextFactory) {
@@ -65,6 +62,7 @@ public class ResearcherAgent implements ToolLoopAgent {
                 .messages(invocationContext.getMessages())
                 .toolSpecifications(invocationContext.getToolSpecifications())
                 .build());
+        ObservedTokenUsageRecorder.record(context, response);
 
         AiMessage aiMessage = response.aiMessage();
         if (aiMessage.hasToolExecutionRequests()) {

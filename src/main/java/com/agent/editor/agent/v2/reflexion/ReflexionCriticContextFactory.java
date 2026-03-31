@@ -5,6 +5,7 @@ import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.memory.ExecutionMemory;
+import com.agent.editor.agent.v2.core.memory.MemoryCompressor;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
@@ -37,18 +38,21 @@ public class ReflexionCriticContextFactory implements AgentContextFactory {
             .build();
 
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
+    private final MemoryCompressor memoryCompressor;
 
-    public ReflexionCriticContextFactory() {
-        this(new ExecutionMemoryChatMessageMapper());
+    public ReflexionCriticContextFactory(MemoryCompressor memoryCompressor) {
+        this(new ExecutionMemoryChatMessageMapper(), memoryCompressor);
     }
 
-    ReflexionCriticContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper) {
+    public ReflexionCriticContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
+                                         MemoryCompressor memoryCompressor) {
         this.memoryChatMessageMapper = memoryChatMessageMapper;
+        this.memoryCompressor = memoryCompressor;
     }
 
     @Override
     public AgentRunContext prepareInitialContext(TaskRequest request) {
-        return new AgentRunContext(
+        return compressContextMemory(new AgentRunContext(
                 null,
                 0,
                 request.getDocument().getContent(),
@@ -56,11 +60,11 @@ public class ReflexionCriticContextFactory implements AgentContextFactory {
                 ExecutionStage.RUNNING,
                 null,
                 List.of()
-        );
+        ));
     }
 
     public AgentRunContext prepareReviewContext(TaskRequest request, AgentRunContext actorState, String actorSummary) {
-        return new AgentRunContext(
+        return compressContextMemory(new AgentRunContext(
                 actorState.getRequest(),
                 0,
                 actorState.getCurrentContent(),
@@ -76,7 +80,7 @@ public class ReflexionCriticContextFactory implements AgentContextFactory {
                 ExecutionStage.RUNNING,
                 actorState.getPendingReason(),
                 actorState.getToolSpecifications()
-        );
+        ));
     }
 
     @Override
@@ -117,7 +121,11 @@ public class ReflexionCriticContextFactory implements AgentContextFactory {
         }
         ArrayList<ChatMessage> messages = new ArrayList<>(transcriptMemory.getMessages());
         messages.add(new ChatMessage.UserChatMessage(instruction));
-        return new ChatTranscriptMemory(messages);
+        return new ChatTranscriptMemory(messages, transcriptMemory.getLastObservedTotalTokens());
+    }
+
+    private AgentRunContext compressContextMemory(AgentRunContext context) {
+        return context.withMemory(memoryCompressor.compressOrOriginal(context.getMemory()));
     }
 
     private String analysisSystemPrompt() {

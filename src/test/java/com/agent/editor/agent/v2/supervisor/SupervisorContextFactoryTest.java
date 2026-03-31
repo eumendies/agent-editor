@@ -7,6 +7,7 @@ import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
 import com.agent.editor.agent.v2.core.context.SupervisorContext;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
+import com.agent.editor.agent.v2.core.memory.MemoryCompressionResult;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
@@ -14,6 +15,7 @@ import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
+import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -32,7 +34,7 @@ class SupervisorContextFactoryTest {
 
     @Test
     void shouldPrepareInitialSupervisorConversationStateFromTaskRequest() {
-        SupervisorContextFactory factory = new SupervisorContextFactory();
+        SupervisorContextFactory factory = new SupervisorContextFactory(NoOpMemoryCompressors.noop());
 
         AgentRunContext context = factory.prepareInitialContext(new TaskRequest(
                 "task-1",
@@ -52,7 +54,7 @@ class SupervisorContextFactoryTest {
 
     @Test
     void shouldBuildSupervisorContextWithSnapshotCopies() {
-        SupervisorContextFactory factory = new SupervisorContextFactory();
+        SupervisorContextFactory factory = new SupervisorContextFactory(NoOpMemoryCompressors.noop());
         AgentRunContext conversationState = new AgentRunContext(
                 null,
                 1,
@@ -85,7 +87,7 @@ class SupervisorContextFactoryTest {
 
     @Test
     void shouldBuildWorkerExecutionContextWithoutToolTranscriptLeakage() {
-        SupervisorContextFactory factory = new SupervisorContextFactory();
+        SupervisorContextFactory factory = new SupervisorContextFactory(NoOpMemoryCompressors.noop());
         AgentRunContext conversationState = new AgentRunContext(
                 null,
                 1,
@@ -109,7 +111,11 @@ class SupervisorContextFactoryTest {
 
     @Test
     void shouldSummarizeWorkerResultBackIntoConversationState() {
-        SupervisorContextFactory factory = new SupervisorContextFactory();
+        SupervisorContextFactory factory = new SupervisorContextFactory(request -> new MemoryCompressionResult(
+                new ChatTranscriptMemory(List.of(new ChatMessage.AiChatMessage("compressed supervisor result"))),
+                true,
+                "compressed"
+        ));
         AgentRunContext conversationState = new AgentRunContext(
                 null,
                 1,
@@ -128,14 +134,13 @@ class SupervisorContextFactoryTest {
 
         assertEquals("draft updated", nextState.getCurrentContent());
         ChatTranscriptMemory memory = (ChatTranscriptMemory) nextState.getMemory();
-        ChatMessage.UserChatMessage summary = assertInstanceOf(ChatMessage.UserChatMessage.class, memory.getMessages().get(0));
-        assertTrue(summary.getText().contains("workerId: " + SupervisorWorkerIds.WRITER));
-        assertTrue(summary.getText().contains("summary: summary"));
+        assertEquals(1, memory.getMessages().size());
+        assertEquals("compressed supervisor result", memory.getMessages().get(0).getText());
     }
 
     @Test
     void shouldBuildRoutingInvocationContextWithCandidateAndWorkerSummaries() {
-        SupervisorContextFactory factory = new SupervisorContextFactory();
+        SupervisorContextFactory factory = new SupervisorContextFactory(NoOpMemoryCompressors.noop());
         SupervisorContext context = factory.buildSupervisorContext(
                 taskRequest(),
                 factory.prepareInitialContext(taskRequest()),
@@ -165,6 +170,38 @@ class SupervisorContextFactoryTest {
         assertEquals("supervisor_routing", invocationContext.getResponseFormat().jsonSchema().name());
         assertTrue(systemMessage.text().contains("If the latest worker result is from writer, the default next step is reviewer."));
         assertTrue(systemMessage.text().contains("Only choose complete when the latest content has already been reviewed"));
+    }
+
+    @Test
+    void shouldCompressWorkerExecutionContextBeforeRemovingToolDetails() {
+        SupervisorContextFactory factory = new SupervisorContextFactory(
+                request -> new MemoryCompressionResult(
+                        new ChatTranscriptMemory(List.of(
+                                new ChatMessage.AiChatMessage("compressed summary"),
+                                new ChatMessage.ToolExecutionResultChatMessage("call-1", "retrieveKnowledge", "{}", "raw tool transcript")
+                        )),
+                        true,
+                        "compressed"
+                )
+        );
+        AgentRunContext conversationState = new AgentRunContext(
+                null,
+                1,
+                "draft",
+                new ChatTranscriptMemory(List.of(
+                        new ChatMessage.UserChatMessage("Previous worker result"),
+                        new ChatMessage.ToolExecutionResultChatMessage("call-0", "retrieveKnowledge", "{}", "raw")
+                )),
+                ExecutionStage.RUNNING,
+                null,
+                List.of()
+        );
+
+        AgentRunContext workerContext = factory.buildWorkerExecutionContext(conversationState, "draft");
+
+        ChatTranscriptMemory memory = (ChatTranscriptMemory) workerContext.getMemory();
+        assertEquals(1, memory.getMessages().size());
+        assertEquals("compressed summary", memory.getMessages().get(0).getText());
     }
 
     private static TaskRequest taskRequest() {

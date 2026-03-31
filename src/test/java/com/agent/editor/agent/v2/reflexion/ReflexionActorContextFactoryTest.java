@@ -19,7 +19,11 @@ class ReflexionActorContextFactoryTest {
 
     @Test
     void shouldPrepareRevisionContextByAppendingStructuredCritiqueMessage() {
-        ReflexionActorContextFactory factory = new ReflexionActorContextFactory();
+        ReflexionActorContextFactory factory = new ReflexionActorContextFactory(request -> new com.agent.editor.agent.v2.core.memory.MemoryCompressionResult(
+                new ChatTranscriptMemory(List.of(new ChatMessage.AiChatMessage("compressed revision context"))),
+                true,
+                "compressed"
+        ));
         AgentRunContext actorState = new AgentRunContext(
                 null,
                 1,
@@ -52,11 +56,7 @@ class ReflexionActorContextFactoryTest {
 
         assertEquals(ExecutionStage.RUNNING, nextRoundContext.getStage());
         ChatTranscriptMemory memory = assertInstanceOf(ChatTranscriptMemory.class, nextRoundContext.getMemory());
-        assertTrue(memory.getMessages().stream().anyMatch(message ->
-                message instanceof ChatMessage.UserChatMessage userMessage
-                        && userMessage.getText().contains("\"round\":2")
-                        && userMessage.getText().contains("\"verdict\":\"REVISE\"")
-                        && userMessage.getText().contains("\"feedback\":\"Tighten the introduction\"")
-        ));
+        assertEquals(1, memory.getMessages().size());
+        assertEquals("compressed revision context", memory.getMessages().get(0).getText());
     }
 }

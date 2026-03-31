@@ -3,6 +3,7 @@ package com.agent.editor.agent.v2.supervisor.worker;
 import com.agent.editor.agent.v2.core.agent.*;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
+import com.agent.editor.agent.v2.memory.ObservedTokenUsageRecorder;
 import com.agent.editor.agent.v2.util.StructuredOutputParsers;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
@@ -18,10 +19,6 @@ public class EvidenceReviewerAgent implements ToolLoopAgent {
 
     private final ChatModel chatModel;
     private final EvidenceReviewerAgentContextFactory contextFactory;
-
-    public EvidenceReviewerAgent(ChatModel chatModel) {
-        this(chatModel, new EvidenceReviewerAgentContextFactory());
-    }
 
     public EvidenceReviewerAgent(ChatModel chatModel,
                                  EvidenceReviewerAgentContextFactory contextFactory) {
@@ -45,6 +42,7 @@ public class EvidenceReviewerAgent implements ToolLoopAgent {
                 .messages(invocationContext.getMessages())
                 .toolSpecifications(invocationContext.getToolSpecifications())
                 .build());
+        ObservedTokenUsageRecorder.record(context, response);
 
         AiMessage aiMessage = response.aiMessage();
         if (aiMessage.hasToolExecutionRequests()) {

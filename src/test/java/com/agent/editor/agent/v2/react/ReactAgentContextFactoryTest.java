@@ -3,10 +3,12 @@ package com.agent.editor.agent.v2.react;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
+import com.agent.editor.agent.v2.core.memory.MemoryCompressionResult;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
+import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.SystemMessage;
@@ -15,6 +17,7 @@ import dev.langchain4j.data.message.UserMessage;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -24,7 +27,15 @@ class ReactAgentContextFactoryTest {
 
     @Test
     void shouldPrepareInitialContextByAppendingCurrentInstructionOnce() {
-        ReactAgentContextFactory factory = new ReactAgentContextFactory();
+        ReactAgentContextFactory factory = new ReactAgentContextFactory(request -> new MemoryCompressionResult(
+                new ChatTranscriptMemory(List.of(new ChatMessage.AiChatMessage("compressed initial context"))),
+                true,
+                "compressed"
+        ));
+        ChatTranscriptMemory sessionMemory = new ChatTranscriptMemory(List.of(
+                new ChatMessage.UserChatMessage("previous turn")
+        ));
+        sessionMemory.setLastObservedTotalTokens(321);
 
         AgentRunContext context = factory.prepareInitialContext(new TaskRequest(
                 "task-1",
@@ -33,22 +44,19 @@ class ReactAgentContextFactoryTest {
                 new DocumentSnapshot("doc-1", "Title", "body"),
                 "rewrite this",
                 3,
-                new ChatTranscriptMemory(List.of(
-                        new ChatMessage.UserChatMessage("previous turn")
-                ))
+                sessionMemory
         ));
 
         ChatTranscriptMemory memory = assertInstanceOf(ChatTranscriptMemory.class, context.getMemory());
-        assertEquals(2, memory.getMessages().size());
-        assertEquals("previous turn", memory.getMessages().get(0).getText());
-        assertEquals("rewrite this", memory.getMessages().get(1).getText());
+        assertEquals(1, memory.getMessages().size());
+        assertEquals("compressed initial context", memory.getMessages().get(0).getText());
         assertEquals("body", context.getCurrentContent());
         assertEquals(ExecutionStage.RUNNING, context.getStage());
     }
 
     @Test
     void shouldBuildModelInvocationContextFromTranscriptAndVisibleTools() {
-        ReactAgentContextFactory factory = new ReactAgentContextFactory();
+        ReactAgentContextFactory factory = new ReactAgentContextFactory(NoOpMemoryCompressors.noop());
         ToolSpecification toolSpecification = ToolSpecification.builder()
                 .name("editDocument")
                 .description("edit document")
@@ -95,5 +103,53 @@ class ReactAgentContextFactoryTest {
         assertEquals("tool-1", toolMessage.id());
         UserMessage currentTurn = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(3));
         assertEquals("rewrite this", currentTurn.singleText());
+    }
+
+    @Test
+    void shouldBuildModelInvocationContextWithoutCompressingAgain() {
+        AtomicInteger compressionCalls = new AtomicInteger();
+        ReactAgentContextFactory factory = new ReactAgentContextFactory(
+                new com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper(),
+                request -> {
+                    compressionCalls.incrementAndGet();
+                    return new MemoryCompressionResult(
+                            new ChatTranscriptMemory(List.of(new ChatMessage.AiChatMessage("compressed summary"))),
+                            true,
+                            "compressed"
+                    );
+                }
+        );
+
+        var invocationContext = factory.buildModelInvocationContext(new AgentRunContext(
+                new ExecutionRequest(
+                        "task-3",
+                        "session-3",
+                        AgentType.REACT,
+                        new DocumentSnapshot("doc-1", "Title", "body"),
+                        "rewrite this",
+                        3
+                ),
+                1,
+                "body",
+                new ChatTranscriptMemory(List.of(
+                        new ChatMessage.AiChatMessage("already compressed summary"),
+                        new ChatMessage.UserChatMessage("rewrite this")
+                )),
+                ExecutionStage.RUNNING,
+                null,
+                List.of()
+        ));
+
+        assertEquals(3, invocationContext.getMessages().size());
+        SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
+        assertTrue(systemMessage.text().contains("ReAct-style document editing agent"));
+        dev.langchain4j.data.message.AiMessage summaryMessage = assertInstanceOf(
+                dev.langchain4j.data.message.AiMessage.class,
+                invocationContext.getMessages().get(1)
+        );
+        assertEquals("already compressed summary", summaryMessage.text());
+        UserMessage currentTurn = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));
+        assertEquals("rewrite this", currentTurn.singleText());
+        assertEquals(0, compressionCalls.get());
     }
 }
