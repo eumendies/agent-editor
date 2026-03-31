@@ -1,5 +1,6 @@
 package com.agent.editor.agent.v2.supervisor.worker;
 
+import com.agent.editor.model.RetrievedKnowledgeChunk;
 import com.agent.editor.agent.v2.core.agent.*;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
@@ -7,12 +8,15 @@ import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.util.StructuredOutputParsers;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -71,7 +75,7 @@ public class ResearcherAgent implements ToolLoopAgent {
             );
         }
 
-        EvidencePackage evidencePackage = parseEvidencePackage(aiMessage.text());
+        EvidencePackage evidencePackage = assembleEvidencePackage(context, aiMessage.text());
         if (evidencePackage != null) {
             return new ToolLoopDecision.Complete<>(evidencePackage, aiMessage.text());
         }
@@ -82,8 +86,20 @@ public class ResearcherAgent implements ToolLoopAgent {
         return new ToolCall(request.id(), request.name(), request.arguments());
     }
 
-    private EvidencePackage parseEvidencePackage(String text) {
-        return StructuredOutputParsers.parseJsonWithMarkdownCleanup(text, EvidencePackage.class);
+    private EvidencePackage assembleEvidencePackage(AgentRunContext context, String text) {
+        ResearcherSummary summary = StructuredOutputParsers.parseJsonWithMarkdownCleanup(text, ResearcherSummary.class);
+        if (summary == null) {
+            return null;
+        }
+        LastRetrieveKnowledgeSnapshot snapshot = lastRetrieveKnowledgeSnapshot(context);
+        // queries/chunks 以最后一次真实检索结果为准，避免模型伪造证据明细或回忆错查询轨迹。
+        return new EvidencePackage(
+                snapshot.queries(),
+                summary.getEvidenceSummary(),
+                summary.getLimitations(),
+                defaultList(summary.getUncoveredPoints()),
+                snapshot.chunks()
+        );
     }
 
     private boolean shouldRunInitialInstructionRetrieval(AgentRunContext context) {
@@ -112,5 +128,64 @@ public class ResearcherAgent implements ToolLoopAgent {
             return "";
         }
         return context.getRequest().getInstruction();
+    }
+
+    private LastRetrieveKnowledgeSnapshot lastRetrieveKnowledgeSnapshot(AgentRunContext context) {
+        if (!(context.state().getMemory() instanceof ChatTranscriptMemory transcriptMemory)) {
+            return LastRetrieveKnowledgeSnapshot.empty();
+        }
+        List<ChatMessage> messages = transcriptMemory.getMessages();
+        for (int index = messages.size() - 1; index >= 0; index--) {
+            ChatMessage message = messages.get(index);
+            if (message instanceof ChatMessage.ToolExecutionResultChatMessage toolResultMessage
+                    && "retrieveKnowledge".equals(toolResultMessage.getName())) {
+                return new LastRetrieveKnowledgeSnapshot(
+                        extractQueries(toolResultMessage.getArgument()),
+                        extractChunks(toolResultMessage.getText())
+                );
+            }
+        }
+        return LastRetrieveKnowledgeSnapshot.empty();
+    }
+
+    private List<String> extractQueries(String arguments) {
+        if (arguments == null || arguments.isBlank()) {
+            return List.of();
+        }
+        try {
+            String query = OBJECT_MAPPER.readTree(arguments).path("query").asText("");
+            if (query.isBlank()) {
+                return List.of();
+            }
+            return List.of(query);
+        } catch (Exception exception) {
+            return List.of();
+        }
+    }
+
+    private List<RetrievedKnowledgeChunk> extractChunks(String text) {
+        if (text == null || text.isBlank()) {
+            return List.of();
+        }
+        try {
+            return OBJECT_MAPPER.readValue(text, new TypeReference<List<RetrievedKnowledgeChunk>>() {
+            });
+        } catch (Exception exception) {
+            return List.of();
+        }
+    }
+
+    private <T> List<T> defaultList(List<T> values) {
+        if (values == null) {
+            return List.of();
+        }
+        return Collections.unmodifiableList(new ArrayList<>(values));
+    }
+
+    private record LastRetrieveKnowledgeSnapshot(List<String> queries, List<RetrievedKnowledgeChunk> chunks) {
+
+        private static LastRetrieveKnowledgeSnapshot empty() {
+            return new LastRetrieveKnowledgeSnapshot(List.of(), List.of());
+        }
     }
 }

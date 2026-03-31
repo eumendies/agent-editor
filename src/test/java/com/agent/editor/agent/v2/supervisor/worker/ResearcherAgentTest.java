@@ -77,7 +77,8 @@ class ResearcherAgentTest {
         assertEquals(List.of("retrieveKnowledge"), assertThatToolNames(chatModel.lastRequest));
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
         assertTrue(systemMessage.text().contains("Use retrieveKnowledge"));
-        assertTrue(systemMessage.text().contains("return strict JSON"));
+        assertTrue(systemMessage.text().contains("multiple retrieveKnowledge tool calls"));
+        assertTrue(systemMessage.text().contains("ResearcherSummary"));
     }
 
     @Test
@@ -146,10 +147,10 @@ class ResearcherAgentTest {
     }
 
     @Test
-    void shouldParseStructuredEvidencePackageWhenCompleting() {
+    void shouldAssembleEvidencePackageFromLastRetrieveKnowledgeResult() {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("""
-                        {"queries":["agentic rag"],"evidenceSummary":"supports supervisor", "limitations":"no metrics", "uncoveredPoints":[], "chunks":[]}
+                        {"evidenceSummary":"supports supervisor", "limitations":"no metrics", "uncoveredPoints":["benchmark data"]}
                         """))
                 .build());
         ResearcherAgent definition = new ResearcherAgent(chatModel);
@@ -159,15 +160,21 @@ class ResearcherAgentTest {
                 new ChatMessage.ToolExecutionResultChatMessage(
                         "tool-1",
                         "retrieveKnowledge",
-                        "{\"query\":\"ground this answer\"}",
-                        "[{\"chunkText\":\"supports supervisor\"}]"
+                        "{\"query\":\"rewritten query\"}",
+                        """
+                        [{"documentId":"doc-1","fileName":"resume.md","chunkIndex":1,"heading":"项目经历","chunkText":"supports supervisor","score":0.91}]
+                        """
                 ),
                 new ChatMessage.UserChatMessage("ground this answer")
         ))));
 
         ToolLoopDecision.Complete<?> complete = assertInstanceOf(ToolLoopDecision.Complete.class, decision);
         EvidencePackage evidencePackage = assertInstanceOf(EvidencePackage.class, complete.getResult());
+        assertEquals(List.of("rewritten query"), evidencePackage.getQueries());
         assertEquals("supports supervisor", evidencePackage.getEvidenceSummary());
+        assertEquals(List.of("benchmark data"), evidencePackage.getUncoveredPoints());
+        assertEquals(1, evidencePackage.getChunks().size());
+        assertEquals("doc-1", evidencePackage.getChunks().get(0).getDocumentId());
     }
 
     @Test

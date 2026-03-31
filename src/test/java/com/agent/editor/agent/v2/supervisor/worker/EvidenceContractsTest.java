@@ -13,6 +13,21 @@ class EvidenceContractsTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
+    void shouldDeserializeResearcherSummary() throws Exception {
+        ResearcherSummary summary = objectMapper.readValue("""
+                {
+                  "evidenceSummary":"supports supervisor and reflexion",
+                  "limitations":"no metrics",
+                  "uncoveredPoints":["online performance"]
+                }
+                """, ResearcherSummary.class);
+
+        assertEquals("supports supervisor and reflexion", summary.getEvidenceSummary());
+        assertEquals("no metrics", summary.getLimitations());
+        assertEquals(List.of("online performance"), summary.getUncoveredPoints());
+    }
+
+    @Test
     void shouldDeserializeEvidencePackage() throws Exception {
         EvidencePackage evidence = objectMapper.readValue("""
                 {
