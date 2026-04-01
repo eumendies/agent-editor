@@ -1,5 +1,7 @@
 package com.agent.editor.websocket;
 
+import com.agent.editor.agent.v2.event.ExecutionEvent;
+import com.agent.editor.dto.AgentEventStreamMessage;
 import com.agent.editor.dto.WebSocketMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -21,6 +23,8 @@ public class WebSocketService {
     
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
     private final Map<String, String> sessionTasks = new ConcurrentHashMap<>();
+    private final Map<String, WebSocketSession> v2Sessions = new ConcurrentHashMap<>();
+    private final Map<String, String> v2SessionTasks = new ConcurrentHashMap<>();
     
     @Autowired
     private ObjectMapper objectMapper;
@@ -40,28 +44,44 @@ public class WebSocketService {
         sessionTasks.put(sessionId, taskId);
     }
 
+    public void registerV2Session(WebSocketSession session) {
+        v2Sessions.put(session.getId(), session);
+        logger.info("Agent v2 WebSocket session registered: {}", session.getId());
+    }
+
+    public void unregisterV2Session(WebSocketSession session) {
+        String taskId = v2SessionTasks.remove(session.getId());
+        v2Sessions.remove(session.getId());
+        logger.info("Agent v2 WebSocket session unregistered: {}, task: {}", session.getId(), taskId);
+    }
+
+    public void bindV2TaskToSession(String sessionId, String taskId) {
+        v2SessionTasks.put(sessionId, taskId);
+    }
+
     public void sendToSession(String sessionId, WebSocketMessage message) {
         WebSocketSession session = sessions.get(sessionId);
-        
-        if (session != null && session.isOpen()) {
-            try {
-                String json = objectMapper.writeValueAsString(message);
-                synchronized (session) {
-                    session.sendMessage(new TextMessage(json));
-                }
-                logger.debug("Message sent to session {}: {}", sessionId, message.getType());
-            } catch (IOException e) {
-                logger.error("Error sending message to session {}", sessionId, e);
-            }
-        } else {
-            logger.warn("Session not found or closed: {}", sessionId);
-        }
+        sendPayload(sessionId, session, message);
     }
 
     public void sendToTask(String taskId, WebSocketMessage message) {
         sessionTasks.forEach((sessionId, boundTaskId) -> {
             if (taskId.equals(boundTaskId)) {
                 sendToSession(sessionId, message);
+            }
+        });
+    }
+
+    public void sendToV2Session(String sessionId, AgentEventStreamMessage message) {
+        WebSocketSession session = v2Sessions.get(sessionId);
+        sendPayload(sessionId, session, message);
+    }
+
+    public void sendEventToV2Task(String taskId, ExecutionEvent event) {
+        AgentEventStreamMessage message = AgentEventStreamMessage.event(event);
+        v2SessionTasks.forEach((sessionId, boundTaskId) -> {
+            if (taskId.equals(boundTaskId)) {
+                sendToV2Session(sessionId, message);
             }
         });
     }
@@ -101,5 +121,21 @@ public class WebSocketService {
         return (int) sessions.values().stream()
                 .filter(WebSocketSession::isOpen)
                 .count();
+    }
+
+    private void sendPayload(String sessionId, WebSocketSession session, Object payload) {
+        if (session != null && session.isOpen()) {
+            try {
+                String json = objectMapper.writeValueAsString(payload);
+                synchronized (session) {
+                    session.sendMessage(new TextMessage(json));
+                }
+                logger.debug("Message sent to session {}: {}", sessionId, payload.getClass().getSimpleName());
+            } catch (IOException e) {
+                logger.error("Error sending message to session {}", sessionId, e);
+            }
+        } else {
+            logger.warn("Session not found or closed: {}", sessionId);
+        }
     }
 }

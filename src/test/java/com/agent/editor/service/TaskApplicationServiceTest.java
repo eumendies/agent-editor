@@ -127,6 +127,35 @@ class TaskApplicationServiceTest {
     }
 
     @Test
+    void shouldBindV2WebSocketSessionToTaskBeforeExecutionWhenSessionIdProvided() {
+        DocumentService documentService = new DocumentService();
+        TaskQueryService queryService = new TaskQueryService();
+        DiffService diffService = new DiffService();
+        TaskOrchestrator orchestrator = mock(TaskOrchestrator.class);
+        when(orchestrator.execute(any(TaskRequest.class))).thenReturn(new TaskResult(TaskStatus.COMPLETED, "rewritten content"));
+        WebSocketService webSocketService = mock(WebSocketService.class);
+        TaskApplicationService service = new TaskApplicationService(
+                documentService,
+                queryService,
+                diffService,
+                orchestrator,
+                webSocketService
+        );
+
+        AgentTaskRequest request = new AgentTaskRequest();
+        request.setDocumentId("doc-001");
+        request.setInstruction("rewrite");
+        request.setMode(AgentMode.REACT);
+        request.setSessionId("ws-session-v2");
+
+        AgentTaskResponse response = service.executeV2(request);
+
+        var order = inOrder(webSocketService, orchestrator);
+        order.verify(webSocketService).bindV2TaskToSession("ws-session-v2", response.getTaskId());
+        order.verify(orchestrator).execute(any(TaskRequest.class));
+    }
+
+    @Test
     void shouldNotBindWebSocketWhenSessionIdMissing() {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();

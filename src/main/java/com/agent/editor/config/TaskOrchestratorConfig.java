@@ -9,7 +9,6 @@ import com.agent.editor.agent.v2.core.runtime.PlanningExecutionRuntime;
 import com.agent.editor.agent.v2.core.runtime.SupervisorExecutionRuntime;
 import com.agent.editor.agent.v2.core.runtime.ToolLoopExecutionRuntime;
 import com.agent.editor.agent.v2.event.EventPublisher;
-import com.agent.editor.agent.v2.event.LegacyEventAdapter;
 import com.agent.editor.agent.v2.event.WebSocketEventPublisher;
 import com.agent.editor.agent.v2.memory.InMemorySessionMemoryStore;
 import com.agent.editor.agent.v2.memory.ModelBasedMemoryCompressor;
@@ -44,15 +43,9 @@ import java.util.Map;
 public class TaskOrchestratorConfig {
 
     @Bean
-    public LegacyEventAdapter legacyEventAdapter() {
-        return new LegacyEventAdapter();
-    }
-
-    @Bean
     public EventPublisher eventPublisher(TaskQueryService taskQueryService,
-                                         WebSocketService webSocketService,
-                                         LegacyEventAdapter legacyEventAdapter) {
-        return new WebSocketEventPublisher(taskQueryService, webSocketService, legacyEventAdapter);
+                                         WebSocketService webSocketService) {
+        return new WebSocketEventPublisher(taskQueryService, webSocketService);
     }
 
     @Bean

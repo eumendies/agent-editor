@@ -5,6 +5,7 @@ import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.event.ExecutionEvent;
 import com.agent.editor.agent.v2.core.state.TaskState;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.dto.AgentTaskRequest;
@@ -41,6 +42,14 @@ public class TaskApplicationService {
     }
 
     public AgentTaskResponse execute(AgentTaskRequest request) {
+        return executeInternal(request, false);
+    }
+
+    public AgentTaskResponse executeV2(AgentTaskRequest request) {
+        return executeInternal(request, true);
+    }
+
+    private AgentTaskResponse executeInternal(AgentTaskRequest request, boolean nativeV2Stream) {
         Document document = documentService.getDocument(request.getDocumentId());
         if (document == null) {
             throw new IllegalArgumentException("Document not found: " + request.getDocumentId());
@@ -55,7 +64,11 @@ public class TaskApplicationService {
         String originalContent = document.getContent();
         if (hasText(request.getSessionId())) {
             // execute 是同步链路，必须在任务启动前完成绑定，否则实时事件会在 HTTP 返回前丢掉。
-            webSocketService.bindTaskToSession(request.getSessionId(), taskId);
+            if (nativeV2Stream) {
+                webSocketService.bindV2TaskToSession(request.getSessionId(), taskId);
+            } else {
+                webSocketService.bindTaskToSession(request.getSessionId(), taskId);
+            }
         }
 
         TaskResult result = taskOrchestrator.execute(new TaskRequest(
@@ -92,6 +105,10 @@ public class TaskApplicationService {
 
     public List<AgentStep> getTaskSteps(String taskId) {
         return taskQueryService.getTaskSteps(taskId);
+    }
+
+    public List<ExecutionEvent> getTaskEvents(String taskId) {
+        return taskQueryService.getEvents(taskId);
     }
 
     private AgentType mapAgentType(AgentMode mode) {

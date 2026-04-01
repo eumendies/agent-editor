@@ -68,6 +68,7 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(EvidenceReviewerAgentContextFactory.class);
             assertThat(context).hasSingleBean(MemoryCompressionProperties.class);
             assertThat(context.containsBean("agentV2Config")).isFalse();
+            assertThat(context.containsBean("legacyEventAdapter")).isFalse();
         });
     }
 

@@ -1137,7 +1137,7 @@
 
     function initWebSocket() {
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const wsUrl = `${protocol}//${window.location.host}/ws/agent`;
+        const wsUrl = `${protocol}//${window.location.host}/ws/agent/v2`;
 
         ws = new WebSocket(wsUrl);
 
@@ -1162,32 +1162,64 @@
     }
 
     function handleWebSocketMessage(message) {
-        switch (message.type) {
-            case "STEP":
-                addStepToUI(message.stepType || "OBSERVATION", message.content || "No content");
-                break;
-            case "COMPLETED":
-                addStepToUI("COMPLETED", message.content || "Task completed");
-                setRunningState(false);
-                showProgress(100);
-                refreshDocument();
-                break;
-            case "ERROR":
-                addStepToUI("ERROR", message.content || "Task failed");
-                setRunningState(false);
-                showProgress(100);
-                break;
-            case "PROGRESS":
-                const match = (message.content || "").match(/\d+/);
-                showProgress(match ? parseInt(match[0], 10) : 60);
-                break;
+        if (message.type === "EVENT" && message.event) {
+            handleExecutionEvent(message.event);
         }
     }
 
-    function describeStep(stepType, content) {
-        const normalized = (stepType || "OBSERVATION").toUpperCase();
+    function normalizeEventVisualType(eventType) {
+        const normalized = (eventType || "DECISION_MADE").toUpperCase();
 
-        if (currentMode === "SUPERVISOR" && normalized === "ACTION") {
+        switch (normalized) {
+            case "TOOL_CALLED":
+            case "WORKER_SELECTED":
+                return "ACTION";
+            case "TOOL_SUCCEEDED":
+            case "WORKER_COMPLETED":
+                return "OBSERVATION";
+            case "TASK_COMPLETED":
+            case "SUPERVISOR_COMPLETED":
+                return "COMPLETED";
+            case "TASK_FAILED":
+            case "TOOL_FAILED":
+                return "ERROR";
+            default:
+                return "THINKING";
+        }
+    }
+
+    function handleExecutionEvent(executionEvent) {
+        addExecutionEventToUI(executionEvent);
+
+        const normalized = (executionEvent.type || "").toUpperCase();
+        if (normalized === "TASK_COMPLETED" || normalized === "SUPERVISOR_COMPLETED") {
+            setRunningState(false);
+            showProgress(100);
+            refreshDocument();
+            return;
+        }
+
+        if (normalized === "TASK_FAILED" || normalized === "TOOL_FAILED") {
+            setRunningState(false);
+            showProgress(100);
+            return;
+        }
+
+        if (normalized === "TASK_STARTED") {
+            showProgress(24);
+            return;
+        }
+
+        if (normalized === "PLAN_CREATED" || normalized === "WORKER_SELECTED" || normalized === "TOOL_CALLED") {
+            showProgress(60);
+        }
+    }
+
+    function describeExecutionEvent(eventType, content) {
+        const visualType = normalizeEventVisualType(eventType);
+        const normalized = (eventType || visualType).toUpperCase();
+
+        if (currentMode === "SUPERVISOR" && visualType === "ACTION") {
             return {
                 title: normalized,
                 context: "Worker Dispatch",
@@ -1195,7 +1227,7 @@
             };
         }
 
-        if (currentMode === "SUPERVISOR" && normalized === "OBSERVATION") {
+        if (currentMode === "SUPERVISOR" && visualType === "OBSERVATION") {
             return {
                 title: normalized,
                 context: "Worker Completion",
@@ -1203,7 +1235,7 @@
             };
         }
 
-        if (currentMode === "PLANNING" && normalized === "THINKING") {
+        if (currentMode === "PLANNING" && visualType === "THINKING") {
             return {
                 title: normalized,
                 context: "Plan / Reasoning",
@@ -1213,12 +1245,12 @@
 
         return {
             title: normalized,
-            context: normalized === "ACTION" ? "Tool / Dispatch" : normalized === "OBSERVATION" ? "Observation" : "Runtime Event",
+            context: visualType === "ACTION" ? "Tool / Dispatch" : visualType === "OBSERVATION" ? "Observation" : "Runtime Event",
             content: content
         };
     }
 
-    function addStepToUI(stepType, content) {
+    function addExecutionEventToUI(executionEvent) {
         const container = document.getElementById("stepsContainer");
         const emptyState = container.querySelector(".empty-state");
         if (emptyState) {
@@ -1226,9 +1258,10 @@
         }
 
         const stepNumber = container.children.length + 1;
-        const step = describeStep(stepType, content);
+        const visualType = normalizeEventVisualType(executionEvent.type);
+        const step = describeExecutionEvent(executionEvent.type, executionEvent.message || "No content");
         const stepDiv = document.createElement("div");
-        stepDiv.className = `step-item ${(stepType || "observation").toLowerCase()}`;
+        stepDiv.className = `step-item ${visualType.toLowerCase()}`;
         stepDiv.innerHTML = `
             <div class="step-topline">
                 <span class="step-number">Event ${stepNumber}</span>
@@ -1241,6 +1274,33 @@
         container.appendChild(stepDiv);
         container.scrollTop = container.scrollHeight;
         document.getElementById("stepCount").textContent = `${stepNumber} steps`;
+    }
+
+    function renderTaskEvents(events) {
+        const container = document.getElementById("stepsContainer");
+        container.innerHTML = "";
+        document.getElementById("stepCount").textContent = "0 steps";
+
+        if (!events.length) {
+            container.innerHTML = `<div class="empty-state">当前没有事件记录。</div>`;
+            return;
+        }
+
+        events.forEach(addExecutionEventToUI);
+    }
+
+    async function loadTaskEvents(taskId) {
+        if (!taskId) {
+            return;
+        }
+
+        const response = await fetch(`/api/v2/agent/task/${taskId}/events`);
+        if (!response.ok) {
+            throw new Error("Event request failed");
+        }
+
+        const events = await response.json();
+        renderTaskEvents(events);
     }
 
     async function runMode(mode) {
@@ -1259,7 +1319,7 @@
         clearTimeline(false);
 
         try {
-            const response = await fetch("/api/v1/agent/execute", {
+            const response = await fetch("/api/v2/agent/execute", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -1283,13 +1343,17 @@
                 document.getElementById("resultContent").value = result.finalResult;
             }
 
+            await loadTaskEvents(result.taskId);
             await refreshDocument();
             await loadDiffHistory(documentId);
             await loadTrace(result.taskId);
             setRunningState(false);
             showProgress(100);
         } catch (error) {
-            addStepToUI("ERROR", error.message);
+            addExecutionEventToUI({
+                type: "TASK_FAILED",
+                message: error.message
+            });
             setRunningState(false);
             showProgress(100);
         }

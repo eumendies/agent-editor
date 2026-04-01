@@ -15,6 +15,8 @@ class TaskQueryEventTest {
         service.appendEvent(new ExecutionEvent(EventType.TASK_COMPLETED, "task-1", "done"));
 
         assertEquals(2, service.getEvents("task-1").size());
+        assertEquals(EventType.TOOL_CALLED, service.getEvents("task-1").get(0).getType());
+        assertEquals("editDocument", service.getEvents("task-1").get(0).getMessage());
         assertEquals(2, service.getTaskSteps("task-1").size());
         assertEquals("editDocument", service.getTaskSteps("task-1").get(0).getAction());
         assertEquals("done", service.getTaskSteps("task-1").get(1).getResult());
