@@ -47,7 +47,7 @@ agent:
   memory-compression:
     trigger-total-tokens: 128000
     preserve-latest-message-count: 6
-    fallback-max-message-count: 100
+    fallback-max-message-count: 60
 
 milvus:
   enabled: true
