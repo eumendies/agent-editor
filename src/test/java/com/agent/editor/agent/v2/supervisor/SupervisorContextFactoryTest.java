@@ -48,8 +48,9 @@ class SupervisorContextFactoryTest {
 
         assertEquals("body", context.getCurrentContent());
         ChatTranscriptMemory memory = (ChatTranscriptMemory) context.getMemory();
-        assertEquals(1, memory.getMessages().size());
+        assertEquals(2, memory.getMessages().size());
         assertEquals("previous turn", memory.getMessages().get(0).getText());
+        assertEquals("Improve this document", memory.getMessages().get(1).getText());
     }
 
     @Test
@@ -101,11 +102,16 @@ class SupervisorContextFactoryTest {
                 List.of()
         );
 
-        AgentRunContext workerContext = factory.buildWorkerExecutionContext(conversationState, "draft");
+        AgentRunContext workerContext = factory.buildWorkerExecutionContext(
+                conversationState,
+                "draft",
+                "Review whether the draft is grounded"
+        );
 
         ChatTranscriptMemory memory = (ChatTranscriptMemory) workerContext.getMemory();
-        assertEquals(1, memory.getMessages().size());
+        assertEquals(2, memory.getMessages().size());
         assertTrue(memory.getMessages().get(0).getText().contains("evidence collected"));
+        assertEquals("Review whether the draft is grounded", memory.getMessages().get(1).getText());
         assertTrue(memory.getMessages().stream().noneMatch(ChatMessage.ToolExecutionResultChatMessage.class::isInstance));
     }
 
@@ -197,11 +203,16 @@ class SupervisorContextFactoryTest {
                 List.of()
         );
 
-        AgentRunContext workerContext = factory.buildWorkerExecutionContext(conversationState, "draft");
+        AgentRunContext workerContext = factory.buildWorkerExecutionContext(
+                conversationState,
+                "draft",
+                "Gather more evidence"
+        );
 
         ChatTranscriptMemory memory = (ChatTranscriptMemory) workerContext.getMemory();
-        assertEquals(1, memory.getMessages().size());
+        assertEquals(2, memory.getMessages().size());
         assertEquals("compressed summary", memory.getMessages().get(0).getText());
+        assertEquals("Gather more evidence", memory.getMessages().get(1).getText());
     }
 
     private static TaskRequest taskRequest() {

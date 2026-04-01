@@ -64,7 +64,7 @@ public class SupervisorContextFactory implements AgentContextFactory {
                 null,
                 0,
                 request.getDocument().getContent(),
-                request.getMemory(),
+                appendUserMessage(request.getMemory(), request.getInstruction()),
                 ExecutionStage.RUNNING,
                 null,
                 List.of()
@@ -100,13 +100,19 @@ public class SupervisorContextFactory implements AgentContextFactory {
                 .build();
     }
 
-    public AgentRunContext buildWorkerExecutionContext(AgentRunContext conversationState, String currentContent) {
+    public AgentRunContext buildWorkerExecutionContext(AgentRunContext conversationState,
+                                                       String currentContent,
+                                                       String instruction) {
         return new AgentRunContext(
                 null,
                 conversationState.getIteration(),
                 currentContent,
                 // worker 执行前只保留摘要型记忆，避免工具调用明细污染下一轮 prompt。
-                keepSummaryMemory(memoryCompressor.compressOrOriginal(conversationState.getMemory())),
+                // worker 当前指令必须作为 transcript 末尾的 user turn 落入记忆，后续 prompt 才能保持严格时序。
+                appendUserMessage(
+                        keepSummaryMemory(memoryCompressor.compressOrOriginal(conversationState.getMemory())),
+                        instruction
+                ),
                 ExecutionStage.RUNNING,
                 conversationState.getPendingReason(),
                 List.of()
@@ -180,6 +186,15 @@ public class SupervisorContextFactory implements AgentContextFactory {
                         .toList(),
                 transcriptMemory.getLastObservedTotalTokens()
         );
+    }
+
+    private ExecutionMemory appendUserMessage(ExecutionMemory memory, String instruction) {
+        if (!(memory instanceof ChatTranscriptMemory transcriptMemory)) {
+            return memory;
+        }
+        List<ChatMessage> messages = new ArrayList<>(transcriptMemory.getMessages());
+        messages.add(new ChatMessage.UserChatMessage(instruction));
+        return new ChatTranscriptMemory(messages, transcriptMemory.getLastObservedTotalTokens());
     }
 
     private AgentRunContext compressContextMemory(AgentRunContext context) {

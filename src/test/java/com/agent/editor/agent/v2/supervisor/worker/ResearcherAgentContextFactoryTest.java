@@ -4,9 +4,7 @@ import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
-import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
-import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import dev.langchain4j.data.message.SystemMessage;
@@ -23,12 +21,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ResearcherAgentContextFactoryTest {
 
     @Test
-    void shouldBuildInvocationContextWithSystemPromptAndTranscriptOnly() {
+    void shouldBuildInvocationContextFromTranscriptIncludingCurrentInstruction() {
         AtomicInteger compressionCalls = new AtomicInteger();
         ResearcherAgentContextFactory factory = new ResearcherAgentContextFactory(request -> {
             compressionCalls.incrementAndGet();
             return new com.agent.editor.agent.v2.core.memory.MemoryCompressionResult(
-                    new ChatTranscriptMemory(List.of(new ChatMessage.AiChatMessage("compressed worker memory"))),
+                    new ChatTranscriptMemory(List.of(
+                            new ChatMessage.UserChatMessage("older researcher turn"),
+                            new ChatMessage.UserChatMessage("ground this answer")
+                    )),
                     true,
                     "compressed"
             );
@@ -36,7 +37,7 @@ class ResearcherAgentContextFactoryTest {
 
         var invocationContext = factory.buildModelInvocationContext(context());
 
-        assertEquals(2, invocationContext.getMessages().size());
+        assertEquals(3, invocationContext.getMessages().size());
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains("researcher worker"));
         assertTrue(systemMessage.text().contains("Use " + DocumentToolNames.RETRIEVE_KNOWLEDGE));
@@ -46,18 +47,16 @@ class ResearcherAgentContextFactoryTest {
         assertTrue(systemMessage.text().contains("\"evidenceSummary\": \"string\""));
         assertTrue(systemMessage.text().contains("\"limitations\": \"string\""));
         assertTrue(systemMessage.text().contains("\"uncoveredPoints\": [\"string\"]"));
-        UserMessage summaryMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
-        assertEquals("already compressed worker memory", summaryMessage.singleText());
+        UserMessage olderTurnMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertEquals("older researcher turn", olderTurnMessage.singleText());
+        UserMessage currentTurnMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));
+        assertEquals("ground this answer", currentTurnMessage.singleText());
         assertEquals(0, compressionCalls.get());
     }
 
     @Test
-    void shouldPrepareInitialContextWithCompressedMemory() {
-        ResearcherAgentContextFactory factory = new ResearcherAgentContextFactory(request -> new com.agent.editor.agent.v2.core.memory.MemoryCompressionResult(
-                new ChatTranscriptMemory(List.of(new ChatMessage.AiChatMessage("compressed initial researcher context"))),
-                true,
-                "compressed"
-        ));
+    void shouldPrepareInitialContextByAppendingCurrentInstructionToTranscript() {
+        ResearcherAgentContextFactory factory = new ResearcherAgentContextFactory(NoOpMemoryCompressors.noop());
 
         AgentRunContext context = factory.prepareInitialContext(new com.agent.editor.agent.v2.task.TaskRequest(
                 "task-1",
@@ -70,8 +69,9 @@ class ResearcherAgentContextFactoryTest {
         ));
 
         ChatTranscriptMemory memory = assertInstanceOf(ChatTranscriptMemory.class, context.getMemory());
-        assertEquals(1, memory.getMessages().size());
-        assertEquals("compressed initial researcher context", memory.getMessages().get(0).getText());
+        assertEquals(2, memory.getMessages().size());
+        assertEquals("raw researcher memory", memory.getMessages().get(0).getText());
+        assertEquals("ground this answer", memory.getMessages().get(1).getText());
     }
 
     private AgentRunContext context() {
@@ -84,7 +84,7 @@ class ResearcherAgentContextFactoryTest {
                 "ground this answer",
                 3,
                 new ChatTranscriptMemory(List.of(
-                        new ChatMessage.UserChatMessage("already compressed worker memory")
+                        new ChatMessage.UserChatMessage("older researcher turn")
                 ))
         ));
     }

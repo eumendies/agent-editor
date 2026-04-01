@@ -6,7 +6,6 @@ import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
-import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -22,12 +21,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class EvidenceReviewerAgentContextFactoryTest {
 
     @Test
-    void shouldBuildInvocationContextWithInstructionAndTranscript() {
+    void shouldBuildInvocationContextFromTranscriptOrderWithoutInjectingInstructionAheadOfHistory() {
         AtomicInteger compressionCalls = new AtomicInteger();
         EvidenceReviewerAgentContextFactory factory = new EvidenceReviewerAgentContextFactory(request -> {
             compressionCalls.incrementAndGet();
             return new com.agent.editor.agent.v2.core.memory.MemoryCompressionResult(
-                    new ChatTranscriptMemory(List.of(new ChatMessage.AiChatMessage("compressed reviewer memory"))),
+                    new ChatTranscriptMemory(List.of(
+                            new ChatMessage.UserChatMessage("older reviewer turn"),
+                            new ChatMessage.UserChatMessage("review whether the answer follows the instruction and evidence")
+                    )),
                     true,
                     "compressed"
             );
@@ -47,20 +49,16 @@ class EvidenceReviewerAgentContextFactoryTest {
         assertTrue(systemMessage.text().contains("\"missingRequirements\": []"));
         assertTrue(systemMessage.text().contains("Do not omit any field."));
         assertTrue(systemMessage.text().contains("Valid output example:"));
-        UserMessage instructionMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
-        assertEquals("review whether the answer follows the instruction and evidence", instructionMessage.singleText());
-        UserMessage memoryMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));
-        assertEquals("already compressed reviewer memory", memoryMessage.singleText());
+        UserMessage historyMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertEquals("older reviewer turn", historyMessage.singleText());
+        UserMessage currentTurnMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));
+        assertEquals("review whether the answer follows the instruction and evidence", currentTurnMessage.singleText());
         assertEquals(0, compressionCalls.get());
     }
 
     @Test
-    void shouldPrepareInitialContextWithCompressedMemory() {
-        EvidenceReviewerAgentContextFactory factory = new EvidenceReviewerAgentContextFactory(request -> new com.agent.editor.agent.v2.core.memory.MemoryCompressionResult(
-                new ChatTranscriptMemory(List.of(new ChatMessage.AiChatMessage("compressed initial reviewer context"))),
-                true,
-                "compressed"
-        ));
+    void shouldPrepareInitialContextByAppendingCurrentInstructionToTranscript() {
+        EvidenceReviewerAgentContextFactory factory = new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop());
 
         AgentRunContext context = factory.prepareInitialContext(new com.agent.editor.agent.v2.task.TaskRequest(
                 "task-1",
@@ -73,8 +71,9 @@ class EvidenceReviewerAgentContextFactoryTest {
         ));
 
         ChatTranscriptMemory memory = assertInstanceOf(ChatTranscriptMemory.class, context.getMemory());
-        assertEquals(1, memory.getMessages().size());
-        assertEquals("compressed initial reviewer context", memory.getMessages().get(0).getText());
+        assertEquals(2, memory.getMessages().size());
+        assertEquals("raw reviewer memory", memory.getMessages().get(0).getText());
+        assertEquals("review whether the answer follows the instruction and evidence", memory.getMessages().get(1).getText());
     }
 
     private AgentRunContext context() {
@@ -87,7 +86,7 @@ class EvidenceReviewerAgentContextFactoryTest {
                 "review whether the answer follows the instruction and evidence",
                 3,
                 new ChatTranscriptMemory(List.of(
-                        new ChatMessage.UserChatMessage("already compressed reviewer memory")
+                        new ChatMessage.UserChatMessage("older reviewer turn")
                 ))
         )).withRequest(new ExecutionRequest(
                 "task-1",

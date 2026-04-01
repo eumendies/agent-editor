@@ -113,7 +113,11 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                                 worker.getWorkerId(),
                                 worker.getAllowedTools()
                         ),
-                        supervisorContextFactory.buildWorkerExecutionContext(conversationState, currentContent)
+                        supervisorContextFactory.buildWorkerExecutionContext(
+                                conversationState,
+                                currentContent,
+                                assignWorker.getInstruction()
+                        )
                 );
 
                 // worker 产出的正文会立即成为下一轮 supervisor 看到的最新文档。

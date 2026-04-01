@@ -216,10 +216,16 @@ class SupervisorOrchestratorTest {
         assertEquals(2, runtime.states().size());
         assertEquals("body", runtime.states().get(0).getCurrentContent());
         assertEquals("body -> analyzer", runtime.states().get(1).getCurrentContent());
-        assertTrue(((ChatTranscriptMemory) runtime.states().get(0).getMemory()).getMessages().isEmpty());
+        ChatTranscriptMemory firstWorkerMemory = (ChatTranscriptMemory) runtime.states().get(0).getMemory();
+        assertEquals(2, firstWorkerMemory.getMessages().size());
+        assertEquals("Improve this document", firstWorkerMemory.getMessages().get(0).getText());
+        assertEquals("Inspect the document", firstWorkerMemory.getMessages().get(1).getText());
         ChatTranscriptMemory secondWorkerMemory = (ChatTranscriptMemory) runtime.states().get(1).getMemory();
         assertTrue(secondWorkerMemory.getMessages().stream().anyMatch(message ->
                 message.getText().contains("analyzer result")
+        ));
+        assertTrue(secondWorkerMemory.getMessages().stream().anyMatch(message ->
+                "Apply the recommended edits".equals(message.getText())
         ));
         assertTrue(secondWorkerMemory.getMessages().stream().noneMatch(ChatMessage.ToolExecutionResultChatMessage.class::isInstance));
     }
@@ -266,6 +272,47 @@ class SupervisorOrchestratorTest {
 
         ChatTranscriptMemory firstWorkerMemory = (ChatTranscriptMemory) runtime.states().get(0).getMemory();
         assertTrue(firstWorkerMemory.getMessages().stream().anyMatch(message -> "previous turn".equals(message.getText())));
+        assertTrue(firstWorkerMemory.getMessages().stream().anyMatch(message -> "Improve this document".equals(message.getText())));
+    }
+
+    @Test
+    void shouldRetainCurrentUserInstructionInReturnedSessionMemory() {
+        WorkerRegistry workerRegistry = new WorkerRegistry();
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
+                "analyzer",
+                "Analyzer",
+                "Inspect the document",
+                new StubWorkerAgent("analysis complete"),
+                List.of("searchContent")
+        ));
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
+                "editor",
+                "Editor",
+                "Apply document edits",
+                new StubWorkerAgent("edited content"),
+                List.of("editDocument")
+        ));
+
+        SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(
+                new ScriptedSupervisorAgentDefinition(),
+                new RecordingSupervisorExecutionRuntime(),
+                workerRegistry,
+                new RecordingExecutionRuntime(),
+                event -> {},
+                new SupervisorContextFactory(NoOpMemoryCompressors.noop())
+        );
+
+        TaskResult result = orchestrator.execute(new TaskRequest(
+                "task-7",
+                "session-7",
+                AgentType.SUPERVISOR,
+                new DocumentSnapshot("doc-7", "Title", "body"),
+                "Improve this document",
+                5
+        ));
+
+        ChatTranscriptMemory memory = (ChatTranscriptMemory) result.getMemory();
+        assertTrue(memory.getMessages().stream().anyMatch(message -> "Improve this document".equals(message.getText())));
     }
 
     @Test
@@ -509,9 +556,11 @@ class SupervisorOrchestratorTest {
         }
 
         @Override
-        public AgentRunContext buildWorkerExecutionContext(AgentRunContext conversationState, String currentContent) {
+        public AgentRunContext buildWorkerExecutionContext(AgentRunContext conversationState,
+                                                           String currentContent,
+                                                           String instruction) {
             workerExecutionContextBuildCount++;
-            return super.buildWorkerExecutionContext(conversationState, currentContent);
+            return super.buildWorkerExecutionContext(conversationState, currentContent, instruction);
         }
 
         @Override
