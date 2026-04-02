@@ -288,23 +288,10 @@
 
         .chat-panel {
             display: grid;
-            grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+            grid-template-rows: auto auto minmax(0, 1fr) auto;
             gap: 16px;
-            min-height: 860px;
-        }
-
-        .chat-toolbar {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 12px;
-            align-items: end;
-        }
-
-        .chat-toolbar-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            justify-content: flex-end;
+            height: min(860px, calc(100vh - 56px));
+            overflow: hidden;
         }
 
         .chat-meta {
@@ -320,26 +307,25 @@
             font-size: 13px;
         }
 
-        .mode-summary {
-            padding: 14px 16px;
-            border-radius: 18px;
-            background: rgba(124, 198, 254, 0.08);
-            border: 1px solid rgba(124, 198, 254, 0.15);
-            color: var(--muted);
-            line-height: 1.7;
-            font-size: 14px;
+        .chat-scroll-shell {
+            min-height: 0;
+            overflow: hidden;
+            display: grid;
         }
 
-        .chat-messages {
-            min-height: 420px;
-            max-height: 100%;
+        .message-list {
+            height: 100%;
+            min-height: 0;
             overflow-y: auto;
             display: grid;
             gap: 12px;
             padding-right: 4px;
+            align-content: start;
         }
 
         .chat-message {
+            justify-self: start;
+            max-width: min(90%, 560px);
             border-radius: 20px;
             padding: 16px 18px;
             border: 1px solid rgba(255, 255, 255, 0.06);
@@ -349,20 +335,23 @@
         }
 
         .chat-message.user {
+            justify-self: end;
             background: linear-gradient(180deg, rgba(124, 198, 254, 0.18), rgba(5, 10, 20, 0.72));
             border-color: rgba(124, 198, 254, 0.22);
         }
 
         .chat-message.assistant {
-            border-left: 4px solid var(--react);
+            border-color: rgba(46, 196, 182, 0.24);
+            background: linear-gradient(180deg, rgba(46, 196, 182, 0.12), rgba(5, 10, 20, 0.72));
         }
 
         .chat-message.system {
-            border-left: 4px solid var(--planning);
+            border-color: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .chat-message.error {
-            border-left: 4px solid var(--danger);
+            border-color: rgba(255, 107, 107, 0.3);
             background: linear-gradient(180deg, rgba(255, 107, 107, 0.1), rgba(5, 10, 20, 0.72));
         }
 
@@ -403,7 +392,7 @@
             text-transform: uppercase;
         }
 
-        .composer {
+        .chat-composer {
             display: grid;
             gap: 12px;
             padding-top: 12px;
@@ -418,101 +407,17 @@
             font-size: 15px;
         }
 
-        .composer-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-            gap: 12px;
-            align-items: end;
-        }
-
-        .run-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-        }
-
-        .progress-wrap {
-            display: none;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .progress-track {
-            flex: 1;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 999px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            width: 0;
-            background: linear-gradient(90deg, var(--accent), #d0f4ff);
-            transition: width 0.25s ease;
-        }
-
-        .progress-label {
-            min-width: 42px;
-            text-align: right;
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .trace-panel {
-            display: grid;
-            gap: 12px;
-            padding: 16px;
-            border-radius: 20px;
-            background: rgba(5, 10, 20, 0.68);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .trace-summary {
-            display: grid;
-            gap: 8px;
+        .composer-note {
             color: var(--muted);
             font-size: 13px;
             line-height: 1.6;
         }
 
-        .trace-records {
+        .composer-row {
             display: grid;
-            gap: 10px;
-            max-height: 180px;
-            overflow-y: auto;
-            padding-right: 4px;
-        }
-
-        .trace-record {
-            border-radius: 16px;
-            padding: 12px 14px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .trace-record-head {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 8px;
-            font-size: 12px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .trace-record-stage {
-            font-weight: 700;
-            color: var(--text);
-        }
-
-        .trace-record-body {
-            font-size: 13px;
-            line-height: 1.7;
-            color: var(--text);
-            white-space: pre-wrap;
-            word-break: break-word;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: end;
         }
 
         .knowledge-section {
@@ -599,7 +504,7 @@
         @media (max-width: 1200px) {
             .workspace-grid,
             .knowledge-grid,
-            .composer-grid {
+            .composer-row {
                 grid-template-columns: 1fr;
             }
         }
@@ -617,13 +522,11 @@
             }
 
             .workspace-toolbar,
-            .chat-toolbar,
-            .run-grid {
+            .composer-row {
                 grid-template-columns: 1fr;
             }
 
             .toolbar-actions,
-            .chat-toolbar-actions,
             .knowledge-form-actions {
                 flex-direction: column;
                 align-items: stretch;
@@ -683,74 +586,43 @@
                 <div>
                     <div class="panel-subtitle">Runtime Console</div>
                     <div class="panel-title">Chat Workspace</div>
-                    <div class="panel-copy">任务输入、模式切换、事件流和最终回复统一收进同一个聊天面板。</div>
-                </div>
-            </div>
-
-            <div class="chat-toolbar">
-                <div>
-                    <label class="field-label" for="agentMode">Active Mode</label>
-                    <select id="agentMode" onchange="syncModeUI(this.value)">
-                        <option value="REACT">REACT</option>
-                        <option value="PLANNING">PLANNING</option>
-                        <option value="SUPERVISOR">SUPERVISOR</option>
-                        <option value="REFLEXION">REFLEXION</option>
-                    </select>
-                </div>
-                <div class="chat-toolbar-actions">
-                    <button id="clearChatBtn" class="secondary-btn" onclick="clearChat()">Clear Chat</button>
-                    <span id="wsStatus" class="status-pill disconnected">Disconnected</span>
+                    <div class="panel-copy">只保留消息流和一个发送区，像聊天软件一样直接交互。</div>
                 </div>
             </div>
 
             <div class="chat-meta">
-                <span id="timelineModeLabel">Mode: REACT</span>
+                <span id="wsStatus" class="status-pill disconnected">Disconnected</span>
                 <span id="stepCount">0 messages</span>
             </div>
 
-            <div id="modeSummary" class="mode-summary">
-                ReAct 会直接进入单 agent 决策循环，在每一步决定是调用工具还是直接完成任务。
-            </div>
-
-            <div id="chatMessages" class="chat-messages">
-                <div class="empty-state">输入任务后，事件流和回答会按聊天消息的方式出现在这里。</div>
-            </div>
-
-            <div class="composer">
-                <div class="progress-wrap" id="progressWrap">
-                    <div class="progress-track">
-                        <div class="progress-fill" id="progressFill"></div>
-                    </div>
-                    <div class="progress-label" id="progressLabel">0%</div>
+            <div class="chat-scroll-shell">
+                <div id="messageList" class="message-list">
+                    <div class="empty-state">输入任务后，事件流和回答会按聊天消息的方式出现在这里。</div>
                 </div>
+            </div>
 
+            <div id="chatComposer" class="chat-composer">
                 <div>
-                    <label class="field-label" for="instructionInput">Task Instruction</label>
+                    <label class="field-label" for="instructionInput">Message</label>
                     <textarea id="instructionInput">Improve the sample document by clarifying the structure, strengthening the intro, and giving it a more confident closing.</textarea>
                 </div>
 
-                <div class="composer-grid">
-                    <div class="panel-copy" style="margin-top: 0;">
-                        运行前会优先保存左侧文档，确保 agent 读取的是你刚刚手工修改后的版本。
-                    </div>
-                    <div class="run-grid">
-                        <button class="run-btn react" id="reactBtn" onclick="runMode('REACT')">Run ReAct</button>
-                        <button class="run-btn planning" id="planningBtn" onclick="runMode('PLANNING')">Run Planning</button>
-                        <button class="run-btn supervisor" id="supervisorBtn" onclick="runMode('SUPERVISOR')">Run Supervisor</button>
-                        <button class="run-btn reflexion" id="reflexionBtn" onclick="runMode('REFLEXION')">Run Reflexion</button>
-                    </div>
+                <div class="composer-note">
+                    发送前会优先保存左侧文档，确保 agent 读取的是你刚刚手工修改后的版本。
                 </div>
-            </div>
 
-            <div id="tracePanel" class="trace-panel">
-                <div>
-                    <div class="panel-subtitle">Trace Inspector</div>
-                    <div class="panel-title" style="font-size: 17px;">Prompt / Tool / Result</div>
+                <div class="composer-row">
+                    <div>
+                        <label class="field-label" for="agentMode">Agent Mode</label>
+                        <select id="agentMode" onchange="syncModeUI(this.value)">
+                            <option value="REACT">REACT</option>
+                            <option value="PLANNING">PLANNING</option>
+                            <option value="SUPERVISOR">SUPERVISOR</option>
+                            <option value="REFLEXION">REFLEXION</option>
+                        </select>
+                    </div>
+                    <button id="sendButton" class="primary-btn" onclick="sendCurrentMessage()">Send</button>
                 </div>
-                <div id="traceSummary" class="trace-summary">
-                    <div class="empty-state">运行任务后，这里会展示完整 trace 摘要。</div>
-                </div>
-                <div id="traceRecords" class="trace-records"></div>
             </div>
         </aside>
     </section>
@@ -810,54 +682,19 @@
     let activeInstruction = "";
     let isTaskRunning = false;
 
-    const modeContent = {
-        REACT: {
-            summary: "ReAct 会直接进入单 agent 决策循环，在每一步决定是调用工具还是直接完成任务。"
-        },
-        PLANNING: {
-            summary: "Planning 会先产出结构化计划，再把每个计划步骤顺序交给执行 agent 处理。"
-        },
-        SUPERVISOR: {
-            summary: "Supervisor 会串行调度异构 worker，由 analyzer、editor、reviewer 分工后再统一收口。"
-        },
-        REFLEXION: {
-            summary: "Reflexion 会让 actor 先编辑，再让 critic 判断 pass 或 revise，把反馈回灌给下一轮 actor。"
-        }
-    };
-
     function syncModeUI(mode) {
         currentMode = mode;
         document.getElementById("agentMode").value = mode;
-        document.getElementById("timelineModeLabel").textContent = `Mode: ${mode}`;
-        document.getElementById("modeSummary").textContent = modeContent[mode].summary;
     }
 
     function setRunningState(running) {
         isTaskRunning = running;
-        ["reactBtn", "planningBtn", "supervisorBtn", "reflexionBtn", "saveDocumentBtn", "clearChatBtn"].forEach(id => {
-            if (id === "clearChatBtn") {
-                document.getElementById(id).disabled = false;
-                return;
-            }
-            if (id === "saveDocumentBtn") {
-                document.getElementById(id).disabled = running || !isDocumentDirty;
-                return;
-            }
-            document.getElementById(id).disabled = running;
-        });
+        document.getElementById("sendButton").disabled = running;
+        document.getElementById("saveDocumentBtn").disabled = running || !isDocumentDirty;
         document.getElementById("documentSelect").disabled = running;
         document.getElementById("agentMode").disabled = running;
         document.getElementById("documentEditor").disabled = running;
-    }
-
-    function resetProgress() {
-        document.getElementById("progressWrap").style.display = "grid";
-        showProgress(0);
-    }
-
-    function showProgress(percent) {
-        document.getElementById("progressFill").style.width = percent + "%";
-        document.getElementById("progressLabel").textContent = percent + "%";
+        document.getElementById("instructionInput").disabled = running;
     }
 
     function renderSaveStatus(type, message) {
@@ -955,14 +792,6 @@
             case "TEXT_STREAM_DELTA":
             case "TEXT_STREAM_COMPLETED":
                 return "ASSISTANT";
-            case "TOOL_CALLED":
-            case "WORKER_SELECTED":
-            case "PLAN_CREATED":
-                return "SYSTEM";
-            case "TOOL_SUCCEEDED":
-            case "WORKER_COMPLETED":
-            case "TASK_STARTED":
-                return "SYSTEM";
             case "TASK_COMPLETED":
             case "SUPERVISOR_COMPLETED":
                 return "ASSISTANT";
@@ -985,16 +814,6 @@
 
         if (normalized === "TASK_FAILED" || normalized === "TOOL_FAILED") {
             finalizeTask(executionEvent.taskId || currentTaskId, "FAILED");
-            return;
-        }
-
-        if (normalized === "TASK_STARTED") {
-            showProgress(24);
-            return;
-        }
-
-        if (normalized === "PLAN_CREATED" || normalized === "WORKER_SELECTED" || normalized === "TOOL_CALLED") {
-            showProgress(60);
         }
     }
 
@@ -1005,31 +824,31 @@
         if (normalized === "TEXT_STREAM_STARTED" || normalized === "TEXT_STREAM_DELTA" || normalized === "TEXT_STREAM_COMPLETED") {
             return {
                 title: "Assistant",
-                context: "Streaming Response",
+                context: `Mode ${currentMode}`,
                 content: content
             };
         }
 
-        if (currentMode === "SUPERVISOR" && normalized === "WORKER_SELECTED") {
+        if (normalized === "PLAN_CREATED") {
             return {
-                title: "Worker Dispatch",
-                context: normalized,
-                content: `Supervisor selected worker: ${content}`
-            };
-        }
-
-        if (currentMode === "SUPERVISOR" && normalized === "WORKER_COMPLETED") {
-            return {
-                title: "Worker Completion",
-                context: normalized,
+                title: "Plan",
+                context: "Runtime Event",
                 content: content
             };
         }
 
-        if (currentMode === "PLANNING" && normalized === "PLAN_CREATED") {
+        if (normalized === "WORKER_SELECTED") {
             return {
-                title: "Plan Created",
-                context: normalized,
+                title: "Worker",
+                context: "Runtime Event",
+                content: content
+            };
+        }
+
+        if (normalized === "TOOL_CALLED") {
+            return {
+                title: "Tool",
+                context: "Runtime Event",
                 content: content
             };
         }
@@ -1048,18 +867,27 @@
             || normalized === "TEXT_STREAM_COMPLETED";
     }
 
-    function updateMessageCount() {
-        const count = document.querySelectorAll("#chatMessages .chat-message").length;
-        document.getElementById("stepCount").textContent = `${count} messages`;
-    }
-
-    function appendChatMessage(role, kind, content, meta) {
-        const container = document.getElementById("chatMessages");
+    function ensureMessageListReady() {
+        const container = document.getElementById("messageList");
         const emptyState = container.querySelector(".empty-state");
         if (emptyState) {
             emptyState.remove();
         }
+        return container;
+    }
 
+    function scrollMessageListToBottom() {
+        const container = document.getElementById("messageList");
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function updateMessageCount() {
+        const count = document.querySelectorAll("#messageList .chat-message").length;
+        document.getElementById("stepCount").textContent = `${count} messages`;
+    }
+
+    function appendChatMessage(role, kind, content, meta) {
+        const container = ensureMessageListReady();
         const messageDiv = document.createElement("div");
         messageDiv.className = `chat-message ${role}`;
         messageDiv.innerHTML = `
@@ -1072,7 +900,7 @@
         `;
 
         container.appendChild(messageDiv);
-        container.scrollTop = container.scrollHeight;
+        scrollMessageListToBottom();
         updateMessageCount();
         return messageDiv;
     }
@@ -1091,10 +919,8 @@
         const stepDiv = ensureActiveStreamStep();
         const contentNode = stepDiv.querySelector(".message-body");
         currentStreamText += content || "";
-        const nextChunk = escapeHtml(content || "").replace(/\n/g, "<br>");
-        contentNode.innerHTML = `${contentNode.innerHTML}${nextChunk}`;
-        const container = document.getElementById("chatMessages");
-        container.scrollTop = container.scrollHeight;
+        contentNode.innerHTML = `${contentNode.innerHTML}${escapeHtml(content || "").replace(/\n/g, "<br>")}`;
+        scrollMessageListToBottom();
     }
 
     function completeActiveStreamStep() {
@@ -1144,40 +970,6 @@
             ? "assistant"
             : visualType === "ERROR" ? "error" : "system";
         appendChatMessage(role, step.title, step.content, step.context);
-    }
-
-    function renderTaskEvents(events) {
-        const container = document.getElementById("chatMessages");
-        container.innerHTML = "";
-        activeStreamStep = null;
-        currentStreamText = "";
-        lastCompletedStreamText = null;
-
-        if (activeInstruction) {
-            appendChatMessage("user", "Instruction", activeInstruction, `Mode ${currentMode}`);
-        }
-
-        if (!events.length) {
-            container.innerHTML = `<div class="empty-state">当前没有事件记录。</div>`;
-            updateMessageCount();
-            return;
-        }
-
-        events.forEach(addExecutionEventToUI);
-    }
-
-    async function loadTaskEvents(taskId) {
-        if (!taskId) {
-            return;
-        }
-
-        const response = await fetch(`/api/v2/agent/task/${taskId}/events`);
-        if (!response.ok) {
-            throw new Error("Event request failed");
-        }
-
-        const events = await response.json();
-        renderTaskEvents(events);
     }
 
     async function loadTaskStatus(taskId) {
@@ -1237,20 +1029,15 @@
         finalizedTaskId = taskId;
         stopTaskStatusPolling();
         setRunningState(false);
-        showProgress(100);
-        await loadTaskEvents(taskId).catch(() => null);
 
         if (terminalStatus !== "COMPLETED") {
+            renderSaveStatus("error", "Agent 运行失败，请检查聊天区中的错误消息。");
             return;
         }
 
-        const statusResponse = await loadTaskStatus(taskId).catch(() => null);
-        if (statusResponse?.finalResult && statusResponse.finalResult !== lastCompletedStreamText) {
-            appendChatMessage("assistant", "Final Result", statusResponse.finalResult, "Task Completed");
-        }
+        await loadTaskStatus(taskId).catch(() => null);
         await refreshDocument(currentTaskDocumentId);
         await loadDiffHistory(currentTaskDocumentId);
-        await loadTrace(taskId);
         renderSaveStatus("success", "Agent 结果已同步到文档区。");
     }
 
@@ -1270,16 +1057,18 @@
         }
     }
 
-    async function runMode(mode) {
-        syncModeUI(mode);
-
-        const instruction = document.getElementById("instructionInput").value.trim();
+    async function sendCurrentMessage() {
+        const instructionInput = document.getElementById("instructionInput");
+        const instruction = instructionInput.value.trim();
+        const mode = document.getElementById("agentMode").value;
         const documentId = document.getElementById("documentSelect").value;
+
         if (!instruction) {
             alert("Please enter an instruction");
             return;
         }
 
+        syncModeUI(mode);
         if (!await ensureDocumentSavedBeforeRun()) {
             return;
         }
@@ -1290,9 +1079,10 @@
         currentTaskId = null;
         currentTaskDocumentId = documentId;
         activeInstruction = instruction;
-        resetProgress();
-        showProgress(12);
-        clearChat(false, false);
+        activeStreamStep = null;
+        currentStreamText = "";
+        lastCompletedStreamText = null;
+
         appendChatMessage("user", "Instruction", instruction, `Mode ${mode}`);
 
         try {
@@ -1314,8 +1104,7 @@
 
             const result = await response.json();
             currentTaskId = result.taskId;
-            showProgress(24);
-            await loadTaskEvents(result.taskId);
+            instructionInput.value = "";
             startTaskStatusPolling(result.taskId);
         } catch (error) {
             stopTaskStatusPolling();
@@ -1324,7 +1113,6 @@
                 message: error.message
             });
             setRunningState(false);
-            showProgress(100);
         }
     }
 
@@ -1369,76 +1157,14 @@
         document.getElementById("diffView").innerHTML = `<div class="empty-state">当前还没有 diff 结果，请先运行一次任务。</div>`;
     }
 
-    async function loadTrace(taskId) {
-        if (!taskId) {
-            return;
-        }
-
-        try {
-            const [traceResponse, summaryResponse] = await Promise.all([
-                fetch(`/api/v1/agent/task/${taskId}/trace`),
-                fetch(`/api/v1/agent/task/${taskId}/trace/summary`)
-            ]);
-
-            if (!traceResponse.ok || !summaryResponse.ok) {
-                throw new Error("Trace request failed");
-            }
-
-            const traces = await traceResponse.json();
-            const summary = await summaryResponse.json();
-            renderTraceSummary(summary);
-            renderTraceRecords(traces);
-        } catch (error) {
-            document.getElementById("traceSummary").innerHTML =
-                `<div class="empty-state">Trace unavailable: ${escapeHtml(error.message)}</div>`;
-            document.getElementById("traceRecords").innerHTML = "";
-        }
-    }
-
-    function renderTraceSummary(summary) {
-        const categories = Object.entries(summary.categoryCounts || {})
-            .map(([name, count]) => `${name}: ${count}`)
-            .join(" · ");
-        document.getElementById("traceSummary").innerHTML = `
-            <div>Task: ${escapeHtml(summary.taskId || "-")}</div>
-            <div>Records: ${summary.totalRecords || 0}</div>
-            <div>Categories: ${escapeHtml(categories || "No trace records yet")}</div>
-        `;
-    }
-
-    function renderTraceRecords(traces) {
-        const container = document.getElementById("traceRecords");
-        if (!traces.length) {
-            container.innerHTML = `<div class="empty-state">当前没有 trace 记录。</div>`;
-            return;
-        }
-
-        container.innerHTML = traces.map((trace, index) => `
-            <div class="trace-record">
-                <div class="trace-record-head">
-                    <span>Trace ${index + 1}</span>
-                    <span class="trace-record-stage">${escapeHtml(trace.stage || trace.category || "TRACE")}</span>
-                </div>
-                <div class="trace-record-body">${escapeHtml(JSON.stringify(trace.payload || {}, null, 2))}</div>
-            </div>
-        `).join("");
-    }
-
-    function clearChat(resetTrace = true, resetInstruction = true) {
+    function resetMessages() {
+        activeInstruction = "";
         activeStreamStep = null;
         currentStreamText = "";
         lastCompletedStreamText = null;
-        if (resetInstruction) {
-            activeInstruction = "";
-        }
-        document.getElementById("chatMessages").innerHTML =
+        document.getElementById("messageList").innerHTML =
             `<div class="empty-state">输入任务后，事件流和回答会按聊天消息的方式出现在这里。</div>`;
         updateMessageCount();
-        if (resetTrace) {
-            document.getElementById("traceSummary").innerHTML =
-                `<div class="empty-state">运行任务后，这里会展示完整 trace 摘要。</div>`;
-            document.getElementById("traceRecords").innerHTML = "";
-        }
     }
 
     function escapeHtml(text) {
@@ -1541,15 +1267,23 @@
         document.getElementById("documentSelect")
             .addEventListener("change", async function() {
                 originalSnapshot = "";
-                clearChat();
+                resetMessages();
                 await refreshDocument(this.value);
                 await loadDiffHistory(this.value);
+            });
+        document.getElementById("instructionInput")
+            .addEventListener("keydown", async function(event) {
+                if ((event.metaKey || event.ctrlKey) && event.key === "Enter" && !isTaskRunning) {
+                    event.preventDefault();
+                    await sendCurrentMessage();
+                }
             });
 
         syncModeUI("REACT");
         initWebSocket();
         refreshDocument();
         loadDiffHistory(document.getElementById("documentSelect").value);
+        updateMessageCount();
     };
 </script>
 </body>

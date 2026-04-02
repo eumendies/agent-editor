@@ -20,8 +20,10 @@ class DemoPageTemplateTest {
         assertTrue(template.contains("documentEditor"));
         assertTrue(template.contains("saveDocumentBtn"));
         assertTrue(template.contains("saveStatus"));
-        assertTrue(template.contains("chatMessages"));
-        assertTrue(template.contains("clearChatBtn"));
+        assertTrue(template.contains("messageList"));
+        assertTrue(template.contains("chatComposer"));
+        assertTrue(template.contains("sendButton"));
+        assertTrue(template.contains("sendCurrentMessage"));
         assertTrue(template.contains("Knowledge Base Upload"));
         assertTrue(template.contains("knowledgeUploadForm"));
         assertTrue(template.contains("knowledgeFileInput"));
@@ -40,5 +42,10 @@ class DemoPageTemplateTest {
         assertFalse(template.contains("Scenario Bar"));
         assertFalse(template.contains("Mode Lens"));
         assertFalse(template.contains("Agent V2 Orchestration Demo"));
+        assertFalse(template.contains("Final Result"));
+        assertFalse(template.contains("chat-session"));
+        assertFalse(template.contains("tracePanel"));
+        assertFalse(template.contains("clearChatBtn"));
+        assertFalse(template.contains("reactBtn"));
     }
 }
