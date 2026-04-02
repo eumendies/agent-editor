@@ -27,11 +27,7 @@ class ReactAgentContextFactoryTest {
 
     @Test
     void shouldPrepareInitialContextByAppendingCurrentInstructionOnce() {
-        ReactAgentContextFactory factory = new ReactAgentContextFactory(request -> new MemoryCompressionResult(
-                new ChatTranscriptMemory(List.of(new ChatMessage.AiChatMessage("compressed initial context"))),
-                true,
-                "compressed"
-        ));
+        ReactAgentContextFactory factory = new ReactAgentContextFactory(NoOpMemoryCompressors.noop());
         ChatTranscriptMemory sessionMemory = new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("previous turn")
         ));
@@ -48,8 +44,10 @@ class ReactAgentContextFactoryTest {
         ));
 
         ChatTranscriptMemory memory = assertInstanceOf(ChatTranscriptMemory.class, context.getMemory());
-        assertEquals(1, memory.getMessages().size());
-        assertEquals("compressed initial context", memory.getMessages().get(0).getText());
+        assertEquals(2, memory.getMessages().size());
+        assertEquals("previous turn", memory.getMessages().get(0).getText());
+        assertEquals("rewrite this", memory.getMessages().get(1).getText());
+        assertEquals(321, memory.getLastObservedTotalTokens());
         assertEquals("body", context.getCurrentContent());
         assertEquals(ExecutionStage.RUNNING, context.getStage());
     }

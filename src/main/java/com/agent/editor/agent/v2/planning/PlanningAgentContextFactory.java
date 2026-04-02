@@ -3,6 +3,8 @@ package com.agent.editor.agent.v2.planning;
 import com.agent.editor.agent.v2.core.agent.PlanResult;
 import com.agent.editor.agent.v2.core.context.AgentContextFactory;
 import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
+import com.agent.editor.agent.v2.core.context.CompressContextMemory;
+import com.agent.editor.agent.v2.core.context.MemoryCompressionCapableContextFactory;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.memory.ExecutionMemory;
@@ -16,7 +18,7 @@ import com.agent.editor.agent.v2.task.TaskRequest;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PlanningAgentContextFactory implements AgentContextFactory {
+public class PlanningAgentContextFactory implements AgentContextFactory, MemoryCompressionCapableContextFactory {
 
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
     private final MemoryCompressor memoryCompressor;
@@ -32,8 +34,9 @@ public class PlanningAgentContextFactory implements AgentContextFactory {
     }
 
     @Override
+    @CompressContextMemory
     public AgentRunContext prepareInitialContext(TaskRequest request) {
-        return compressContextMemory(new AgentRunContext(
+        return new AgentRunContext(
                 null,
                 0,
                 request.getDocument().getContent(),
@@ -41,7 +44,7 @@ public class PlanningAgentContextFactory implements AgentContextFactory {
                 ExecutionStage.RUNNING,
                 null,
                 List.of()
-        ));
+        );
     }
 
     /**
@@ -49,8 +52,9 @@ public class PlanningAgentContextFactory implements AgentContextFactory {
      * @param request
      * @return
      */
+    @CompressContextMemory
     public AgentRunContext prepareExecutionInitialContext(TaskRequest request) {
-        return compressContextMemory(new AgentRunContext(
+        return new AgentRunContext(
                 null,
                 0,
                 request.getDocument().getContent(),
@@ -58,7 +62,7 @@ public class PlanningAgentContextFactory implements AgentContextFactory {
                 ExecutionStage.RUNNING,
                 null,
                 List.of()
-        ));
+        );
     }
 
     /**
@@ -67,8 +71,9 @@ public class PlanningAgentContextFactory implements AgentContextFactory {
      * @param step
      * @return
      */
+    @CompressContextMemory
     public AgentRunContext prepareExecutionStepContext(AgentRunContext currentState, PlanResult.PlanStep step) {
-        return compressContextMemory(new AgentRunContext(
+        return new AgentRunContext(
                 currentState.getRequest(),
                 currentState.getIteration(),
                 currentState.getCurrentContent(),
@@ -76,7 +81,7 @@ public class PlanningAgentContextFactory implements AgentContextFactory {
                 ExecutionStage.RUNNING,
                 currentState.getPendingReason(),
                 currentState.getToolSpecifications()
-        ));
+        );
     }
 
     /**
@@ -85,11 +90,12 @@ public class PlanningAgentContextFactory implements AgentContextFactory {
      * @param result
      * @return
      */
+    @CompressContextMemory
     public AgentRunContext summarizeCompletedStep(AgentRunContext stepContext, ExecutionResult<?> result) {
-        return compressContextMemory(stepContext
+        return stepContext
                 .withCurrentContent(result.getFinalContent())
                 .appendMemory(new ChatMessage.AiChatMessage("Step result: " + normalizeStepResult(result)))
-                .withStage(ExecutionStage.RUNNING));
+                .withStage(ExecutionStage.RUNNING);
     }
 
     @Override
@@ -124,7 +130,8 @@ public class PlanningAgentContextFactory implements AgentContextFactory {
         return "step completed";
     }
 
-    private AgentRunContext compressContextMemory(AgentRunContext context) {
-        return context.withMemory(memoryCompressor.compressOrOriginal(context.getMemory()));
+    @Override
+    public MemoryCompressor memoryCompressor() {
+        return memoryCompressor;
     }
 }

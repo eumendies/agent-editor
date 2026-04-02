@@ -2,6 +2,8 @@ package com.agent.editor.agent.v2.react;
 
 import com.agent.editor.agent.v2.core.context.AgentContextFactory;
 import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
+import com.agent.editor.agent.v2.core.context.CompressContextMemory;
+import com.agent.editor.agent.v2.core.context.MemoryCompressionCapableContextFactory;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.memory.ExecutionMemory;
@@ -15,7 +17,7 @@ import dev.langchain4j.data.message.SystemMessage;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ReactAgentContextFactory implements AgentContextFactory {
+public class ReactAgentContextFactory implements AgentContextFactory, MemoryCompressionCapableContextFactory {
 
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
     private final MemoryCompressor memoryCompressor;
@@ -31,8 +33,9 @@ public class ReactAgentContextFactory implements AgentContextFactory {
     }
 
     @Override
+    @CompressContextMemory
     public AgentRunContext prepareInitialContext(TaskRequest request) {
-        return compressContextMemory(new AgentRunContext(
+        return new AgentRunContext(
                 null,
                 0,
                 request.getDocument().getContent(),
@@ -40,7 +43,7 @@ public class ReactAgentContextFactory implements AgentContextFactory {
                 ExecutionStage.RUNNING,
                 null,
                 List.of()
-        ));
+        );
     }
 
     @Override
@@ -60,8 +63,9 @@ public class ReactAgentContextFactory implements AgentContextFactory {
         return new ChatTranscriptMemory(messages, transcriptMemory.getLastObservedTotalTokens());
     }
 
-    protected AgentRunContext compressContextMemory(AgentRunContext context) {
-        return context.withMemory(memoryCompressor.compressOrOriginal(context.getMemory()));
+    @Override
+    public MemoryCompressor memoryCompressor() {
+        return memoryCompressor;
     }
 
     private String systemPrompt() {

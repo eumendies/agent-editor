@@ -51,11 +51,7 @@ class PlanningAgentContextFactoryTest {
 
     @Test
     void shouldPrepareExecutionStepContextByAppendingStepInstruction() {
-        PlanningAgentContextFactory factory = new PlanningAgentContextFactory(request -> new MemoryCompressionResult(
-                new ChatTranscriptMemory(List.of(new ChatMessage.AiChatMessage("compressed step context"))),
-                true,
-                "compressed"
-        ));
+        PlanningAgentContextFactory factory = new PlanningAgentContextFactory(NoOpMemoryCompressors.noop());
         AgentRunContext currentState = new AgentRunContext(
                 null,
                 1,
@@ -74,8 +70,10 @@ class PlanningAgentContextFactoryTest {
         assertEquals("body -> outline", stepContext.getCurrentContent());
         assertEquals(ExecutionStage.RUNNING, stepContext.getStage());
         ChatTranscriptMemory memory = assertInstanceOf(ChatTranscriptMemory.class, stepContext.getMemory());
-        assertEquals(1, memory.getMessages().size());
-        assertEquals("compressed step context", memory.getMessages().get(0).getText());
+        assertEquals(3, memory.getMessages().size());
+        assertEquals("previous turn", memory.getMessages().get(0).getText());
+        assertEquals("completed Add outline", memory.getMessages().get(1).getText());
+        assertEquals("Plan step 2: Refine tone", memory.getMessages().get(2).getText());
     }
 
     @Test

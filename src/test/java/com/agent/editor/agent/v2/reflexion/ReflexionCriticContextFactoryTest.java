@@ -30,11 +30,7 @@ class ReflexionCriticContextFactoryTest {
 
     @Test
     void shouldPrepareReviewContextFromActorStateAndSummary() {
-        ReflexionCriticContextFactory factory = new ReflexionCriticContextFactory(request -> new MemoryCompressionResult(
-                new ChatTranscriptMemory(List.of(new ChatMessage.AiChatMessage("compressed review context"))),
-                true,
-                "compressed"
-        ));
+        ReflexionCriticContextFactory factory = new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop());
         TaskRequest request = new TaskRequest(
                 "task-1",
                 "session-1",
@@ -68,8 +64,12 @@ class ReflexionCriticContextFactoryTest {
         assertEquals(0, criticContext.getIteration());
         assertEquals("updated body", criticContext.getCurrentContent());
         ChatTranscriptMemory memory = assertInstanceOf(ChatTranscriptMemory.class, criticContext.getMemory());
-        assertEquals(1, memory.getMessages().size());
-        assertEquals("compressed review context", memory.getMessages().get(0).getText());
+        assertEquals(2, memory.getMessages().size());
+        assertEquals("Improve the draft", memory.getMessages().get(0).getText());
+        assertTrue(memory.getMessages().get(1).getText().contains("Current Content:"));
+        assertTrue(memory.getMessages().get(1).getText().contains("updated body"));
+        assertTrue(memory.getMessages().get(1).getText().contains("Actor Summary:"));
+        assertTrue(memory.getMessages().get(1).getText().contains("actor summary"));
     }
 
     @Test

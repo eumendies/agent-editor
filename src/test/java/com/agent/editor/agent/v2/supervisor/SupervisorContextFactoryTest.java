@@ -117,11 +117,7 @@ class SupervisorContextFactoryTest {
 
     @Test
     void shouldSummarizeWorkerResultBackIntoConversationState() {
-        SupervisorContextFactory factory = new SupervisorContextFactory(request -> new MemoryCompressionResult(
-                new ChatTranscriptMemory(List.of(new ChatMessage.AiChatMessage("compressed supervisor result"))),
-                true,
-                "compressed"
-        ));
+        SupervisorContextFactory factory = new SupervisorContextFactory(NoOpMemoryCompressors.noop());
         AgentRunContext conversationState = new AgentRunContext(
                 null,
                 1,
@@ -141,7 +137,8 @@ class SupervisorContextFactoryTest {
         assertEquals("draft updated", nextState.getCurrentContent());
         ChatTranscriptMemory memory = (ChatTranscriptMemory) nextState.getMemory();
         assertEquals(1, memory.getMessages().size());
-        assertEquals("compressed supervisor result", memory.getMessages().get(0).getText());
+        assertTrue(memory.getMessages().get(0).getText().contains("workerId: " + SupervisorWorkerIds.WRITER));
+        assertTrue(memory.getMessages().get(0).getText().contains("summary: summary"));
     }
 
     @Test

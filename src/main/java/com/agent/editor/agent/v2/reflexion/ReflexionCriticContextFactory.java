@@ -2,6 +2,8 @@ package com.agent.editor.agent.v2.reflexion;
 
 import com.agent.editor.agent.v2.core.context.AgentContextFactory;
 import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
+import com.agent.editor.agent.v2.core.context.CompressContextMemory;
+import com.agent.editor.agent.v2.core.context.MemoryCompressionCapableContextFactory;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.memory.ExecutionMemory;
@@ -21,7 +23,7 @@ import dev.langchain4j.model.chat.request.json.JsonSchema;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ReflexionCriticContextFactory implements AgentContextFactory {
+public class ReflexionCriticContextFactory implements AgentContextFactory, MemoryCompressionCapableContextFactory {
 
     private static final JsonSchema REFLEXION_CRITIQUE_SCHEMA = JsonSchema.builder()
             .name("reflexion_critique")
@@ -51,8 +53,9 @@ public class ReflexionCriticContextFactory implements AgentContextFactory {
     }
 
     @Override
+    @CompressContextMemory
     public AgentRunContext prepareInitialContext(TaskRequest request) {
-        return compressContextMemory(new AgentRunContext(
+        return new AgentRunContext(
                 null,
                 0,
                 request.getDocument().getContent(),
@@ -60,11 +63,12 @@ public class ReflexionCriticContextFactory implements AgentContextFactory {
                 ExecutionStage.RUNNING,
                 null,
                 List.of()
-        ));
+        );
     }
 
+    @CompressContextMemory
     public AgentRunContext prepareReviewContext(TaskRequest request, AgentRunContext actorState, String actorSummary) {
-        return compressContextMemory(new AgentRunContext(
+        return new AgentRunContext(
                 actorState.getRequest(),
                 0,
                 actorState.getCurrentContent(),
@@ -80,7 +84,7 @@ public class ReflexionCriticContextFactory implements AgentContextFactory {
                 ExecutionStage.RUNNING,
                 actorState.getPendingReason(),
                 actorState.getToolSpecifications()
-        ));
+        );
     }
 
     @Override
@@ -124,8 +128,9 @@ public class ReflexionCriticContextFactory implements AgentContextFactory {
         return new ChatTranscriptMemory(messages, transcriptMemory.getLastObservedTotalTokens());
     }
 
-    private AgentRunContext compressContextMemory(AgentRunContext context) {
-        return context.withMemory(memoryCompressor.compressOrOriginal(context.getMemory()));
+    @Override
+    public MemoryCompressor memoryCompressor() {
+        return memoryCompressor;
     }
 
     private String analysisSystemPrompt() {
