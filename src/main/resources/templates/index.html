@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agent V2 Orchestration Demo</title>
+    <title>Agent Editor Workbench</title>
     <style>
         :root {
             --bg: #0d1321;
@@ -38,24 +38,28 @@
                 linear-gradient(160deg, #08101d 0%, #0d1321 45%, #121f3b 100%);
         }
 
+        button,
+        textarea,
+        select,
+        input[type="text"],
+        input[type="file"] {
+            font: inherit;
+        }
+
         .shell {
-            max-width: 1480px;
+            max-width: 1520px;
             margin: 0 auto;
             padding: 28px 22px 40px;
         }
 
-        .hero {
+        .workspace-grid {
             display: grid;
-            grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.9fr);
+            grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.9fr);
             gap: 18px;
-            margin-bottom: 18px;
+            align-items: start;
         }
 
-        .hero-card,
-        .status-card,
-        .scenario-bar,
-        .panel,
-        .timeline-panel {
+        .panel {
             background: var(--panel);
             border: 1px solid var(--line);
             border-radius: 24px;
@@ -63,223 +67,48 @@
             backdrop-filter: blur(16px);
         }
 
-        .hero-card {
-            padding: 28px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hero-card::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(120deg, rgba(124, 198, 254, 0.08), transparent 40%, rgba(255, 159, 28, 0.08));
-            pointer-events: none;
-        }
-
-        .eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 14px;
-            border-radius: 999px;
-            background: rgba(124, 198, 254, 0.12);
-            color: var(--accent);
-            font-size: 12px;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-        }
-
-        h1 {
-            margin-top: 18px;
-            font-size: clamp(34px, 5vw, 56px);
-            line-height: 1;
-            letter-spacing: -0.04em;
-            font-family: "Georgia", "Times New Roman", serif;
-        }
-
-        .hero-copy {
-            margin-top: 16px;
-            max-width: 760px;
-            color: var(--muted);
-            font-size: 16px;
-            line-height: 1.7;
-        }
-
-        .hero-meta {
-            margin-top: 24px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .hero-chip {
-            padding: 10px 14px;
-            border-radius: 14px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .status-card {
-            padding: 24px;
-            display: grid;
-            gap: 14px;
-            align-content: space-between;
-        }
-
-        .status-line {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .status-label {
-            color: var(--muted);
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .status-pill {
-            padding: 9px 14px;
-            border-radius: 999px;
-            font-weight: 700;
-            font-size: 13px;
-        }
-
-        .status-pill.connected {
-            color: #07140a;
-            background: linear-gradient(135deg, #b6f8c0, #4ade80);
-        }
-
-        .status-pill.disconnected {
-            color: #fff5f5;
-            background: linear-gradient(135deg, #ff8b8b, #e71d36);
-        }
-
-        .mode-lens {
-            display: grid;
-            gap: 10px;
-        }
-
-        .mode-card {
-            padding: 14px 16px;
-            border-radius: 18px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            background: rgba(255, 255, 255, 0.03);
-            transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-        }
-
-        .mode-card.active {
-            transform: translateY(-2px);
-            background: rgba(255, 255, 255, 0.07);
-        }
-
-        .mode-card.react.active {
-            border-color: rgba(255, 159, 28, 0.65);
-        }
-
-        .mode-card.planning.active {
-            border-color: rgba(46, 196, 182, 0.65);
-        }
-
-        .mode-card.supervisor.active {
-            border-color: rgba(231, 29, 54, 0.65);
-        }
-
-        .mode-card.reflexion.active {
-            border-color: rgba(139, 92, 246, 0.65);
-        }
-
-        .mode-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .mode-name {
-            font-weight: 700;
-            font-size: 15px;
-        }
-
-        .mode-tag {
-            font-size: 11px;
-            padding: 5px 8px;
-            border-radius: 999px;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        .mode-card.react .mode-tag {
-            background: rgba(255, 159, 28, 0.16);
-            color: var(--react);
-        }
-
-        .mode-card.planning .mode-tag {
-            background: rgba(46, 196, 182, 0.16);
-            color: var(--planning);
-        }
-
-        .mode-card.supervisor .mode-tag {
-            background: rgba(231, 29, 54, 0.16);
-            color: #ff92a1;
-        }
-
-        .mode-card.reflexion .mode-tag {
-            background: rgba(139, 92, 246, 0.16);
-            color: #d6bcfa;
-        }
-
-        .mode-copy {
-            color: var(--muted);
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .scenario-bar {
-            margin-bottom: 18px;
+        .document-panel,
+        .chat-panel,
+        .knowledge-section .panel {
             padding: 22px;
-            display: grid;
-            gap: 18px;
         }
 
-        .scenario-title-row {
+        .panel-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             gap: 16px;
+            margin-bottom: 18px;
         }
 
-        .scenario-title {
+        .panel-subtitle {
+            color: var(--muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .panel-title {
+            margin-top: 6px;
             font-size: 24px;
             font-weight: 700;
             letter-spacing: -0.03em;
         }
 
-        .scenario-subtitle {
+        .panel-copy {
+            margin-top: 8px;
             color: var(--muted);
             font-size: 14px;
-            line-height: 1.6;
-            margin-top: 6px;
-        }
-
-        .task-grid {
-            display: grid;
-            grid-template-columns: 1.2fr 0.8fr;
-            gap: 16px;
+            line-height: 1.7;
         }
 
         .field-label {
             display: block;
+            margin-bottom: 10px;
+            color: var(--muted);
             font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            color: var(--muted);
-            margin-bottom: 10px;
         }
 
         textarea,
@@ -293,26 +122,6 @@
             color: var(--text);
         }
 
-        #instructionInput {
-            min-height: 144px;
-            padding: 18px;
-            font-size: 15px;
-            line-height: 1.6;
-            resize: vertical;
-        }
-
-        select,
-        input[type="text"] {
-            padding: 14px 16px;
-            font-size: 14px;
-        }
-
-        input[type="file"] {
-            padding: 12px 14px;
-            font-size: 14px;
-            line-height: 1.4;
-        }
-
         textarea:focus,
         select:focus,
         input[type="text"]:focus,
@@ -322,15 +131,11 @@
             box-shadow: 0 0 0 4px rgba(124, 198, 254, 0.1);
         }
 
-        .action-stack {
-            display: grid;
-            gap: 12px;
-        }
-
-        .run-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 10px;
+        select,
+        input[type="text"],
+        input[type="file"] {
+            padding: 14px 16px;
+            font-size: 14px;
         }
 
         button {
@@ -353,6 +158,16 @@
             transform: none;
         }
 
+        .primary-btn {
+            background: linear-gradient(135deg, #b6e2ff, #7cc6fe);
+            color: #041523;
+        }
+
+        .secondary-btn {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text);
+        }
+
         .run-btn.react {
             background: linear-gradient(135deg, #ffbf69, #ff9f1c);
             color: #251400;
@@ -373,12 +188,139 @@
             color: #1f1238;
         }
 
-        .secondary-btn {
-            background: rgba(255, 255, 255, 0.08);
-            color: var(--text);
+        .status-pill {
+            padding: 9px 14px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 13px;
         }
 
-        .helper-copy {
+        .status-pill.connected {
+            color: #07140a;
+            background: linear-gradient(135deg, #b6f8c0, #4ade80);
+        }
+
+        .status-pill.disconnected {
+            color: #fff5f5;
+            background: linear-gradient(135deg, #ff8b8b, #e71d36);
+        }
+
+        .workspace-toolbar {
+            display: grid;
+            grid-template-columns: minmax(220px, 0.6fr) auto;
+            gap: 12px;
+            align-items: end;
+            margin-bottom: 16px;
+        }
+
+        .toolbar-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        #documentEditor {
+            min-height: 560px;
+            padding: 20px;
+            resize: vertical;
+            line-height: 1.75;
+            font-size: 15px;
+            background: rgba(4, 8, 18, 0.86);
+        }
+
+        .save-status {
+            min-height: 22px;
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .save-status.success {
+            color: var(--success);
+        }
+
+        .save-status.error {
+            color: var(--danger);
+        }
+
+        .document-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .diff-panel {
+            margin-top: 18px;
+            padding-top: 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .diff-view {
+            min-height: 220px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(5, 10, 20, 0.7);
+            padding: 16px;
+            font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
+            font-size: 13px;
+            overflow: auto;
+            line-height: 1.7;
+        }
+
+        .diff-add {
+            color: #9ae6b4;
+            background: rgba(74, 222, 128, 0.08);
+        }
+
+        .diff-remove {
+            color: #feb2b2;
+            background: rgba(255, 107, 107, 0.08);
+        }
+
+        .diff-same {
+            color: #91a3c6;
+        }
+
+        .chat-panel {
+            display: grid;
+            grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+            gap: 16px;
+            min-height: 860px;
+        }
+
+        .chat-toolbar {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .chat-toolbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .chat-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .mode-summary {
             padding: 14px 16px;
             border-radius: 18px;
             background: rgba(124, 198, 254, 0.08);
@@ -386,6 +328,107 @@
             color: var(--muted);
             line-height: 1.7;
             font-size: 14px;
+        }
+
+        .chat-messages {
+            min-height: 420px;
+            max-height: 100%;
+            overflow-y: auto;
+            display: grid;
+            gap: 12px;
+            padding-right: 4px;
+        }
+
+        .chat-message {
+            border-radius: 20px;
+            padding: 16px 18px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(5, 10, 20, 0.72);
+            display: grid;
+            gap: 10px;
+        }
+
+        .chat-message.user {
+            background: linear-gradient(180deg, rgba(124, 198, 254, 0.18), rgba(5, 10, 20, 0.72));
+            border-color: rgba(124, 198, 254, 0.22);
+        }
+
+        .chat-message.assistant {
+            border-left: 4px solid var(--react);
+        }
+
+        .chat-message.system {
+            border-left: 4px solid var(--planning);
+        }
+
+        .chat-message.error {
+            border-left: 4px solid var(--danger);
+            background: linear-gradient(180deg, rgba(255, 107, 107, 0.1), rgba(5, 10, 20, 0.72));
+        }
+
+        .message-topline {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .message-role {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+
+        .message-kind {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 5px 8px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .message-body {
+            line-height: 1.75;
+            font-size: 14px;
+            word-break: break-word;
+        }
+
+        .message-meta {
+            color: var(--muted);
+            font-size: 12px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .composer {
+            display: grid;
+            gap: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        #instructionInput {
+            min-height: 120px;
+            padding: 18px;
+            resize: vertical;
+            line-height: 1.7;
+            font-size: 15px;
+        }
+
+        .composer-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+            gap: 12px;
+            align-items: end;
+        }
+
+        .run-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
         }
 
         .progress-wrap {
@@ -416,146 +459,60 @@
             font-size: 12px;
         }
 
-        .stage {
+        .trace-panel {
             display: grid;
-            grid-template-columns: 1.15fr 0.85fr;
-            gap: 18px;
-        }
-
-        .stack {
-            display: grid;
-            gap: 18px;
-        }
-
-        .panel,
-        .timeline-panel {
-            padding: 20px;
-        }
-
-        .panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .panel-title {
-            font-size: 17px;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-        }
-
-        .panel-subtitle {
-            color: var(--muted);
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .doc-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 16px;
-        }
-
-        .doc-box {
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            background: rgba(5, 10, 20, 0.7);
             padding: 16px;
-            min-height: 320px;
+            border-radius: 20px;
+            background: rgba(5, 10, 20, 0.68);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .trace-summary {
             display: grid;
-            gap: 12px;
-        }
-
-        .doc-box-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             gap: 8px;
-        }
-
-        .doc-box-title {
-            font-weight: 700;
-        }
-
-        .doc-box-copy {
             color: var(--muted);
-            font-size: 12px;
-        }
-
-        .doc-text {
-            width: 100%;
-            min-height: 235px;
-            resize: none;
-            padding: 0;
-            border: none;
-            background: transparent;
-            color: var(--text);
-            font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
-            line-height: 1.7;
             font-size: 13px;
+            line-height: 1.6;
         }
 
-        .doc-text:focus {
-            outline: none;
-            box-shadow: none;
-        }
-
-        .insight-list {
+        .trace-records {
             display: grid;
             gap: 10px;
+            max-height: 180px;
+            overflow-y: auto;
+            padding-right: 4px;
         }
 
-        .insight-item {
-            border-radius: 18px;
-            padding: 14px 16px;
+        .trace-record {
+            border-radius: 16px;
+            padding: 12px 14px;
             background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .insight-item strong {
-            display: block;
-            margin-bottom: 6px;
-        }
-
-        .insight-item span {
+        .trace-record-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 12px;
             color: var(--muted);
-            line-height: 1.7;
-            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
-        .diff-view {
-            min-height: 220px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            background: rgba(5, 10, 20, 0.7);
-            padding: 16px;
-            font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
+        .trace-record-stage {
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .trace-record-body {
             font-size: 13px;
-            overflow: auto;
             line-height: 1.7;
-        }
-
-        .diff-add {
-            color: #9ae6b4;
-            background: rgba(74, 222, 128, 0.08);
-        }
-
-        .diff-remove {
-            color: #feb2b2;
-            background: rgba(255, 107, 107, 0.08);
-        }
-
-        .diff-same {
-            color: #91a3c6;
-        }
-
-        .timeline-panel {
-            display: grid;
-            gap: 14px;
-            align-content: start;
+            color: var(--text);
+            white-space: pre-wrap;
+            word-break: break-word;
         }
 
         .knowledge-section {
@@ -627,155 +584,10 @@
             line-height: 1.6;
         }
 
-        .timeline-headline {
-            color: var(--muted);
-            font-size: 14px;
-            line-height: 1.7;
-        }
-
-        .timeline-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .timeline {
-            max-height: 720px;
-            overflow-y: auto;
-            padding-right: 4px;
-            display: grid;
-            gap: 12px;
-        }
-
-        .trace-panel {
-            display: grid;
-            gap: 12px;
-            padding: 16px;
-            border-radius: 20px;
-            background: rgba(5, 10, 20, 0.68);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .trace-summary {
-            display: grid;
-            gap: 8px;
-            color: var(--muted);
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .trace-records {
-            display: grid;
-            gap: 10px;
-            max-height: 420px;
-            overflow-y: auto;
-            padding-right: 4px;
-        }
-
-        .trace-record {
-            border-radius: 16px;
-            padding: 12px 14px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .trace-record-head {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 8px;
-            font-size: 12px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .trace-record-stage {
-            font-weight: 700;
-            color: var(--text);
-        }
-
-        .trace-record-body {
-            font-size: 13px;
-            line-height: 1.7;
-            color: var(--text);
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        .step-item {
-            border-radius: 18px;
-            padding: 14px 16px;
-            background: rgba(5, 10, 20, 0.72);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-left: 4px solid var(--accent);
-        }
-
-        .step-item.thinking {
-            border-left-color: var(--react);
-        }
-
-        .step-item.action {
-            border-left-color: var(--planning);
-        }
-
-        .step-item.observation {
-            border-left-color: var(--accent);
-        }
-
-        .step-item.completed {
-            border-left-color: var(--success);
-        }
-
-        .step-item.error {
-            border-left-color: var(--danger);
-        }
-
-        .step-topline {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 10px;
-        }
-
-        .step-number {
-            color: var(--muted);
-            font-size: 12px;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        .step-type {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            padding: 5px 8px;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .step-content {
-            line-height: 1.7;
-            font-size: 14px;
-        }
-
-        .step-context {
-            margin-top: 10px;
-            color: var(--muted);
-            font-size: 12px;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
-
         .empty-state {
             display: grid;
             place-items: center;
-            min-height: 180px;
+            min-height: 160px;
             text-align: center;
             color: var(--muted);
             border: 1px dashed rgba(255, 255, 255, 0.08);
@@ -784,12 +596,10 @@
             line-height: 1.7;
         }
 
-        @media (max-width: 1120px) {
-            .hero,
-            .task-grid,
-            .stage,
-            .doc-grid,
-            .knowledge-grid {
+        @media (max-width: 1200px) {
+            .workspace-grid,
+            .knowledge-grid,
+            .composer-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -799,191 +609,63 @@
                 padding: 18px 14px 28px;
             }
 
+            .panel,
+            .document-panel,
+            .chat-panel,
+            .knowledge-section .panel {
+                border-radius: 20px;
+            }
+
+            .workspace-toolbar,
+            .chat-toolbar,
             .run-grid {
                 grid-template-columns: 1fr;
             }
 
-            .hero-card,
-            .status-card,
-            .scenario-bar,
-            .panel,
-            .timeline-panel {
-                border-radius: 20px;
+            .toolbar-actions,
+            .chat-toolbar-actions,
+            .knowledge-form-actions {
+                flex-direction: column;
+                align-items: stretch;
             }
         }
     </style>
 </head>
 <body>
 <div class="shell">
-    <section class="hero">
-        <div class="hero-card">
-            <div class="eyebrow">Workflow Kernel / Demo Surface</div>
-            <h1>Agent V2 Orchestration Demo</h1>
-            <p class="hero-copy">
-                同一个任务，三种不同的 agent 编排策略。这个页面不是普通编辑器，而是用来演示
-                ReAct、Planning 和 Supervisor 在任务拆解、执行路径与结果收口上的差异。
-            </p>
-            <div class="hero-meta">
-                <div class="hero-chip">Single Agent: 即时决策与工具调用</div>
-                <div class="hero-chip">Planning: 先拆计划，再逐步执行</div>
-                <div class="hero-chip">Supervisor: 串行调度异构 worker 并最终汇总</div>
-                <div class="hero-chip">Reflexion: actor 与 critic 交替迭代直到通过</div>
-            </div>
-        </div>
-
-        <aside class="status-card">
-            <div class="status-line">
+    <section class="workspace-grid">
+        <section class="panel document-panel">
+            <div class="panel-header">
                 <div>
-                    <div class="status-label">WebSocket Link</div>
-                    <div style="margin-top: 6px; font-size: 14px; color: var(--muted);">实时事件流与步骤可视化</div>
-                </div>
-                <span id="wsStatus" class="status-pill disconnected">Disconnected</span>
-            </div>
-
-            <div class="mode-lens">
-                <div class="mode-card react active" data-mode-card="REACT">
-                    <div class="mode-card-header">
-                        <span class="mode-name">ReAct</span>
-                        <span class="mode-tag">Reactive</span>
-                    </div>
-                    <div class="mode-copy">单 agent 即时判断下一步是回答还是调用工具，适合短链路任务。</div>
-                </div>
-                <div class="mode-card planning" data-mode-card="PLANNING">
-                    <div class="mode-card-header">
-                        <span class="mode-name">Planning</span>
-                        <span class="mode-tag">Plan First</span>
-                    </div>
-                    <div class="mode-copy">先把原始任务拆成计划，再按计划逐步落地，适合更结构化的编辑请求。</div>
-                </div>
-                <div class="mode-card supervisor" data-mode-card="SUPERVISOR">
-                    <div class="mode-card-header">
-                        <span class="mode-name">Supervisor</span>
-                        <span class="mode-tag">Multi Agent</span>
-                    </div>
-                    <div class="mode-copy">由 supervisor 串行调度 analyzer、editor、reviewer，并统一收口最终结果。</div>
-                </div>
-                <div class="mode-card reflexion" data-mode-card="REFLEXION">
-                    <div class="mode-card-header">
-                        <span class="mode-name">Reflexion</span>
-                        <span class="mode-tag">Actor Critic</span>
-                    </div>
-                    <div class="mode-copy">actor 负责编辑，critic 负责审视并给出 revise/pass 反馈，直到达到通过条件。</div>
+                    <div class="panel-subtitle">Editing Surface</div>
+                    <div class="panel-title">Document Workspace</div>
+                    <div class="panel-copy">在这里直接人工修改文档，保存后再让 agent 基于最新内容继续工作。</div>
                 </div>
             </div>
-        </aside>
-    </section>
 
-    <section class="scenario-bar">
-        <div class="scenario-title-row">
-            <div>
-                <div class="scenario-title">Scenario Bar</div>
-                <div class="scenario-subtitle">
-                    用同一条指令观察三种模式的执行差异。建议先运行 Planning 或 Supervisor，再回切 ReAct 做对比。
-                </div>
-            </div>
-            <select id="documentSelect" aria-label="Document selector">
-                <option value="doc-001">Sample Document</option>
-            </select>
-        </div>
-
-        <div class="task-grid">
-            <div>
-                <label class="field-label" for="instructionInput">Task Instruction</label>
-                <textarea id="instructionInput">Improve the sample document by clarifying the structure, strengthening the intro, and giving it a more confident closing.</textarea>
-            </div>
-
-            <div class="action-stack">
+            <div class="workspace-toolbar">
                 <div>
-                    <label class="field-label" for="agentMode">Active Mode</label>
-                    <select id="agentMode" onchange="syncModeUI(this.value)">
-                        <option value="REACT">REACT</option>
-                        <option value="PLANNING">PLANNING</option>
-                        <option value="SUPERVISOR">SUPERVISOR</option>
-                        <option value="REFLEXION">REFLEXION</option>
+                    <label class="field-label" for="documentSelect">Document</label>
+                    <select id="documentSelect" aria-label="Document selector">
+                        <option value="doc-001">Sample Document</option>
                     </select>
                 </div>
-
-                <div class="helper-copy" id="modeSummary">
-                    ReAct 会直接进入单 agent 决策循环，在每一步决定是调用工具还是直接完成任务。
-                </div>
-
-                <div class="run-grid">
-                    <button class="run-btn react" id="reactBtn" onclick="runMode('REACT')">Run ReAct</button>
-                    <button class="run-btn planning" id="planningBtn" onclick="runMode('PLANNING')">Run Planning</button>
-                    <button class="run-btn supervisor" id="supervisorBtn" onclick="runMode('SUPERVISOR')">Run Supervisor</button>
-                    <button class="run-btn reflexion" id="reflexionBtn" onclick="runMode('REFLEXION')">Run Reflexion</button>
-                </div>
-
-                <button class="secondary-btn" onclick="clearTimeline()">Clear Timeline</button>
-
-                <div class="progress-wrap" id="progressWrap">
-                    <div class="progress-track">
-                        <div class="progress-fill" id="progressFill"></div>
-                    </div>
-                    <div class="progress-label" id="progressLabel">0%</div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="stage">
-        <div class="stack">
-            <div class="panel">
-                <div class="panel-header">
-                    <div>
-                        <div class="panel-subtitle">Document Comparison</div>
-                        <div class="panel-title">Original vs Current Result</div>
-                    </div>
+                <div class="toolbar-actions">
+                    <button id="saveDocumentBtn" class="primary-btn" onclick="saveDocument()" disabled>Save Document</button>
                     <button class="secondary-btn" onclick="refreshDocument()">Refresh Document</button>
                 </div>
-
-                <div class="doc-grid">
-                    <div class="doc-box">
-                        <div class="doc-box-header">
-                            <div>
-                                <div class="doc-box-title">Original Snapshot</div>
-                                <div class="doc-box-copy">任务执行前的文档基线</div>
-                            </div>
-                        </div>
-                        <textarea id="originalContent" class="doc-text" readonly></textarea>
-                    </div>
-
-                    <div class="doc-box">
-                        <div class="doc-box-header">
-                            <div>
-                                <div class="doc-box-title">Current Result</div>
-                                <div class="doc-box-copy">当前模式返回或落盘后的文档结果</div>
-                            </div>
-                        </div>
-                        <textarea id="resultContent" class="doc-text" readonly></textarea>
-                    </div>
-                </div>
             </div>
 
-            <div class="panel">
-                <div class="panel-header">
-                    <div>
-                        <div class="panel-subtitle">Mode Lens</div>
-                        <div class="panel-title">What This Mode Is Showing</div>
-                    </div>
-                </div>
-                <div class="insight-list" id="insightList">
-                    <div class="insight-item">
-                        <strong>Execution Lens</strong>
-                        <span id="insightExecution">单 agent 即时执行与工具调用。</span>
-                    </div>
-                    <div class="insight-item">
-                        <strong>Primary Signal</strong>
-                        <span id="insightSignal">重点观察 Action 与 Observation 的节奏。</span>
-                    </div>
-                    <div class="insight-item">
-                        <strong>Demo Prompt</strong>
-                        <span id="insightPrompt">适合短链路或不需要明确分工的任务。</span>
-                    </div>
-                </div>
+            <label class="field-label" for="documentEditor">Document Content</label>
+            <textarea id="documentEditor" spellcheck="false"></textarea>
+            <div id="saveStatus" class="save-status">当前文档已同步到服务端。</div>
+
+            <div class="document-meta">
+                <span id="documentDirtyState">Saved</span>
+                <span>保存接口: <code>PUT /api/v1/documents/{id}</code></span>
             </div>
 
-            <div class="panel">
+            <div class="diff-panel">
                 <div class="panel-header">
                     <div>
                         <div class="panel-subtitle">Result Delta</div>
@@ -994,30 +676,76 @@
                     <div class="empty-state">运行任意模式后，这里会展示文档变更对比。</div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <aside class="timeline-panel">
-            <div>
-                <div class="panel-subtitle">Execution Timeline</div>
-                <div class="panel-title">Mode Event Stream</div>
-                <div class="timeline-headline" id="timelineHeadline">
-                    当前时间线会把工具调用、计划生成和 supervisor 调度都压平展示，便于现场讲解编排差异。
+        <aside class="panel chat-panel">
+            <div class="panel-header" style="margin-bottom: 0;">
+                <div>
+                    <div class="panel-subtitle">Runtime Console</div>
+                    <div class="panel-title">Chat Workspace</div>
+                    <div class="panel-copy">任务输入、模式切换、事件流和最终回复统一收进同一个聊天面板。</div>
                 </div>
             </div>
 
-            <div class="timeline-meta">
-                <span id="timelineModeLabel">Mode: REACT</span>
-                <span id="stepCount">0 steps</span>
+            <div class="chat-toolbar">
+                <div>
+                    <label class="field-label" for="agentMode">Active Mode</label>
+                    <select id="agentMode" onchange="syncModeUI(this.value)">
+                        <option value="REACT">REACT</option>
+                        <option value="PLANNING">PLANNING</option>
+                        <option value="SUPERVISOR">SUPERVISOR</option>
+                        <option value="REFLEXION">REFLEXION</option>
+                    </select>
+                </div>
+                <div class="chat-toolbar-actions">
+                    <button id="clearChatBtn" class="secondary-btn" onclick="clearChat()">Clear Chat</button>
+                    <span id="wsStatus" class="status-pill disconnected">Disconnected</span>
+                </div>
             </div>
 
-            <div id="stepsContainer" class="timeline">
-                <div class="empty-state">选择一种模式并运行任务，事件流会从这里开始展开。</div>
+            <div class="chat-meta">
+                <span id="timelineModeLabel">Mode: REACT</span>
+                <span id="stepCount">0 messages</span>
+            </div>
+
+            <div id="modeSummary" class="mode-summary">
+                ReAct 会直接进入单 agent 决策循环，在每一步决定是调用工具还是直接完成任务。
+            </div>
+
+            <div id="chatMessages" class="chat-messages">
+                <div class="empty-state">输入任务后，事件流和回答会按聊天消息的方式出现在这里。</div>
+            </div>
+
+            <div class="composer">
+                <div class="progress-wrap" id="progressWrap">
+                    <div class="progress-track">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-label" id="progressLabel">0%</div>
+                </div>
+
+                <div>
+                    <label class="field-label" for="instructionInput">Task Instruction</label>
+                    <textarea id="instructionInput">Improve the sample document by clarifying the structure, strengthening the intro, and giving it a more confident closing.</textarea>
+                </div>
+
+                <div class="composer-grid">
+                    <div class="panel-copy" style="margin-top: 0;">
+                        运行前会优先保存左侧文档，确保 agent 读取的是你刚刚手工修改后的版本。
+                    </div>
+                    <div class="run-grid">
+                        <button class="run-btn react" id="reactBtn" onclick="runMode('REACT')">Run ReAct</button>
+                        <button class="run-btn planning" id="planningBtn" onclick="runMode('PLANNING')">Run Planning</button>
+                        <button class="run-btn supervisor" id="supervisorBtn" onclick="runMode('SUPERVISOR')">Run Supervisor</button>
+                        <button class="run-btn reflexion" id="reflexionBtn" onclick="runMode('REFLEXION')">Run Reflexion</button>
+                    </div>
+                </div>
             </div>
 
             <div id="tracePanel" class="trace-panel">
                 <div>
                     <div class="panel-subtitle">Trace Inspector</div>
-                    <div class="panel-title">Prompt / Tool / Result</div>
+                    <div class="panel-title" style="font-size: 17px;">Prompt / Tool / Result</div>
                 </div>
                 <div id="traceSummary" class="trace-summary">
                     <div class="empty-state">运行任务后，这里会展示完整 trace 摘要。</div>
@@ -1032,7 +760,7 @@
             <div class="panel-header">
                 <div>
                     <div class="panel-subtitle">Knowledge Base</div>
-                    <div class="panel-title">Knowledge Base Upload</div>
+                    <div class="panel-title" style="font-size: 22px;">Knowledge Base Upload</div>
                 </div>
             </div>
 
@@ -1078,35 +806,22 @@
     let taskStatusPollingHandle = null;
     let finalizedTaskId = null;
     let currentTaskDocumentId = null;
+    let isDocumentDirty = false;
+    let activeInstruction = "";
+    let isTaskRunning = false;
 
     const modeContent = {
         REACT: {
-            summary: "ReAct 会直接进入单 agent 决策循环，在每一步决定是调用工具还是直接完成任务。",
-            execution: "单 agent 即时执行与工具调用。",
-            signal: "重点观察 Action 与 Observation 的节奏。",
-            prompt: "适合短链路或不需要明确分工的任务。",
-            headline: "当前时间线强调单 agent 的连续决策，最适合展示最短执行路径。"
+            summary: "ReAct 会直接进入单 agent 决策循环，在每一步决定是调用工具还是直接完成任务。"
         },
         PLANNING: {
-            summary: "Planning 会先产出结构化计划，再把每个计划步骤顺序交给执行 agent 处理。",
-            execution: "先拆计划，再顺序落地。",
-            signal: "重点观察计划创建与每一步结果如何串联。",
-            prompt: "适合你想强调任务拆解能力的演示。",
-            headline: "Planning 时间线会先出现计划信号，再展示按步骤执行的阶段性产物。"
+            summary: "Planning 会先产出结构化计划，再把每个计划步骤顺序交给执行 agent 处理。"
         },
         SUPERVISOR: {
-            summary: "Supervisor 会串行调度异构 worker，由 analyzer、editor、reviewer 分工后再统一收口。",
-            execution: "supervisor 调度多 agent，最终统一汇总。",
-            signal: "重点观察 worker dispatch、worker complete 和最终 supervisor 收口。",
-            prompt: "适合演示多 agent 编排，而不是只看单一工具链。",
-            headline: "Supervisor 时间线最适合讲解角色分工和汇总过程，而不是单一步骤的快慢。"
+            summary: "Supervisor 会串行调度异构 worker，由 analyzer、editor、reviewer 分工后再统一收口。"
         },
         REFLEXION: {
-            summary: "Reflexion 会让 actor 先编辑，再让 critic 判断 pass 或 revise，把反馈回灌给下一轮 actor。",
-            execution: "actor 编辑，critic 审视，直到 pass 或达到轮数上限。",
-            signal: "重点观察 revise 与 pass 两个分叉，以及 critic 的反馈如何进入下一轮。",
-            prompt: "适合演示自反馈迭代，而不是纯粹的工具链或 worker 调度。",
-            headline: "Reflexion 时间线强调 actor 与 critic 的交替闭环，适合展示逐轮修正。"
+            summary: "Reflexion 会让 actor 先编辑，再让 critic 判断 pass 或 revise，把反馈回灌给下一轮 actor。"
         }
     };
 
@@ -1115,21 +830,24 @@
         document.getElementById("agentMode").value = mode;
         document.getElementById("timelineModeLabel").textContent = `Mode: ${mode}`;
         document.getElementById("modeSummary").textContent = modeContent[mode].summary;
-        document.getElementById("insightExecution").textContent = modeContent[mode].execution;
-        document.getElementById("insightSignal").textContent = modeContent[mode].signal;
-        document.getElementById("insightPrompt").textContent = modeContent[mode].prompt;
-        document.getElementById("timelineHeadline").textContent = modeContent[mode].headline;
-
-        document.querySelectorAll("[data-mode-card]").forEach(card => {
-            card.classList.toggle("active", card.dataset.modeCard === mode);
-        });
     }
 
     function setRunningState(running) {
-        ["reactBtn", "planningBtn", "supervisorBtn", "reflexionBtn"].forEach(id => {
+        isTaskRunning = running;
+        ["reactBtn", "planningBtn", "supervisorBtn", "reflexionBtn", "saveDocumentBtn", "clearChatBtn"].forEach(id => {
+            if (id === "clearChatBtn") {
+                document.getElementById(id).disabled = false;
+                return;
+            }
+            if (id === "saveDocumentBtn") {
+                document.getElementById(id).disabled = running || !isDocumentDirty;
+                return;
+            }
             document.getElementById(id).disabled = running;
         });
         document.getElementById("documentSelect").disabled = running;
+        document.getElementById("agentMode").disabled = running;
+        document.getElementById("documentEditor").disabled = running;
     }
 
     function resetProgress() {
@@ -1140,6 +858,61 @@
     function showProgress(percent) {
         document.getElementById("progressFill").style.width = percent + "%";
         document.getElementById("progressLabel").textContent = percent + "%";
+    }
+
+    function renderSaveStatus(type, message) {
+        const saveStatus = document.getElementById("saveStatus");
+        saveStatus.className = "save-status" + (type ? " " + type : "");
+        saveStatus.textContent = message;
+        document.getElementById("documentDirtyState").textContent = isDocumentDirty ? "Unsaved changes" : "Saved";
+    }
+
+    function markDocumentDirty(dirty) {
+        isDocumentDirty = dirty;
+        document.getElementById("saveDocumentBtn").disabled = !dirty || isTaskRunning;
+        renderSaveStatus(dirty ? "" : "success", dirty ? "文档有未保存修改。" : "当前文档已同步到服务端。");
+    }
+
+    async function saveDocument(options = {}) {
+        const documentId = document.getElementById("documentSelect").value;
+        const content = document.getElementById("documentEditor").value;
+        const requestBody = new URLSearchParams({content}).toString();
+        const saveButton = document.getElementById("saveDocumentBtn");
+        const originalLabel = saveButton.textContent;
+
+        saveButton.disabled = true;
+        saveButton.textContent = "Saving...";
+        if (!options.silent) {
+            renderSaveStatus("", "正在保存文档...");
+        }
+
+        try {
+            const response = await fetch(`/api/v1/documents/${documentId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+                },
+                body: requestBody
+            });
+
+            if (!response.ok) {
+                throw new Error("Document save failed");
+            }
+
+            const doc = await response.json();
+            document.getElementById("documentEditor").value = doc.content || "";
+            markDocumentDirty(false);
+            if (!options.skipDiffReload) {
+                await loadDiffHistory(documentId);
+            }
+            return doc;
+        } catch (error) {
+            renderSaveStatus("error", `保存失败: ${error.message}`);
+            throw error;
+        } finally {
+            saveButton.textContent = originalLabel;
+            saveButton.disabled = isDocumentDirty || isTaskRunning;
+        }
     }
 
     function initWebSocket() {
@@ -1181,21 +954,23 @@
             case "TEXT_STREAM_STARTED":
             case "TEXT_STREAM_DELTA":
             case "TEXT_STREAM_COMPLETED":
-                return "THINKING";
+                return "ASSISTANT";
             case "TOOL_CALLED":
             case "WORKER_SELECTED":
-                return "ACTION";
+            case "PLAN_CREATED":
+                return "SYSTEM";
             case "TOOL_SUCCEEDED":
             case "WORKER_COMPLETED":
-                return "OBSERVATION";
+            case "TASK_STARTED":
+                return "SYSTEM";
             case "TASK_COMPLETED":
             case "SUPERVISOR_COMPLETED":
-                return "COMPLETED";
+                return "ASSISTANT";
             case "TASK_FAILED":
             case "TOOL_FAILED":
                 return "ERROR";
             default:
-                return "THINKING";
+                return "SYSTEM";
         }
     }
 
@@ -1229,39 +1004,39 @@
 
         if (normalized === "TEXT_STREAM_STARTED" || normalized === "TEXT_STREAM_DELTA" || normalized === "TEXT_STREAM_COMPLETED") {
             return {
-                title: "TEXT_STREAM",
-                context: "Assistant Response",
+                title: "Assistant",
+                context: "Streaming Response",
                 content: content
             };
         }
 
-        if (currentMode === "SUPERVISOR" && visualType === "ACTION") {
+        if (currentMode === "SUPERVISOR" && normalized === "WORKER_SELECTED") {
             return {
-                title: normalized,
-                context: "Worker Dispatch",
+                title: "Worker Dispatch",
+                context: normalized,
                 content: `Supervisor selected worker: ${content}`
             };
         }
 
-        if (currentMode === "SUPERVISOR" && visualType === "OBSERVATION") {
+        if (currentMode === "SUPERVISOR" && normalized === "WORKER_COMPLETED") {
             return {
-                title: normalized,
-                context: "Worker Completion",
+                title: "Worker Completion",
+                context: normalized,
                 content: content
             };
         }
 
-        if (currentMode === "PLANNING" && visualType === "THINKING") {
+        if (currentMode === "PLANNING" && normalized === "PLAN_CREATED") {
             return {
-                title: normalized,
-                context: "Plan / Reasoning",
+                title: "Plan Created",
+                context: normalized,
                 content: content
             };
         }
 
         return {
             title: normalized,
-            context: visualType === "ACTION" ? "Tool / Dispatch" : visualType === "OBSERVATION" ? "Observation" : "Runtime Event",
+            context: visualType === "ERROR" ? "Runtime Error" : "Runtime Event",
             content: content
         };
     }
@@ -1273,29 +1048,33 @@
             || normalized === "TEXT_STREAM_COMPLETED";
     }
 
-    function createStepElement(visualType, step, initialContent) {
-        const container = document.getElementById("stepsContainer");
+    function updateMessageCount() {
+        const count = document.querySelectorAll("#chatMessages .chat-message").length;
+        document.getElementById("stepCount").textContent = `${count} messages`;
+    }
+
+    function appendChatMessage(role, kind, content, meta) {
+        const container = document.getElementById("chatMessages");
         const emptyState = container.querySelector(".empty-state");
         if (emptyState) {
             emptyState.remove();
         }
 
-        const stepNumber = container.children.length + 1;
-        const stepDiv = document.createElement("div");
-        stepDiv.className = `step-item ${visualType.toLowerCase()}`;
-        stepDiv.innerHTML = `
-            <div class="step-topline">
-                <span class="step-number">Event ${stepNumber}</span>
-                <span class="step-type">${step.title}</span>
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `chat-message ${role}`;
+        messageDiv.innerHTML = `
+            <div class="message-topline">
+                <span class="message-role">${escapeHtml(role)}</span>
+                <span class="message-kind">${escapeHtml(kind)}</span>
             </div>
-            <div class="step-content">${escapeHtml(initialContent || "").replace(/\n/g, "<br>")}</div>
-            <div class="step-context">${step.context}</div>
+            <div class="message-body">${escapeHtml(content || "").replace(/\n/g, "<br>")}</div>
+            <div class="message-meta">${escapeHtml(meta || "")}</div>
         `;
 
-        container.appendChild(stepDiv);
+        container.appendChild(messageDiv);
         container.scrollTop = container.scrollHeight;
-        document.getElementById("stepCount").textContent = `${container.children.length} steps`;
-        return stepDiv;
+        updateMessageCount();
+        return messageDiv;
     }
 
     function ensureActiveStreamStep() {
@@ -1303,19 +1082,18 @@
             return activeStreamStep;
         }
         currentStreamText = "";
-        const step = describeExecutionEvent("TEXT_STREAM_STARTED", "");
-        activeStreamStep = createStepElement("THINKING", step, "");
+        activeStreamStep = appendChatMessage("assistant", "Streaming", "", `Mode ${currentMode}`);
         activeStreamStep.dataset.streaming = "true";
         return activeStreamStep;
     }
 
     function appendStreamDelta(content) {
         const stepDiv = ensureActiveStreamStep();
-        const contentNode = stepDiv.querySelector(".step-content");
+        const contentNode = stepDiv.querySelector(".message-body");
         currentStreamText += content || "";
         const nextChunk = escapeHtml(content || "").replace(/\n/g, "<br>");
         contentNode.innerHTML = `${contentNode.innerHTML}${nextChunk}`;
-        const container = document.getElementById("stepsContainer");
+        const container = document.getElementById("chatMessages");
         container.scrollTop = container.scrollHeight;
     }
 
@@ -1359,21 +1137,29 @@
         if (shouldSuppressCompletedMessage(executionEvent.type, executionEvent.message || "")) {
             return;
         }
+
         const visualType = normalizeEventVisualType(executionEvent.type);
         const step = describeExecutionEvent(executionEvent.type, executionEvent.message || "No content");
-        createStepElement(visualType, step, step.content);
+        const role = visualType === "ASSISTANT"
+            ? "assistant"
+            : visualType === "ERROR" ? "error" : "system";
+        appendChatMessage(role, step.title, step.content, step.context);
     }
 
     function renderTaskEvents(events) {
-        const container = document.getElementById("stepsContainer");
+        const container = document.getElementById("chatMessages");
         container.innerHTML = "";
-        document.getElementById("stepCount").textContent = "0 steps";
         activeStreamStep = null;
         currentStreamText = "";
         lastCompletedStreamText = null;
 
+        if (activeInstruction) {
+            appendChatMessage("user", "Instruction", activeInstruction, `Mode ${currentMode}`);
+        }
+
         if (!events.length) {
             container.innerHTML = `<div class="empty-state">当前没有事件记录。</div>`;
+            updateMessageCount();
             return;
         }
 
@@ -1459,12 +1245,29 @@
         }
 
         const statusResponse = await loadTaskStatus(taskId).catch(() => null);
-        if (statusResponse?.finalResult) {
-            document.getElementById("resultContent").value = statusResponse.finalResult;
+        if (statusResponse?.finalResult && statusResponse.finalResult !== lastCompletedStreamText) {
+            appendChatMessage("assistant", "Final Result", statusResponse.finalResult, "Task Completed");
         }
         await refreshDocument(currentTaskDocumentId);
         await loadDiffHistory(currentTaskDocumentId);
         await loadTrace(taskId);
+        renderSaveStatus("success", "Agent 结果已同步到文档区。");
+    }
+
+    async function ensureDocumentSavedBeforeRun() {
+        if (!isDocumentDirty) {
+            return true;
+        }
+
+        try {
+            // 运行前先保存，保证 agent 读取到的是左侧编辑器里最新的文档内容。
+            await saveDocument({silent: true, skipDiffReload: true});
+            renderSaveStatus("success", "已在运行前自动保存文档。");
+            return true;
+        } catch (error) {
+            appendChatMessage("error", "Save Failed", error.message || "Document save failed", "Document Workspace");
+            return false;
+        }
     }
 
     async function runMode(mode) {
@@ -1477,19 +1280,25 @@
             return;
         }
 
+        if (!await ensureDocumentSavedBeforeRun()) {
+            return;
+        }
+
         setRunningState(true);
         stopTaskStatusPolling();
         finalizedTaskId = null;
         currentTaskId = null;
         currentTaskDocumentId = documentId;
+        activeInstruction = instruction;
         resetProgress();
         showProgress(12);
-        clearTimeline(false);
+        clearChat(false, false);
+        appendChatMessage("user", "Instruction", instruction, `Mode ${mode}`);
 
         try {
             const response = await fetch("/api/v2/agent/execute", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({
                     documentId: documentId,
                     instruction: instruction,
@@ -1530,11 +1339,13 @@
             const doc = await response.json();
             if (!originalSnapshot) {
                 originalSnapshot = doc.content || "";
-                document.getElementById("originalContent").value = originalSnapshot;
             }
-            document.getElementById("resultContent").value = doc.content || "";
+            document.getElementById("documentEditor").value = doc.content || "";
+            markDocumentDirty(false);
+            currentTaskDocumentId = documentId;
         } catch (error) {
             console.error("Error loading document:", error);
+            renderSaveStatus("error", `加载文档失败: ${error.message}`);
         }
     }
 
@@ -1613,19 +1424,20 @@
         `).join("");
     }
 
-    function clearTimeline(resetDiff = true) {
+    function clearChat(resetTrace = true, resetInstruction = true) {
         activeStreamStep = null;
         currentStreamText = "";
         lastCompletedStreamText = null;
-        document.getElementById("stepsContainer").innerHTML =
-            `<div class="empty-state">选择一种模式并运行任务，事件流会从这里开始展开。</div>`;
-        document.getElementById("stepCount").textContent = "0 steps";
-        document.getElementById("traceSummary").innerHTML =
-            `<div class="empty-state">运行任务后，这里会展示完整 trace 摘要。</div>`;
-        document.getElementById("traceRecords").innerHTML = "";
-        if (resetDiff) {
-            document.getElementById("diffView").innerHTML =
-                `<div class="empty-state">运行任意模式后，这里会展示文档变更对比。</div>`;
+        if (resetInstruction) {
+            activeInstruction = "";
+        }
+        document.getElementById("chatMessages").innerHTML =
+            `<div class="empty-state">输入任务后，事件流和回答会按聊天消息的方式出现在这里。</div>`;
+        updateMessageCount();
+        if (resetTrace) {
+            document.getElementById("traceSummary").innerHTML =
+                `<div class="empty-state">运行任务后，这里会展示完整 trace 摘要。</div>`;
+            document.getElementById("traceRecords").innerHTML = "";
         }
     }
 
@@ -1724,9 +1536,20 @@
     window.onload = function() {
         document.getElementById("knowledgeUploadForm")
             .addEventListener("submit", uploadKnowledgeDocument);
+        document.getElementById("documentEditor")
+            .addEventListener("input", () => markDocumentDirty(true));
+        document.getElementById("documentSelect")
+            .addEventListener("change", async function() {
+                originalSnapshot = "";
+                clearChat();
+                await refreshDocument(this.value);
+                await loadDiffHistory(this.value);
+            });
+
         syncModeUI("REACT");
         initWebSocket();
         refreshDocument();
+        loadDiffHistory(document.getElementById("documentSelect").value);
     };
 </script>
 </body>
