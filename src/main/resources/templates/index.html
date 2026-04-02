@@ -325,7 +325,7 @@
 
         .chat-message {
             justify-self: start;
-            max-width: min(90%, 560px);
+            width: min(100%, 520px);
             border-radius: 20px;
             padding: 16px 18px;
             border: 1px solid rgba(255, 255, 255, 0.06);
@@ -346,8 +346,13 @@
         }
 
         .chat-message.system {
-            border-color: rgba(255, 255, 255, 0.08);
-            background: rgba(255, 255, 255, 0.05);
+            justify-self: start;
+            width: min(100%, 420px);
+            padding: 12px 14px;
+            border-radius: 14px;
+            border-color: rgba(255, 255, 255, 0.12);
+            border-style: dashed;
+            background: rgba(255, 255, 255, 0.03);
         }
 
         .chat-message.error {
@@ -390,6 +395,21 @@
             font-size: 12px;
             letter-spacing: 0.04em;
             text-transform: uppercase;
+        }
+
+        .chat-message.system .message-role,
+        .chat-message.system .message-meta {
+            color: #8192b4;
+        }
+
+        .chat-message.system .message-kind {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .chat-message.system .message-body {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #bfd0ee;
         }
 
         .chat-composer {

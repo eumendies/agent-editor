@@ -24,6 +24,9 @@ class DemoPageTemplateTest {
         assertTrue(template.contains("chatComposer"));
         assertTrue(template.contains("sendButton"));
         assertTrue(template.contains("sendCurrentMessage"));
+        assertTrue(template.contains("width: min(100%, 520px);"));
+        assertTrue(template.contains("width: min(100%, 420px);"));
+        assertTrue(template.contains("border-style: dashed;"));
         assertTrue(template.contains("Knowledge Base Upload"));
         assertTrue(template.contains("knowledgeUploadForm"));
         assertTrue(template.contains("knowledgeFileInput"));
