@@ -33,7 +33,7 @@ class ReflexionCriticDefinitionTest {
 
     @Test
     void shouldParsePassCritiqueFromModelResponse() {
-        ReflexionCritic definition = new ReflexionCritic(
+        ReflexionCritic definition = ReflexionCritic.blocking(
                 new RecordingChatModel(ChatResponse.builder()
                         .aiMessage(AiMessage.from("""
                                 {"verdict":"PASS","feedback":"Looks good","reasoning":"All key requirements are satisfied"}
@@ -52,7 +52,7 @@ class ReflexionCriticDefinitionTest {
 
     @Test
     void shouldParseReviseCritiqueFromModelResponse() {
-        ReflexionCritic definition = new ReflexionCritic(
+        ReflexionCritic definition = ReflexionCritic.blocking(
                 new RecordingChatModel(ChatResponse.builder()
                         .aiMessage(AiMessage.from("""
                                 {"verdict":"REVISE","feedback":"Tighten the introduction","reasoning":"The opening is too long"}
@@ -76,7 +76,7 @@ class ReflexionCriticDefinitionTest {
 
     @Test
     void shouldParseCritiqueWrappedInMarkdownFence() {
-        ReflexionCritic definition = new ReflexionCritic(
+        ReflexionCritic definition = ReflexionCritic.blocking(
                 new RecordingChatModel(ChatResponse.builder()
                         .aiMessage(AiMessage.from("""
                                 ```json
@@ -97,7 +97,7 @@ class ReflexionCriticDefinitionTest {
 
     @Test
     void shouldRejectInvalidCritiquePayload() {
-        ReflexionCritic definition = new ReflexionCritic(
+        ReflexionCritic definition = ReflexionCritic.blocking(
                 new RecordingChatModel(ChatResponse.builder()
                         .aiMessage(AiMessage.from("""
                                 {"verdict":"MAYBE","feedback":"unclear","reasoning":"invalid verdict"}
@@ -113,7 +113,7 @@ class ReflexionCriticDefinitionTest {
 
     @Test
     void shouldAllowStrictCritiqueParsingFromMarkdownFencedJson() {
-        ReflexionCritic definition = new ReflexionCritic(
+        ReflexionCritic definition = ReflexionCritic.blocking(
                 new RecordingChatModel(ChatResponse.builder().aiMessage(AiMessage.from("{}")).build()),
                 new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())
         );
@@ -135,7 +135,7 @@ class ReflexionCriticDefinitionTest {
                 {"verdict":"PASS","feedback":"Looks good","reasoning":"All key requirements are satisfied"}
                 """))
                 .build());
-        ReflexionCritic definition = new ReflexionCritic(chatModel, new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()));
+        ReflexionCritic definition = ReflexionCritic.blocking(chatModel, new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()));
 
         definition.decide(new AgentRunContext(
                 new ExecutionRequest(
@@ -186,7 +186,7 @@ class ReflexionCriticDefinitionTest {
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"Enough evidence collected"}
                         """)).build()
         );
-        ReflexionCritic definition = new ReflexionCritic(chatModel, new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()));
+        ReflexionCritic definition = ReflexionCritic.blocking(chatModel, new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision firstDecision = definition.decide(context(List.of(analyzeDocumentTool(), searchContentTool()), new ChatTranscriptMemory(List.of())));
         ToolLoopDecision.ToolCalls firstToolCalls = assertInstanceOf(ToolLoopDecision.ToolCalls.class, firstDecision);
@@ -226,7 +226,7 @@ class ReflexionCriticDefinitionTest {
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"Enough evidence collected"}
                         """)).build()
         );
-        ReflexionCritic definition = new ReflexionCritic(chatModel, new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()));
+        ReflexionCritic definition = ReflexionCritic.blocking(chatModel, new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision toolLoopDecision = definition.decide(context(List.of(analyzeDocumentTool()), new ChatTranscriptMemory(List.of())));
 

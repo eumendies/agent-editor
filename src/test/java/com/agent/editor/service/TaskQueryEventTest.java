@@ -21,4 +21,19 @@ class TaskQueryEventTest {
         assertEquals("editDocument", service.getTaskSteps("task-1").get(0).getAction());
         assertEquals("done", service.getTaskSteps("task-1").get(1).getResult());
     }
+
+    @Test
+    void shouldStoreTextStreamingEventsInOrder() {
+        TaskQueryService service = new TaskQueryService();
+        service.appendEvent(new ExecutionEvent(EventType.TEXT_STREAM_STARTED, "task-stream", ""));
+        service.appendEvent(new ExecutionEvent(EventType.TEXT_STREAM_DELTA, "task-stream", "hello "));
+        service.appendEvent(new ExecutionEvent(EventType.TEXT_STREAM_DELTA, "task-stream", "world"));
+        service.appendEvent(new ExecutionEvent(EventType.TEXT_STREAM_COMPLETED, "task-stream", ""));
+
+        assertEquals(4, service.getEvents("task-stream").size());
+        assertEquals(EventType.TEXT_STREAM_STARTED, service.getEvents("task-stream").get(0).getType());
+        assertEquals("hello ", service.getEvents("task-stream").get(1).getMessage());
+        assertEquals("world", service.getEvents("task-stream").get(2).getMessage());
+        assertEquals(EventType.TEXT_STREAM_COMPLETED, service.getEvents("task-stream").get(3).getType());
+    }
 }

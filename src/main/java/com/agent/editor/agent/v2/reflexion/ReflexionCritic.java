@@ -1,26 +1,36 @@
 package com.agent.editor.agent.v2.reflexion;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.core.agent.AbstractStreamingToolLoopAgent;
 import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
-import com.agent.editor.agent.v2.core.agent.ToolLoopAgent;
 import com.agent.editor.agent.v2.core.agent.ToolLoopDecision;
-import com.agent.editor.agent.v2.core.exception.NullChatModelException;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.memory.ObservedTokenUsageRecorder;
+import com.agent.editor.agent.v2.model.StreamingLLMInvoker;
 import com.agent.editor.agent.v2.util.StructuredOutputParsers;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
-public class ReflexionCritic implements ToolLoopAgent {
+public class ReflexionCritic extends AbstractStreamingToolLoopAgent {
 
-    private final ChatModel chatModel;
     private final ReflexionCriticContextFactory contextFactory;
 
-    public ReflexionCritic(ChatModel chatModel,
-                           ReflexionCriticContextFactory contextFactory) {
-        this.chatModel = chatModel;
+    public static ReflexionCritic blocking(ChatModel chatModel,
+                                           ReflexionCriticContextFactory contextFactory) {
+        return new ReflexionCritic(chatModel, null, contextFactory);
+    }
+
+    public static ReflexionCritic streaming(StreamingLLMInvoker streamingLLMInvoker,
+                                            ReflexionCriticContextFactory contextFactory) {
+        return new ReflexionCritic(null, streamingLLMInvoker, contextFactory);
+    }
+
+    private ReflexionCritic(ChatModel chatModel,
+                            StreamingLLMInvoker streamingLLMInvoker,
+                            ReflexionCriticContextFactory contextFactory) {
+        super(chatModel, streamingLLMInvoker);
         this.contextFactory = contextFactory;
     }
 
@@ -31,11 +41,7 @@ public class ReflexionCritic implements ToolLoopAgent {
 
     @Override
     public ToolLoopDecision decide(AgentRunContext context) {
-        if (chatModel == null) {
-            throw new NullChatModelException("Reflexion Critic require non-null ChatModel");
-        }
-
-        ChatResponse response = chatModel.chat(toChatRequest(contextFactory.buildModelInvocationContext(context)));
+        ChatResponse response = invokeModel(context, contextFactory.buildModelInvocationContext(context));
         ObservedTokenUsageRecorder.record(context, response);
 
         AiMessage aiMessage = response.aiMessage();
@@ -58,8 +64,9 @@ public class ReflexionCritic implements ToolLoopAgent {
         }
 
         // 先让模型自由分析和调工具；只有文本结果无法解析成 verdict 时，再补一次严格 JSON 收口。
-        ChatResponse finalizationResponse = chatModel.chat(
-                toChatRequest(contextFactory.buildFinalizationInvocationContext(context, aiMessage.text()))
+        ChatResponse finalizationResponse = invokeModel(
+                context,
+                contextFactory.buildFinalizationInvocationContext(context, aiMessage.text())
         );
         ObservedTokenUsageRecorder.record(context, finalizationResponse);
 
@@ -91,7 +98,8 @@ public class ReflexionCritic implements ToolLoopAgent {
         return StructuredOutputParsers.parseJsonWithMarkdownCleanup(rawText, ReflexionCritique.class);
     }
 
-    private ChatRequest toChatRequest(ModelInvocationContext invocationContext) {
+    @Override
+    protected ChatRequest toChatRequest(ModelInvocationContext invocationContext) {
         ChatRequest.Builder requestBuilder = ChatRequest.builder()
                 .messages(invocationContext.getMessages())
                 .toolSpecifications(invocationContext.getToolSpecifications());

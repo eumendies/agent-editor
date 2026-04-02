@@ -159,4 +159,30 @@ class AgentRunContextTest {
         assertEquals("waiting", updated.getPendingReason());
         assertTrue(updated.getToolSpecifications().isEmpty());
     }
+
+    @Test
+    void shouldExposeTaskIdOrEmptyFromRequest() {
+        ExecutionRequest request = new ExecutionRequest(
+                "task-42",
+                "session-42",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-42", "title", "body"),
+                "rewrite",
+                3
+        );
+
+        AgentRunContext withRequest = new AgentRunContext(
+                request,
+                0,
+                "body",
+                new ChatTranscriptMemory(List.of()),
+                ExecutionStage.RUNNING,
+                null,
+                List.of()
+        );
+        AgentRunContext withoutRequest = new AgentRunContext(0, "body");
+
+        assertEquals("task-42", withRequest.getTaskIdOrEmpty());
+        assertEquals("", withoutRequest.getTaskIdOrEmpty());
+    }
 }

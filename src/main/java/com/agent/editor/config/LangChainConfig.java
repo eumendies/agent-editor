@@ -1,9 +1,13 @@
 package com.agent.editor.config;
 
+import com.agent.editor.agent.v2.event.EventPublisher;
+import com.agent.editor.agent.v2.model.StreamingLLMInvoker;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
+import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -44,6 +48,23 @@ public class LangChainConfig {
                 .temperature(temperature)
                 .maxTokens(maxTokens)
                 .build();
+    }
+
+    @Bean
+    public StreamingChatModel streamingChatLanguageModel() {
+        return OpenAiStreamingChatModel.builder()
+                .apiKey(apiKey)
+                .modelName(modelName)
+                .baseUrl(baseUrl)
+                .temperature(temperature)
+                .maxCompletionTokens(maxTokens)
+                .build();
+    }
+
+    @Bean
+    public StreamingLLMInvoker streamingDecisionInvoker(StreamingChatModel streamingChatLanguageModel,
+                                                        EventPublisher eventPublisher) {
+        return new StreamingLLMInvoker(streamingChatLanguageModel, eventPublisher);
     }
 
     @Bean

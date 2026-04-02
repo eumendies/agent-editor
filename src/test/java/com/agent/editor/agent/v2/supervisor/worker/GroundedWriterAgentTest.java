@@ -25,12 +25,13 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 class GroundedWriterAgentTest {
 
     @Test
     void shouldReportReactType() {
-        GroundedWriterAgent definition = new GroundedWriterAgent(null, new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
+        GroundedWriterAgent definition = GroundedWriterAgent.blocking(mock(ChatModel.class), new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         assertEquals(AgentType.REACT, definition.type());
     }
@@ -40,7 +41,7 @@ class GroundedWriterAgentTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("Document updated"))
                 .build());
-        GroundedWriterAgent definition = new GroundedWriterAgent(chatModel, new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
+        GroundedWriterAgent definition = GroundedWriterAgent.blocking(chatModel, new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         definition.decide(context(List.of(
                 editDocumentTool(),
@@ -74,7 +75,7 @@ class GroundedWriterAgentTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("apply grounded draft", List.of(toolRequest)))
                 .build());
-        GroundedWriterAgent definition = new GroundedWriterAgent(chatModel, new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
+        GroundedWriterAgent definition = GroundedWriterAgent.blocking(chatModel, new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision toolLoopDecision = definition.decide(context(List.of(editDocumentTool())));
 
@@ -88,7 +89,7 @@ class GroundedWriterAgentTest {
                 .aiMessage(AiMessage.from("Document updated"))
                 .build());
         StubGroundedWriterContextFactory contextFactory = new StubGroundedWriterContextFactory();
-        GroundedWriterAgent definition = new GroundedWriterAgent(chatModel, contextFactory);
+        GroundedWriterAgent definition = GroundedWriterAgent.blocking(chatModel, contextFactory);
 
         definition.decide(context(List.of(editDocumentTool())));
 

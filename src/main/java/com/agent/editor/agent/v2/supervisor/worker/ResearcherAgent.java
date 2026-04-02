@@ -7,6 +7,7 @@ import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.memory.ObservedTokenUsageRecorder;
+import com.agent.editor.agent.v2.model.StreamingLLMInvoker;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import com.agent.editor.agent.v2.util.StructuredOutputParsers;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,7 +15,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
 import java.util.ArrayList;
@@ -26,16 +26,26 @@ import java.util.Map;
  * research worker。
  * 只负责拉取与整理证据，不直接改写文档正文。
  */
-public class ResearcherAgent implements ToolLoopAgent {
+public class ResearcherAgent extends AbstractStreamingToolLoopAgent {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private final ChatModel chatModel;
     private final ResearcherAgentContextFactory contextFactory;
 
-    public ResearcherAgent(ChatModel chatModel,
-                           ResearcherAgentContextFactory contextFactory) {
-        this.chatModel = chatModel;
+    public static ResearcherAgent blocking(ChatModel chatModel,
+                                           ResearcherAgentContextFactory contextFactory) {
+        return new ResearcherAgent(chatModel, null, contextFactory);
+    }
+
+    public static ResearcherAgent streaming(StreamingLLMInvoker streamingLLMInvoker,
+                                            ResearcherAgentContextFactory contextFactory) {
+        return new ResearcherAgent(null, streamingLLMInvoker, contextFactory);
+    }
+
+    private ResearcherAgent(ChatModel chatModel,
+                            StreamingLLMInvoker streamingLLMInvoker,
+                            ResearcherAgentContextFactory contextFactory) {
+        super(chatModel, streamingLLMInvoker);
         this.contextFactory = contextFactory;
     }
 
@@ -46,9 +56,6 @@ public class ResearcherAgent implements ToolLoopAgent {
 
     @Override
     public ToolLoopDecision decide(AgentRunContext context) {
-        if (chatModel == null) {
-            return new ToolLoopDecision.Complete("{}", "researcher stub");
-        }
         // 首轮先用用户原始 instruction 做一次固定召回，避免模型在没有证据前过早改写查询导致召回偏移。
         if (shouldRunInitialInstructionRetrieval(context)) {
             return new ToolLoopDecision.ToolCalls(
@@ -58,10 +65,7 @@ public class ResearcherAgent implements ToolLoopAgent {
         }
 
         ModelInvocationContext invocationContext = contextFactory.buildModelInvocationContext(context);
-        ChatResponse response = chatModel.chat(ChatRequest.builder()
-                .messages(invocationContext.getMessages())
-                .toolSpecifications(invocationContext.getToolSpecifications())
-                .build());
+        ChatResponse response = invokeModel(context, invocationContext);
         ObservedTokenUsageRecorder.record(context, response);
 
         AiMessage aiMessage = response.aiMessage();
@@ -80,7 +84,6 @@ public class ResearcherAgent implements ToolLoopAgent {
         }
         return new ToolLoopDecision.Complete<>(aiMessage.text(), aiMessage.text());
     }
-
     private ToolCall toToolCall(ToolExecutionRequest request) {
         return new ToolCall(request.id(), request.name(), request.arguments());
     }

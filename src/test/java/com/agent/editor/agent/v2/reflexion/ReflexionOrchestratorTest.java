@@ -225,7 +225,7 @@ class ReflexionOrchestratorTest {
         ReflexionOrchestrator orchestrator = new ReflexionOrchestrator(
                 runtime,
                 new ActorAgent(),
-                new ReflexionCritic(criticModel, new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())),
+                ReflexionCritic.blocking(criticModel, new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())),
                 new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
                 new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())
         );
@@ -251,7 +251,7 @@ class ReflexionOrchestratorTest {
     }
 
     private ReflexionCritic criticWithResponses(String... responses) {
-        return new ReflexionCritic(
+        return ReflexionCritic.blocking(
                 new QueueChatModel(responses),
                 new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())
         );

@@ -26,5 +26,9 @@ class DemoPageTemplateTest {
         assertTrue(template.contains("knowledgeFileInput"));
         assertTrue(template.contains("knowledgeCategoryInput"));
         assertTrue(template.contains("knowledgeUploadResult"));
+        assertTrue(template.contains("lastCompletedStreamText"));
+        assertTrue(template.contains("shouldSuppressCompletedMessage"));
+        assertTrue(template.contains("TASK_COMPLETED"));
+        assertTrue(template.contains("SUPERVISOR_COMPLETED"));
     }
 }

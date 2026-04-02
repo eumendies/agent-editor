@@ -94,6 +94,10 @@ public class AgentRunContext {
         return new AgentRunContext(request, iteration, currentContent, nextMemory, stage, pendingReason, toolSpecifications);
     }
 
+    public String getTaskIdOrEmpty() {
+        return request == null || request.getTaskId() == null ? "" : request.getTaskId();
+    }
+
     public AgentRunContext advance(String nextContent) {
         return new AgentRunContext(request, iteration + 1, nextContent, memory, ExecutionStage.RUNNING, pendingReason, toolSpecifications);
     }

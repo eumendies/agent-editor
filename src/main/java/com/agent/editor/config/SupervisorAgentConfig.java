@@ -3,6 +3,7 @@ package com.agent.editor.config;
 import com.agent.editor.agent.v2.core.agent.SupervisorAgent;
 import com.agent.editor.agent.v2.core.context.SupervisorContext;
 import com.agent.editor.agent.v2.core.memory.MemoryCompressor;
+import com.agent.editor.agent.v2.model.StreamingLLMInvoker;
 import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
 import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
 import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgent;
@@ -40,21 +41,21 @@ public class SupervisorAgentConfig {
     }
 
     @Bean
-    public ResearcherAgent researcherAgentDefinition(ChatModel chatModel,
+    public ResearcherAgent researcherAgentDefinition(StreamingLLMInvoker streamingLLMInvoker,
                                                      ResearcherAgentContextFactory researcherAgentContextFactory) {
-        return new ResearcherAgent(chatModel, researcherAgentContextFactory);
+        return ResearcherAgent.streaming(streamingLLMInvoker, researcherAgentContextFactory);
     }
 
     @Bean
-    public GroundedWriterAgent groundedWriterAgentDefinition(ChatModel chatModel,
+    public GroundedWriterAgent groundedWriterAgentDefinition(StreamingLLMInvoker streamingLLMInvoker,
                                                              GroundedWriterAgentContextFactory groundedWriterAgentContextFactory) {
-        return new GroundedWriterAgent(chatModel, groundedWriterAgentContextFactory);
+        return GroundedWriterAgent.streaming(streamingLLMInvoker, groundedWriterAgentContextFactory);
     }
 
     @Bean
-    public EvidenceReviewerAgent evidenceReviewerAgentDefinition(ChatModel chatModel,
+    public EvidenceReviewerAgent evidenceReviewerAgentDefinition(StreamingLLMInvoker streamingLLMInvoker,
                                                                  EvidenceReviewerAgentContextFactory evidenceReviewerAgentContextFactory) {
-        return new EvidenceReviewerAgent(chatModel, evidenceReviewerAgentContextFactory);
+        return EvidenceReviewerAgent.streaming(streamingLLMInvoker, evidenceReviewerAgentContextFactory);
     }
 
     @Bean

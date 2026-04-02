@@ -1,14 +1,25 @@
 package com.agent.editor.agent.v2.reflexion;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
+import com.agent.editor.agent.v2.model.StreamingLLMInvoker;
 import com.agent.editor.agent.v2.react.ReactAgent;
 import dev.langchain4j.model.chat.ChatModel;
 
 public class ReflexionActor extends ReactAgent {
 
-    public ReflexionActor(ChatModel chatModel, ReflexionActorContextFactory contextFactory) {
+    public static ReflexionActor blocking(ChatModel chatModel, ReflexionActorContextFactory contextFactory) {
+        return new ReflexionActor(chatModel, null, contextFactory);
+    }
+
+    public static ReflexionActor streaming(StreamingLLMInvoker streamingLLMInvoker, ReflexionActorContextFactory contextFactory) {
+        return new ReflexionActor(null, streamingLLMInvoker, contextFactory);
+    }
+
+    private ReflexionActor(ChatModel chatModel,
+                           StreamingLLMInvoker streamingLLMInvoker,
+                           ReflexionActorContextFactory contextFactory) {
         // actor 直接复用 ReAct 的工具调用与执行能力，只把对外 agent type 切到 REFLEXION。
-        super(chatModel, contextFactory);
+        super(chatModel, streamingLLMInvoker, contextFactory);
     }
 
     @Override

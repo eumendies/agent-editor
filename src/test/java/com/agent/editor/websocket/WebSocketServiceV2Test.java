@@ -34,4 +34,24 @@ class WebSocketServiceV2Test {
                         && message.getPayload().contains("\"message\":\"editDocument\"")
                         && !message.getPayload().contains("stepType")));
     }
+
+    @Test
+    void shouldSendTextStreamDeltaEnvelopeToV2TaskSubscribers() throws Exception {
+        WebSocketService service = new WebSocketService();
+        ReflectionTestUtils.setField(service, "objectMapper", new ObjectMapper());
+        WebSocketSession session = mock(WebSocketSession.class);
+        when(session.getId()).thenReturn("session-v2-stream");
+        when(session.isOpen()).thenReturn(true);
+
+        service.registerV2Session(session);
+        service.bindV2TaskToSession("session-v2-stream", "task-stream");
+
+        service.sendEventToV2Task("task-stream", new ExecutionEvent(EventType.TEXT_STREAM_DELTA, "task-stream", "partial text"));
+
+        verify(session).sendMessage(argThat((TextMessage message) ->
+                message.getPayload().contains("\"type\":\"EVENT\"")
+                        && message.getPayload().contains("\"taskId\":\"task-stream\"")
+                        && message.getPayload().contains("\"type\":\"TEXT_STREAM_DELTA\"")
+                        && message.getPayload().contains("\"message\":\"partial text\"")));
+    }
 }

@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 class ReactAgentTest {
 
@@ -204,7 +205,10 @@ class ReactAgentTest {
     }
 
     private ReactAgent definition(ChatModel chatModel) {
-        return new ReactAgent(chatModel, new ReactAgentContextFactory(NoOpMemoryCompressors.noop()));
+        return ReactAgent.blocking(
+                chatModel != null ? chatModel : mock(ChatModel.class),
+                new ReactAgentContextFactory(NoOpMemoryCompressors.noop())
+        );
     }
 
     private static final class RecordingChatModel implements ChatModel {

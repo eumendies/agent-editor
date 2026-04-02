@@ -4,7 +4,7 @@ import com.agent.editor.agent.v2.reflexion.ReflexionActor;
 import com.agent.editor.agent.v2.reflexion.ReflexionActorContextFactory;
 import com.agent.editor.agent.v2.reflexion.ReflexionCritic;
 import com.agent.editor.agent.v2.reflexion.ReflexionCriticContextFactory;
-import dev.langchain4j.model.chat.ChatModel;
+import com.agent.editor.agent.v2.model.StreamingLLMInvoker;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,15 +12,15 @@ import org.springframework.context.annotation.Configuration;
 public class ReflexionAgentConfig {
 
     @Bean
-    public ReflexionActor reflexionActorDefinition(ChatModel chatModel,
+    public ReflexionActor reflexionActorDefinition(StreamingLLMInvoker streamingLLMInvoker,
                                                    ReflexionActorContextFactory reflexionActorContextFactory) {
         // actor 与 critic 独立装配，避免复用 supervisor reviewer 这类语义上不同的角色定义。
-        return new ReflexionActor(chatModel, reflexionActorContextFactory);
+        return ReflexionActor.streaming(streamingLLMInvoker, reflexionActorContextFactory);
     }
 
     @Bean
-    public ReflexionCritic reflexionCriticDefinition(ChatModel chatModel,
+    public ReflexionCritic reflexionCriticDefinition(StreamingLLMInvoker streamingLLMInvoker,
                                                      ReflexionCriticContextFactory reflexionCriticContextFactory) {
-        return new ReflexionCritic(chatModel, reflexionCriticContextFactory);
+        return ReflexionCritic.streaming(streamingLLMInvoker, reflexionCriticContextFactory);
     }
 }

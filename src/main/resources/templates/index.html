@@ -1072,6 +1072,9 @@
     let sessionId = null;
     let currentMode = "REACT";
     let originalSnapshot = "";
+    let activeStreamStep = null;
+    let currentStreamText = "";
+    let lastCompletedStreamText = null;
 
     const modeContent = {
         REACT: {
@@ -1171,6 +1174,10 @@
         const normalized = (eventType || "DECISION_MADE").toUpperCase();
 
         switch (normalized) {
+            case "TEXT_STREAM_STARTED":
+            case "TEXT_STREAM_DELTA":
+            case "TEXT_STREAM_COMPLETED":
+                return "THINKING";
             case "TOOL_CALLED":
             case "WORKER_SELECTED":
                 return "ACTION";
@@ -1219,6 +1226,14 @@
         const visualType = normalizeEventVisualType(eventType);
         const normalized = (eventType || visualType).toUpperCase();
 
+        if (normalized === "TEXT_STREAM_STARTED" || normalized === "TEXT_STREAM_DELTA" || normalized === "TEXT_STREAM_COMPLETED") {
+            return {
+                title: "TEXT_STREAM",
+                context: "Assistant Response",
+                content: content
+            };
+        }
+
         if (currentMode === "SUPERVISOR" && visualType === "ACTION") {
             return {
                 title: normalized,
@@ -1250,7 +1265,14 @@
         };
     }
 
-    function addExecutionEventToUI(executionEvent) {
+    function isTextStreamEvent(eventType) {
+        const normalized = (eventType || "").toUpperCase();
+        return normalized === "TEXT_STREAM_STARTED"
+            || normalized === "TEXT_STREAM_DELTA"
+            || normalized === "TEXT_STREAM_COMPLETED";
+    }
+
+    function createStepElement(visualType, step, initialContent) {
         const container = document.getElementById("stepsContainer");
         const emptyState = container.querySelector(".empty-state");
         if (emptyState) {
@@ -1258,8 +1280,6 @@
         }
 
         const stepNumber = container.children.length + 1;
-        const visualType = normalizeEventVisualType(executionEvent.type);
-        const step = describeExecutionEvent(executionEvent.type, executionEvent.message || "No content");
         const stepDiv = document.createElement("div");
         stepDiv.className = `step-item ${visualType.toLowerCase()}`;
         stepDiv.innerHTML = `
@@ -1267,19 +1287,89 @@
                 <span class="step-number">Event ${stepNumber}</span>
                 <span class="step-type">${step.title}</span>
             </div>
-            <div class="step-content">${escapeHtml(step.content).replace(/\n/g, "<br>")}</div>
+            <div class="step-content">${escapeHtml(initialContent || "").replace(/\n/g, "<br>")}</div>
             <div class="step-context">${step.context}</div>
         `;
 
         container.appendChild(stepDiv);
         container.scrollTop = container.scrollHeight;
-        document.getElementById("stepCount").textContent = `${stepNumber} steps`;
+        document.getElementById("stepCount").textContent = `${container.children.length} steps`;
+        return stepDiv;
+    }
+
+    function ensureActiveStreamStep() {
+        if (activeStreamStep) {
+            return activeStreamStep;
+        }
+        currentStreamText = "";
+        const step = describeExecutionEvent("TEXT_STREAM_STARTED", "");
+        activeStreamStep = createStepElement("THINKING", step, "");
+        activeStreamStep.dataset.streaming = "true";
+        return activeStreamStep;
+    }
+
+    function appendStreamDelta(content) {
+        const stepDiv = ensureActiveStreamStep();
+        const contentNode = stepDiv.querySelector(".step-content");
+        currentStreamText += content || "";
+        const nextChunk = escapeHtml(content || "").replace(/\n/g, "<br>");
+        contentNode.innerHTML = `${contentNode.innerHTML}${nextChunk}`;
+        const container = document.getElementById("stepsContainer");
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function completeActiveStreamStep() {
+        if (!activeStreamStep) {
+            return;
+        }
+        activeStreamStep.dataset.streaming = "false";
+        lastCompletedStreamText = currentStreamText;
+        currentStreamText = "";
+        activeStreamStep = null;
+    }
+
+    function shouldSuppressCompletedMessage(eventType, content) {
+        const normalized = (eventType || "").toUpperCase();
+        if (normalized !== "TASK_COMPLETED" && normalized !== "SUPERVISOR_COMPLETED") {
+            return false;
+        }
+        if (!lastCompletedStreamText || !content) {
+            return false;
+        }
+        return lastCompletedStreamText === content;
+    }
+
+    function addExecutionEventToUI(executionEvent) {
+        const normalized = (executionEvent.type || "").toUpperCase();
+        if (isTextStreamEvent(normalized)) {
+            if (normalized === "TEXT_STREAM_STARTED") {
+                ensureActiveStreamStep();
+                return;
+            }
+            if (normalized === "TEXT_STREAM_DELTA") {
+                appendStreamDelta(executionEvent.message || "");
+                return;
+            }
+            completeActiveStreamStep();
+            return;
+        }
+
+        completeActiveStreamStep();
+        if (shouldSuppressCompletedMessage(executionEvent.type, executionEvent.message || "")) {
+            return;
+        }
+        const visualType = normalizeEventVisualType(executionEvent.type);
+        const step = describeExecutionEvent(executionEvent.type, executionEvent.message || "No content");
+        createStepElement(visualType, step, step.content);
     }
 
     function renderTaskEvents(events) {
         const container = document.getElementById("stepsContainer");
         container.innerHTML = "";
         document.getElementById("stepCount").textContent = "0 steps";
+        activeStreamStep = null;
+        currentStreamText = "";
+        lastCompletedStreamText = null;
 
         if (!events.length) {
             container.innerHTML = `<div class="empty-state">当前没有事件记录。</div>`;
@@ -1454,6 +1544,9 @@
     }
 
     function clearTimeline(resetDiff = true) {
+        activeStreamStep = null;
+        currentStreamText = "";
+        lastCompletedStreamText = null;
         document.getElementById("stepsContainer").innerHTML =
             `<div class="empty-state">选择一种模式并运行任务，事件流会从这里开始展开。</div>`;
         document.getElementById("stepCount").textContent = "0 steps";

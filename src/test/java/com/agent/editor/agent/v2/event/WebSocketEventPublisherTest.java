@@ -27,4 +27,22 @@ class WebSocketEventPublisherTest {
                                 && "editDocument".equals(publishedEvent.getMessage()))
         );
     }
+
+    @Test
+    void shouldForwardTextStreamDeltaEventsToV2ChannelWithoutTranslation() {
+        TaskQueryService taskQueryService = new TaskQueryService();
+        WebSocketService webSocketService = mock(WebSocketService.class);
+        WebSocketEventPublisher publisher = new WebSocketEventPublisher(taskQueryService, webSocketService);
+        ExecutionEvent event = new ExecutionEvent(EventType.TEXT_STREAM_DELTA, "task-stream", "partial text");
+
+        publisher.publish(event);
+
+        verify(webSocketService).sendEventToV2Task(
+                org.mockito.ArgumentMatchers.eq("task-stream"),
+                argThat(publishedEvent ->
+                        EventType.TEXT_STREAM_DELTA == publishedEvent.getType()
+                                && "task-stream".equals(publishedEvent.getTaskId())
+                                && "partial text".equals(publishedEvent.getMessage()))
+        );
+    }
 }

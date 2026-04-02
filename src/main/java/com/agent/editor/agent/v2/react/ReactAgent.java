@@ -1,25 +1,34 @@
 package com.agent.editor.agent.v2.react;
 
+import com.agent.editor.agent.v2.model.StreamingLLMInvoker;
 import com.agent.editor.agent.v2.core.agent.*;
 import com.agent.editor.agent.v2.core.context.AgentContextFactory;
 import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
-import com.agent.editor.agent.v2.core.exception.NullChatModelException;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.memory.ObservedTokenUsageRecorder;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
-public class ReactAgent implements ToolLoopAgent {
+public class ReactAgent extends AbstractStreamingToolLoopAgent {
 
-    private final ChatModel chatModel;
     private final AgentContextFactory contextFactory;
 
-    public ReactAgent(ChatModel chatModel,
-                      AgentContextFactory contextFactory) {
-        this.chatModel = chatModel;
+    public static ReactAgent blocking(ChatModel chatModel,
+                                      AgentContextFactory contextFactory) {
+        return new ReactAgent(chatModel, null, contextFactory);
+    }
+
+    public static ReactAgent streaming(StreamingLLMInvoker streamingLLMInvoker,
+                                       AgentContextFactory contextFactory) {
+        return new ReactAgent(null, streamingLLMInvoker, contextFactory);
+    }
+
+    protected ReactAgent(ChatModel chatModel,
+                         StreamingLLMInvoker streamingLLMInvoker,
+                         AgentContextFactory contextFactory) {
+        super(chatModel, streamingLLMInvoker);
         this.contextFactory = contextFactory;
     }
 
@@ -29,19 +38,9 @@ public class ReactAgent implements ToolLoopAgent {
     }
 
     @Override
-    public ToolLoopDecision decide(AgentRunContext context) throws NullChatModelException {
-        if (chatModel == null) {
-            throw new NullChatModelException("ChatModel of ReactAgent is not provided");
-        }
-
+    public ToolLoopDecision decide(AgentRunContext context) {
         ModelInvocationContext invocationContext = contextFactory.buildModelInvocationContext(context);
-        ChatRequest.Builder requestBuilder = ChatRequest.builder()
-                .messages(invocationContext.getMessages())
-                .toolSpecifications(invocationContext.getToolSpecifications());
-        if (invocationContext.getResponseFormat() != null) {
-            requestBuilder.responseFormat(invocationContext.getResponseFormat());
-        }
-        ChatResponse response = chatModel.chat(requestBuilder.build());
+        ChatResponse response = invokeModel(context, invocationContext);
         ObservedTokenUsageRecorder.record(context, response);
 
         AiMessage aiMessage = response.aiMessage();
@@ -57,7 +56,6 @@ public class ReactAgent implements ToolLoopAgent {
 
         return new ToolLoopDecision.Complete<String>(aiMessage.text(), aiMessage.text());
     }
-
     private ToolCall toToolCall(ToolExecutionRequest request) {
         return new ToolCall(request.id(), request.name(), request.arguments());
     }

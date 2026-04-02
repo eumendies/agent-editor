@@ -6,6 +6,7 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.core.runtime.PlanningExecutionRuntime;
 import com.agent.editor.agent.v2.core.runtime.SupervisorExecutionRuntime;
 import com.agent.editor.agent.v2.core.runtime.ToolLoopExecutionRuntime;
+import com.agent.editor.agent.v2.model.StreamingLLMInvoker;
 import com.agent.editor.agent.v2.reflexion.ReflexionActor;
 import com.agent.editor.agent.v2.reflexion.ReflexionCritic;
 import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
@@ -180,6 +181,11 @@ class AgentV2ConfigurationSplitTest {
         @Bean
         ChatModel chatModel() {
             return mock(ChatModel.class);
+        }
+
+        @Bean
+        StreamingLLMInvoker streamingDecisionInvoker() {
+            return mock(StreamingLLMInvoker.class);
         }
 
         @Bean

@@ -4,25 +4,35 @@ import com.agent.editor.agent.v2.core.agent.*;
 import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.context.ModelInvocationContext;
 import com.agent.editor.agent.v2.memory.ObservedTokenUsageRecorder;
+import com.agent.editor.agent.v2.model.StreamingLLMInvoker;
 import com.agent.editor.agent.v2.util.StructuredOutputParsers;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
 /**
  * reviewer worker。
  * 负责把“是否完成指令”和“是否证据扎实”拆成结构化反馈，供 supervisor 继续路由。
  */
-public class EvidenceReviewerAgent implements ToolLoopAgent {
+public class EvidenceReviewerAgent extends AbstractStreamingToolLoopAgent {
 
-    private final ChatModel chatModel;
     private final EvidenceReviewerAgentContextFactory contextFactory;
 
-    public EvidenceReviewerAgent(ChatModel chatModel,
-                                 EvidenceReviewerAgentContextFactory contextFactory) {
-        this.chatModel = chatModel;
+    public static EvidenceReviewerAgent blocking(ChatModel chatModel,
+                                                 EvidenceReviewerAgentContextFactory contextFactory) {
+        return new EvidenceReviewerAgent(chatModel, null, contextFactory);
+    }
+
+    public static EvidenceReviewerAgent streaming(StreamingLLMInvoker streamingLLMInvoker,
+                                                  EvidenceReviewerAgentContextFactory contextFactory) {
+        return new EvidenceReviewerAgent(null, streamingLLMInvoker, contextFactory);
+    }
+
+    private EvidenceReviewerAgent(ChatModel chatModel,
+                                  StreamingLLMInvoker streamingLLMInvoker,
+                                  EvidenceReviewerAgentContextFactory contextFactory) {
+        super(chatModel, streamingLLMInvoker);
         this.contextFactory = contextFactory;
     }
 
@@ -33,15 +43,8 @@ public class EvidenceReviewerAgent implements ToolLoopAgent {
 
     @Override
     public ToolLoopDecision decide(AgentRunContext context) {
-        if (chatModel == null) {
-            return new ToolLoopDecision.Complete("{}", "reviewer stub");
-        }
-
         ModelInvocationContext invocationContext = contextFactory.buildModelInvocationContext(context);
-        ChatResponse response = chatModel.chat(ChatRequest.builder()
-                .messages(invocationContext.getMessages())
-                .toolSpecifications(invocationContext.getToolSpecifications())
-                .build());
+        ChatResponse response = invokeModel(context, invocationContext);
         ObservedTokenUsageRecorder.record(context, response);
 
         AiMessage aiMessage = response.aiMessage();
@@ -60,7 +63,6 @@ public class EvidenceReviewerAgent implements ToolLoopAgent {
         }
         return new ToolLoopDecision.Complete<>(aiMessage.text(), aiMessage.text());
     }
-
     private ToolCall toToolCall(ToolExecutionRequest request) {
         return new ToolCall(request.id(), request.name(), request.arguments());
     }
