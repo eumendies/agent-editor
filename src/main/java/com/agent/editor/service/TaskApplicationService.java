@@ -12,6 +12,7 @@ import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.dto.AgentTaskRequest;
 import com.agent.editor.dto.AgentTaskResponse;
+import com.agent.editor.dto.PendingDocumentChange;
 import com.agent.editor.model.AgentStep;
 import com.agent.editor.model.AgentMode;
 import com.agent.editor.model.Document;
@@ -30,6 +31,7 @@ public class TaskApplicationService {
     private final DocumentService documentService;
     private final TaskQueryService taskQueryService;
     private final DiffService diffService;
+    private final PendingDocumentChangeService pendingDocumentChangeService;
     private final TaskOrchestrator taskOrchestrator;
     private final WebSocketService webSocketService;
     private final EventPublisher eventPublisher;
@@ -38,6 +40,7 @@ public class TaskApplicationService {
     public TaskApplicationService(DocumentService documentService,
                                   TaskQueryService taskQueryService,
                                   DiffService diffService,
+                                  PendingDocumentChangeService pendingDocumentChangeService,
                                   TaskOrchestrator taskOrchestrator,
                                   WebSocketService webSocketService,
                                   EventPublisher eventPublisher,
@@ -45,6 +48,7 @@ public class TaskApplicationService {
         this.documentService = documentService;
         this.taskQueryService = taskQueryService;
         this.diffService = diffService;
+        this.pendingDocumentChangeService = pendingDocumentChangeService;
         this.taskOrchestrator = taskOrchestrator;
         this.webSocketService = webSocketService;
         this.eventPublisher = eventPublisher;
@@ -114,10 +118,14 @@ public class TaskApplicationService {
                 request.getMaxSteps() != null ? request.getMaxSteps() : 10
         ));
 
-        // orchestrator 只返回最终产物，真正的文档持久化和 diff 记录仍然在应用层统一处理。
+        // agent 完成后先落待确认候选稿，只有用户确认应用时才真正改写文档正文。
         if (result.getFinalContent() != null) {
-            documentService.updateDocument(context.getDocumentId(), result.getFinalContent());
-            diffService.recordDiff(context.getDocumentId(), context.getOriginalContent(), result.getFinalContent());
+            pendingDocumentChangeService.savePendingChange(
+                    context.getDocumentId(),
+                    context.getTaskId(),
+                    context.getOriginalContent(),
+                    result.getFinalContent()
+            );
         }
         return result;
     }
@@ -152,6 +160,27 @@ public class TaskApplicationService {
 
     public List<ExecutionEvent> getTaskEvents(String taskId) {
         return taskQueryService.getEvents(taskId);
+    }
+
+    public PendingDocumentChange getPendingDocumentChange(String documentId) {
+        return pendingDocumentChangeService.getPendingChange(documentId);
+    }
+
+    public PendingDocumentChange applyPendingDocumentChange(String documentId) {
+        PendingDocumentChange pendingChange = pendingDocumentChangeService.getPendingChange(documentId);
+        if (pendingChange == null) {
+            return null;
+        }
+
+        // 只有确认动作才能同时推进“正文写回”和“已应用 diff 历史”两个状态，避免候选改动误入正式文档。
+        documentService.updateDocument(documentId, pendingChange.getProposedContent());
+        diffService.recordDiff(documentId, pendingChange.getOriginalContent(), pendingChange.getProposedContent());
+        pendingDocumentChangeService.discardPendingChange(documentId);
+        return pendingChange;
+    }
+
+    public PendingDocumentChange discardPendingDocumentChange(String documentId) {
+        return pendingDocumentChangeService.discardPendingChange(documentId);
     }
 
     private AgentType mapAgentType(AgentMode mode) {

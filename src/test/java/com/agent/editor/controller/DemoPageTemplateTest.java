@@ -41,7 +41,14 @@ class DemoPageTemplateTest {
         assertTrue(template.contains("startTaskStatusPolling"));
         assertTrue(template.contains("finalizeTask"));
         assertTrue(template.contains("currentTaskDocumentId"));
-        assertTrue(template.contains("refreshDocument(currentTaskDocumentId)"));
+        assertTrue(template.contains("pendingDiffActions"));
+        assertTrue(template.contains("pendingDiffStatus"));
+        assertTrue(template.contains("loadPendingDiff"));
+        assertTrue(template.contains("applyPendingDiff"));
+        assertTrue(template.contains("discardPendingDiff"));
+        assertTrue(template.contains("确认应用"));
+        assertTrue(template.contains("放弃修改"));
+        assertFalse(template.contains("await refreshDocument(currentTaskDocumentId);"));
         assertFalse(template.contains("Scenario Bar"));
         assertFalse(template.contains("Mode Lens"));
         assertFalse(template.contains("Agent V2 Orchestration Demo"));

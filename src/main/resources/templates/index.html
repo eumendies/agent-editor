@@ -260,6 +260,24 @@
             border-top: 1px solid rgba(255, 255, 255, 0.06);
         }
 
+        .pending-diff-status {
+            min-height: 22px;
+            margin-bottom: 12px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .pending-diff-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .pending-diff-actions[hidden] {
+            display: none;
+        }
+
         .diff-view {
             min-height: 220px;
             border-radius: 20px;
@@ -595,6 +613,11 @@
                         <div class="panel-title">Diff View</div>
                     </div>
                 </div>
+                <div id="pendingDiffStatus" class="pending-diff-status">当前没有待确认改动。</div>
+                <div id="pendingDiffActions" class="pending-diff-actions" hidden>
+                    <button class="primary-btn" onclick="applyPendingDiff()">确认应用</button>
+                    <button class="secondary-btn" onclick="discardPendingDiff()">放弃修改</button>
+                </div>
                 <div id="diffView" class="diff-view">
                     <div class="empty-state">运行任意模式后，这里会展示文档变更对比。</div>
                 </div>
@@ -730,6 +753,20 @@
         renderSaveStatus(dirty ? "" : "success", dirty ? "文档有未保存修改。" : "当前文档已同步到服务端。");
     }
 
+    function setPendingDiffActionsVisible(visible) {
+        document.getElementById("pendingDiffActions").hidden = !visible;
+    }
+
+    function renderDiffView(html, statusText, hasPendingActions) {
+        document.getElementById("pendingDiffStatus").textContent = statusText;
+        document.getElementById("diffView").innerHTML = html;
+        setPendingDiffActionsVisible(hasPendingActions);
+    }
+
+    function renderDiffEmptyState(message, statusText) {
+        renderDiffView(`<div class="empty-state">${message}</div>`, statusText, false);
+    }
+
     async function saveDocument(options = {}) {
         const documentId = document.getElementById("documentSelect").value;
         const content = document.getElementById("documentEditor").value;
@@ -760,7 +797,7 @@
             document.getElementById("documentEditor").value = doc.content || "";
             markDocumentDirty(false);
             if (!options.skipDiffReload) {
-                await loadDiffHistory(documentId);
+                await loadPendingDiff(documentId);
             }
             return doc;
         } catch (error) {
@@ -1056,9 +1093,8 @@
         }
 
         await loadTaskStatus(taskId).catch(() => null);
-        await refreshDocument(currentTaskDocumentId);
-        await loadDiffHistory(currentTaskDocumentId);
-        renderSaveStatus("success", "Agent 结果已同步到文档区。");
+        await loadPendingDiff(currentTaskDocumentId);
+        renderSaveStatus("success", "Agent 已生成候选修改，请先确认是否应用到文档。");
     }
 
     async function ensureDocumentSavedBeforeRun() {
@@ -1167,14 +1203,76 @@
             const history = await response.json();
             if (history.length > 0) {
                 const latestDiff = history[history.length - 1];
-                document.getElementById("diffView").innerHTML = latestDiff.diffHtml;
+                renderDiffView(latestDiff.diffHtml, "当前没有待确认改动，下面展示最近一次已应用 diff。", false);
                 return;
             }
         } catch (error) {
             console.error("Error loading diff:", error);
         }
 
-        document.getElementById("diffView").innerHTML = `<div class="empty-state">当前还没有 diff 结果，请先运行一次任务。</div>`;
+        renderDiffEmptyState("当前还没有 diff 结果，请先运行一次任务。", "当前没有待确认改动。");
+    }
+
+    async function loadPendingDiff(documentId) {
+        try {
+            const response = await fetch(`/api/v1/diff/document/${documentId}/pending`);
+            if (response.status === 404) {
+                await loadDiffHistory(documentId);
+                return;
+            }
+            if (!response.ok) {
+                throw new Error("Pending diff request failed");
+            }
+
+            const pendingChange = await response.json();
+            renderDiffView(
+                pendingChange.diffHtml,
+                "Agent 已生成候选修改，等待你确认应用或放弃。",
+                true
+            );
+        } catch (error) {
+            console.error("Error loading pending diff:", error);
+            renderDiffEmptyState(`加载待确认 diff 失败: ${escapeHtml(error.message)}`, "待确认 diff 加载失败。");
+        }
+    }
+
+    async function applyPendingDiff() {
+        const documentId = currentTaskDocumentId || document.getElementById("documentSelect").value;
+
+        try {
+            const response = await fetch(`/api/v1/diff/document/${documentId}/apply`, {
+                method: "POST"
+            });
+            if (!response.ok) {
+                throw new Error(await extractErrorMessage(response, "应用待确认修改失败"));
+            }
+
+            await refreshDocument(documentId);
+            await loadPendingDiff(documentId);
+            renderSaveStatus("success", "已将候选修改应用到文档。");
+        } catch (error) {
+            console.error("Error applying pending diff:", error);
+            renderSaveStatus("error", `应用失败: ${error.message}`);
+        }
+    }
+
+    async function discardPendingDiff() {
+        const documentId = currentTaskDocumentId || document.getElementById("documentSelect").value;
+
+        try {
+            const response = await fetch(`/api/v1/diff/document/${documentId}/pending`, {
+                method: "DELETE"
+            });
+            if (!response.ok) {
+                throw new Error(await extractErrorMessage(response, "放弃待确认修改失败"));
+            }
+
+            await loadPendingDiff(documentId);
+            renderSaveStatus("success", "已放弃本次候选修改，文档保持不变。");
+        } catch (error) {
+            console.error("Error discarding pending diff:", error);
+            renderSaveStatus("error", `放弃失败: ${error.message}`);
+        }
     }
 
     function resetMessages() {
@@ -1212,12 +1310,12 @@
         `;
     }
 
-    async function extractErrorMessage(response) {
+    async function extractErrorMessage(response, fallbackMessage = "Upload failed") {
         try {
             const text = await response.text();
-            return text && text.trim() ? text : "Upload failed";
+            return text && text.trim() ? text : fallbackMessage;
         } catch (error) {
-            return "Upload failed";
+            return fallbackMessage;
         }
     }
 
@@ -1289,7 +1387,7 @@
                 originalSnapshot = "";
                 resetMessages();
                 await refreshDocument(this.value);
-                await loadDiffHistory(this.value);
+                await loadPendingDiff(this.value);
             });
         document.getElementById("instructionInput")
             .addEventListener("keydown", async function(event) {
@@ -1302,7 +1400,7 @@
         syncModeUI("REACT");
         initWebSocket();
         refreshDocument();
-        loadDiffHistory(document.getElementById("documentSelect").value);
+        loadPendingDiff(document.getElementById("documentSelect").value);
         updateMessageCount();
     };
 </script>

@@ -9,6 +9,7 @@ import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.dto.AgentTaskRequest;
 import com.agent.editor.dto.AgentTaskResponse;
+import com.agent.editor.dto.PendingDocumentChange;
 import com.agent.editor.model.AgentMode;
 import com.agent.editor.websocket.WebSocketService;
 import org.junit.jupiter.api.Test;
@@ -35,11 +36,13 @@ class TaskApplicationServiceTest {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
+        PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         TaskOrchestrator orchestrator = new StubTaskOrchestrator();
         TaskApplicationService service = new TaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
+                pendingChangeService,
                 orchestrator,
                 mock(WebSocketService.class),
                 mock(EventPublisher.class),
@@ -56,7 +59,14 @@ class TaskApplicationServiceTest {
         assertNotNull(response.getTaskId());
         assertEquals("COMPLETED", response.getStatus());
         assertEquals("rewritten content", response.getFinalResult());
-        assertEquals("rewritten content", documentService.getDocument("doc-001").getContent());
+        assertEquals("""
+                从前，有一只小狐狸住在森林边缘。它毛色火红，眼睛明亮，对这个世界充满了好奇。
+                
+                狐狸妈妈总是叮嘱它："孩子，不要在森林里走得太远，外面很危险。"
+                
+                小狐狸点点头，但心里却想着：森林外面到底是什么样子的呢？
+                """, documentService.getDocument("doc-001").getContent());
+        assertEquals("rewritten content", pendingChangeService.getPendingChange("doc-001").getProposedContent());
         assertEquals("COMPLETED", service.getTaskStatus(response.getTaskId()).getStatus());
     }
 
@@ -65,12 +75,14 @@ class TaskApplicationServiceTest {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
+        PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         TaskOrchestrator orchestrator = new StubTaskOrchestrator();
         CapturingTaskExecutor taskExecutor = new CapturingTaskExecutor();
         TaskApplicationService service = new TaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
+                pendingChangeService,
                 orchestrator,
                 mock(WebSocketService.class),
                 mock(EventPublisher.class),
@@ -93,8 +105,74 @@ class TaskApplicationServiceTest {
 
         taskExecutor.runNext();
 
-        assertEquals("rewritten content", documentService.getDocument("doc-001").getContent());
+        assertEquals(originalContent, documentService.getDocument("doc-001").getContent());
+        assertEquals("rewritten content", pendingChangeService.getPendingChange("doc-001").getProposedContent());
         assertEquals("COMPLETED", service.getTaskStatus(response.getTaskId()).getStatus());
+    }
+
+    @Test
+    void shouldApplyPendingChangeOnlyAfterExplicitConfirmation() {
+        DocumentService documentService = new DocumentService();
+        TaskQueryService queryService = new TaskQueryService();
+        DiffService diffService = new DiffService();
+        PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
+        TaskApplicationService service = new TaskApplicationService(
+                documentService,
+                queryService,
+                diffService,
+                pendingChangeService,
+                new StubTaskOrchestrator(),
+                mock(WebSocketService.class),
+                mock(EventPublisher.class),
+                directTaskExecutor()
+        );
+        String originalContent = documentService.getDocument("doc-001").getContent();
+
+        AgentTaskRequest request = new AgentTaskRequest();
+        request.setDocumentId("doc-001");
+        request.setInstruction("rewrite");
+        request.setMode(AgentMode.REACT);
+
+        service.execute(request);
+
+        PendingDocumentChange pendingChange = service.applyPendingDocumentChange("doc-001");
+
+        assertEquals("rewritten content", documentService.getDocument("doc-001").getContent());
+        assertEquals("rewritten content", pendingChange.getProposedContent());
+        assertNull(service.getPendingDocumentChange("doc-001"));
+        assertEquals(1, diffService.getDiffHistory("doc-001").size());
+        assertEquals(originalContent, diffService.getDiffHistory("doc-001").get(0).getOriginalContent());
+    }
+
+    @Test
+    void shouldDiscardPendingChangeWithoutMutatingDocument() {
+        DocumentService documentService = new DocumentService();
+        TaskQueryService queryService = new TaskQueryService();
+        DiffService diffService = new DiffService();
+        PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
+        TaskApplicationService service = new TaskApplicationService(
+                documentService,
+                queryService,
+                diffService,
+                pendingChangeService,
+                new StubTaskOrchestrator(),
+                mock(WebSocketService.class),
+                mock(EventPublisher.class),
+                directTaskExecutor()
+        );
+        String originalContent = documentService.getDocument("doc-001").getContent();
+
+        AgentTaskRequest request = new AgentTaskRequest();
+        request.setDocumentId("doc-001");
+        request.setInstruction("rewrite");
+        request.setMode(AgentMode.REACT);
+
+        service.execute(request);
+        service.discardPendingDocumentChange("doc-001");
+
+        assertEquals(originalContent, documentService.getDocument("doc-001").getContent());
+        assertNull(service.getPendingDocumentChange("doc-001"));
+        assertEquals(0, diffService.getDiffHistory("doc-001").size());
     }
 
     @Test
@@ -102,12 +180,14 @@ class TaskApplicationServiceTest {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
+        PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         CapturingTaskOrchestrator orchestrator = new CapturingTaskOrchestrator();
         CapturingTaskExecutor taskExecutor = new CapturingTaskExecutor();
         TaskApplicationService service = new TaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
+                pendingChangeService,
                 orchestrator,
                 mock(WebSocketService.class),
                 mock(EventPublisher.class),
@@ -133,11 +213,13 @@ class TaskApplicationServiceTest {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
+        PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         CapturingTaskOrchestrator orchestrator = new CapturingTaskOrchestrator();
         TaskApplicationService service = new TaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
+                pendingChangeService,
                 orchestrator,
                 mock(WebSocketService.class),
                 mock(EventPublisher.class),
@@ -159,11 +241,13 @@ class TaskApplicationServiceTest {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
+        PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         CapturingTaskOrchestrator orchestrator = new CapturingTaskOrchestrator();
         TaskApplicationService service = new TaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
+                pendingChangeService,
                 orchestrator,
                 mock(WebSocketService.class),
                 mock(EventPublisher.class),
@@ -185,6 +269,7 @@ class TaskApplicationServiceTest {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
+        PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         TaskOrchestrator orchestrator = mock(TaskOrchestrator.class);
         when(orchestrator.execute(any(TaskRequest.class))).thenReturn(new TaskResult(TaskStatus.COMPLETED, "rewritten content"));
         WebSocketService webSocketService = mock(WebSocketService.class);
@@ -192,6 +277,7 @@ class TaskApplicationServiceTest {
                 documentService,
                 queryService,
                 diffService,
+                pendingChangeService,
                 orchestrator,
                 webSocketService,
                 mock(EventPublisher.class),
@@ -216,6 +302,7 @@ class TaskApplicationServiceTest {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
+        PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         TaskOrchestrator orchestrator = mock(TaskOrchestrator.class);
         when(orchestrator.execute(any(TaskRequest.class))).thenReturn(new TaskResult(TaskStatus.COMPLETED, "rewritten content"));
         WebSocketService webSocketService = mock(WebSocketService.class);
@@ -224,6 +311,7 @@ class TaskApplicationServiceTest {
                 documentService,
                 queryService,
                 diffService,
+                pendingChangeService,
                 orchestrator,
                 webSocketService,
                 mock(EventPublisher.class),
@@ -249,12 +337,14 @@ class TaskApplicationServiceTest {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
+        PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         TaskOrchestrator orchestrator = new StubTaskOrchestrator();
         WebSocketService webSocketService = mock(WebSocketService.class);
         TaskApplicationService service = new TaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
+                pendingChangeService,
                 orchestrator,
                 webSocketService,
                 mock(EventPublisher.class),
@@ -276,6 +366,7 @@ class TaskApplicationServiceTest {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
+        PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         TaskOrchestrator orchestrator = request -> {
             throw new IllegalStateException("model timeout");
         };
@@ -285,6 +376,7 @@ class TaskApplicationServiceTest {
                 documentService,
                 queryService,
                 diffService,
+                pendingChangeService,
                 orchestrator,
                 mock(WebSocketService.class),
                 eventPublisher,
@@ -312,12 +404,14 @@ class TaskApplicationServiceTest {
         DocumentService documentService = new DocumentService();
         TrackingTaskQueryService queryService = new TrackingTaskQueryService();
         DiffService diffService = new DiffService();
+        PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         TaskOrchestrator orchestrator = new StubTaskOrchestrator();
         WebSocketService webSocketService = mock(WebSocketService.class);
         TaskApplicationService service = new TaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
+                pendingChangeService,
                 orchestrator,
                 webSocketService,
                 mock(EventPublisher.class),

@@ -20,11 +20,13 @@ class TaskApplicationEventQueryTest {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
+        PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         TaskOrchestrator orchestrator = mock(TaskOrchestrator.class);
         TaskApplicationService service = new TaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
+                pendingChangeService,
                 orchestrator,
                 mock(WebSocketService.class),
                 mock(EventPublisher.class),
