@@ -1,10 +1,12 @@
 package com.agent.editor.service;
 
+import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.websocket.WebSocketService;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.task.TaskExecutor;
 
 import java.util.List;
 
@@ -24,7 +26,9 @@ class TaskApplicationEventQueryTest {
                 queryService,
                 diffService,
                 orchestrator,
-                mock(WebSocketService.class)
+                mock(WebSocketService.class),
+                mock(EventPublisher.class),
+                directTaskExecutor()
         );
 
         queryService.appendEvent(new ExecutionEvent(EventType.TOOL_CALLED, "task-1", "editDocument"));
@@ -34,5 +38,9 @@ class TaskApplicationEventQueryTest {
         assertEquals(1, events.size());
         assertEquals(EventType.TOOL_CALLED, events.get(0).getType());
         assertEquals("editDocument", events.get(0).getMessage());
+    }
+
+    private static TaskExecutor directTaskExecutor() {
+        return Runnable::run;
     }
 }

@@ -8,6 +8,7 @@ import com.agent.editor.service.TaskApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,7 +28,13 @@ public class AgentV2Controller {
     @PostMapping("/execute")
     @Operation(summary = "Execute agent task via native v2 API")
     public ResponseEntity<AgentTaskResponse> executeAgentTask(@RequestBody AgentTaskRequest request) {
-        return ResponseEntity.ok(taskApplicationService.executeV2(request));
+        try {
+            return ResponseEntity.accepted().body(taskApplicationService.executeV2(request));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().build();
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+        }
     }
 
     @GetMapping("/task/{taskId}")

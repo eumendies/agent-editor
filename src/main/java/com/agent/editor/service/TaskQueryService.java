@@ -27,6 +27,11 @@ public class TaskQueryService {
         return taskStates.get(taskId);
     }
 
+    public void remove(String taskId) {
+        taskStates.remove(taskId);
+        taskEvents.remove(taskId);
+    }
+
     public void appendEvent(ExecutionEvent event) {
         taskEvents.computeIfAbsent(event.getTaskId(), ignored -> new ArrayList<>()).add(event);
     }

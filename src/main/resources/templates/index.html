@@ -1075,6 +1075,9 @@
     let activeStreamStep = null;
     let currentStreamText = "";
     let lastCompletedStreamText = null;
+    let taskStatusPollingHandle = null;
+    let finalizedTaskId = null;
+    let currentTaskDocumentId = null;
 
     const modeContent = {
         REACT: {
@@ -1126,6 +1129,7 @@
         ["reactBtn", "planningBtn", "supervisorBtn", "reflexionBtn"].forEach(id => {
             document.getElementById(id).disabled = running;
         });
+        document.getElementById("documentSelect").disabled = running;
     }
 
     function resetProgress() {
@@ -1200,15 +1204,12 @@
 
         const normalized = (executionEvent.type || "").toUpperCase();
         if (normalized === "TASK_COMPLETED" || normalized === "SUPERVISOR_COMPLETED") {
-            setRunningState(false);
-            showProgress(100);
-            refreshDocument();
+            finalizeTask(executionEvent.taskId || currentTaskId, "COMPLETED");
             return;
         }
 
         if (normalized === "TASK_FAILED" || normalized === "TOOL_FAILED") {
-            setRunningState(false);
-            showProgress(100);
+            finalizeTask(executionEvent.taskId || currentTaskId, "FAILED");
             return;
         }
 
@@ -1393,6 +1394,79 @@
         renderTaskEvents(events);
     }
 
+    async function loadTaskStatus(taskId) {
+        if (!taskId) {
+            return null;
+        }
+
+        const response = await fetch(`/api/v2/agent/task/${taskId}`);
+        if (response.status === 404) {
+            return null;
+        }
+        if (!response.ok) {
+            throw new Error("Task status request failed");
+        }
+        return response.json();
+    }
+
+    function stopTaskStatusPolling() {
+        if (taskStatusPollingHandle) {
+            clearInterval(taskStatusPollingHandle);
+            taskStatusPollingHandle = null;
+        }
+    }
+
+    function startTaskStatusPolling(taskId) {
+        stopTaskStatusPolling();
+        taskStatusPollingHandle = setInterval(async () => {
+            if (!taskId || finalizedTaskId === taskId) {
+                stopTaskStatusPolling();
+                return;
+            }
+            try {
+                const statusResponse = await loadTaskStatus(taskId);
+                const status = (statusResponse?.status || "").toUpperCase();
+                if (status === "COMPLETED") {
+                    await finalizeTask(taskId, "COMPLETED");
+                    return;
+                }
+                if (status === "FAILED") {
+                    addExecutionEventToUI({
+                        type: "TASK_FAILED",
+                        message: statusResponse?.finalResult || "Task failed"
+                    });
+                    await finalizeTask(taskId, "FAILED");
+                }
+            } catch (error) {
+                console.error("Error polling task status:", error);
+            }
+        }, 2000);
+    }
+
+    async function finalizeTask(taskId, terminalStatus) {
+        if (!taskId || finalizedTaskId === taskId) {
+            return;
+        }
+
+        finalizedTaskId = taskId;
+        stopTaskStatusPolling();
+        setRunningState(false);
+        showProgress(100);
+        await loadTaskEvents(taskId).catch(() => null);
+
+        if (terminalStatus !== "COMPLETED") {
+            return;
+        }
+
+        const statusResponse = await loadTaskStatus(taskId).catch(() => null);
+        if (statusResponse?.finalResult) {
+            document.getElementById("resultContent").value = statusResponse.finalResult;
+        }
+        await refreshDocument(currentTaskDocumentId);
+        await loadDiffHistory(currentTaskDocumentId);
+        await loadTrace(taskId);
+    }
+
     async function runMode(mode) {
         syncModeUI(mode);
 
@@ -1404,6 +1478,10 @@
         }
 
         setRunningState(true);
+        stopTaskStatusPolling();
+        finalizedTaskId = null;
+        currentTaskId = null;
+        currentTaskDocumentId = documentId;
         resetProgress();
         showProgress(12);
         clearTimeline(false);
@@ -1421,25 +1499,17 @@
                 })
             });
 
-            if (!response.ok) {
-                throw new Error("Agent execution failed");
+            if (response.status !== 202) {
+                throw new Error("Agent submission failed");
             }
 
             const result = await response.json();
             currentTaskId = result.taskId;
-            showProgress(72);
-
-            if (result.finalResult) {
-                document.getElementById("resultContent").value = result.finalResult;
-            }
-
+            showProgress(24);
             await loadTaskEvents(result.taskId);
-            await refreshDocument();
-            await loadDiffHistory(documentId);
-            await loadTrace(result.taskId);
-            setRunningState(false);
-            showProgress(100);
+            startTaskStatusPolling(result.taskId);
         } catch (error) {
+            stopTaskStatusPolling();
             addExecutionEventToUI({
                 type: "TASK_FAILED",
                 message: error.message
@@ -1449,8 +1519,8 @@
         }
     }
 
-    async function refreshDocument() {
-        const documentId = document.getElementById("documentSelect").value;
+    async function refreshDocument(documentIdOverride) {
+        const documentId = documentIdOverride || document.getElementById("documentSelect").value;
         try {
             const response = await fetch(`/api/v1/documents/${documentId}`);
             if (!response.ok) {

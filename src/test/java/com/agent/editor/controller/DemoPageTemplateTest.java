@@ -30,5 +30,10 @@ class DemoPageTemplateTest {
         assertTrue(template.contains("shouldSuppressCompletedMessage"));
         assertTrue(template.contains("TASK_COMPLETED"));
         assertTrue(template.contains("SUPERVISOR_COMPLETED"));
+        assertTrue(template.contains("response.status !== 202"));
+        assertTrue(template.contains("startTaskStatusPolling"));
+        assertTrue(template.contains("finalizeTask"));
+        assertTrue(template.contains("currentTaskDocumentId"));
+        assertTrue(template.contains("refreshDocument(currentTaskDocumentId)"));
     }
 }

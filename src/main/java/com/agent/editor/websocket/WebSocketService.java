@@ -44,6 +44,10 @@ public class WebSocketService {
         sessionTasks.put(sessionId, taskId);
     }
 
+    public void unbindTaskFromSession(String sessionId, String taskId) {
+        sessionTasks.computeIfPresent(sessionId, (ignored, boundTaskId) -> taskId.equals(boundTaskId) ? null : boundTaskId);
+    }
+
     public void registerV2Session(WebSocketSession session) {
         v2Sessions.put(session.getId(), session);
         logger.info("Agent v2 WebSocket session registered: {}", session.getId());
@@ -57,6 +61,10 @@ public class WebSocketService {
 
     public void bindV2TaskToSession(String sessionId, String taskId) {
         v2SessionTasks.put(sessionId, taskId);
+    }
+
+    public void unbindV2TaskFromSession(String sessionId, String taskId) {
+        v2SessionTasks.computeIfPresent(sessionId, (ignored, boundTaskId) -> taskId.equals(boundTaskId) ? null : boundTaskId);
     }
 
     public void sendToSession(String sessionId, WebSocketMessage message) {
