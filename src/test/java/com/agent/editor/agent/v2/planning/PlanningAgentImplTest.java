@@ -14,7 +14,9 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PlanningAgentImplTest {
 
@@ -27,14 +29,17 @@ class PlanningAgentImplTest {
 
     @Test
     void shouldMapTypedPlanFromAiService() {
-        PlanningAgentImpl definition = new PlanningAgentImpl((document, instruction) ->
-                new PlanningResponse(List.of(
-                        new PlanningResponse.Step("Review structure"),
-                        new PlanningResponse.Step("Rewrite introduction"),
-                        new PlanningResponse.Step("Polish tone")
-                )));
+        PlanningAgentImpl definition = new PlanningAgentImpl((document, instruction) -> {
+            assertTrue(document.contains("- Intro"));
+            assertFalse(document.contains("body paragraph that should stay out of the planning context"));
+            return new PlanningResponse(List.of(
+                    new PlanningResponse.Step("Review structure"),
+                    new PlanningResponse.Step("Rewrite introduction"),
+                    new PlanningResponse.Step("Polish tone")
+            ));
+        });
 
-        PlanResult result = definition.createPlan(context("body", "Improve this document"));
+        PlanResult result = definition.createPlan(context("# Intro\n\nbody paragraph that should stay out of the planning context", "Improve this document"));
 
         assertEquals(3, result.getPlans().size());
         assertEquals(1, result.getPlans().get(0).getOrder());

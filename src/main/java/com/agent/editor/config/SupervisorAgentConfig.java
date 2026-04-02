@@ -77,6 +77,8 @@ public class SupervisorAgentConfig {
                 "Produce grounded document updates and revisions without introducing unsupported claims.",
                 groundedWriterAgentDefinition,
                 List.of(
+                        DocumentToolNames.READ_DOCUMENT_NODE,
+                        DocumentToolNames.PATCH_DOCUMENT_NODE,
                         DocumentToolNames.EDIT_DOCUMENT,
                         DocumentToolNames.APPEND_TO_DOCUMENT,
                         DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
@@ -90,6 +92,7 @@ public class SupervisorAgentConfig {
                 "Review whether the response follows the user instruction and remains grounded in available evidence.",
                 evidenceReviewerAgentDefinition,
                 List.of(
+                        DocumentToolNames.READ_DOCUMENT_NODE,
                         DocumentToolNames.SEARCH_CONTENT,
                         DocumentToolNames.ANALYZE_DOCUMENT,
                         DocumentToolNames.GET_DOCUMENT_SNAPSHOT

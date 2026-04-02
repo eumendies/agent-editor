@@ -16,6 +16,8 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionResult;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.task.TaskRequest;
+import com.agent.editor.service.StructuredDocumentService;
+import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -55,9 +57,16 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
             .build();
 
     private final MemoryCompressor memoryCompressor;
+    private final StructuredDocumentService structuredDocumentService;
 
     public SupervisorContextFactory(MemoryCompressor memoryCompressor) {
+        this(memoryCompressor, new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200));
+    }
+
+    public SupervisorContextFactory(MemoryCompressor memoryCompressor,
+                                    StructuredDocumentService structuredDocumentService) {
         this.memoryCompressor = memoryCompressor;
+        this.structuredDocumentService = structuredDocumentService;
     }
 
     @Override
@@ -151,14 +160,14 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
         messages.add(SystemMessage.from(routingSystemPrompt()));
         messages.add(UserMessage.from("""
                 Task: %s
-                Current content:
+                Current document structure:
                 %s
 
                 Candidate workers:
                 %s
                 """.formatted(
                 context.getRequest().getInstruction(),
-                context.getCurrentContent(),
+                structureSummary(context),
                 renderCandidates(candidates)
         )));
         context.getWorkerResults().stream()
@@ -273,6 +282,17 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
                 - reasoning: concise explanation
                 The workerId must be one of the candidate workers listed in the user message.
                 """;
+    }
+
+    private String structureSummary(SupervisorContext context) {
+        if (context.getRequest() == null || context.getRequest().getDocument() == null) {
+            return "(no document)";
+        }
+        return structuredDocumentService.renderStructureSummary(
+                context.getRequest().getDocument().getDocumentId(),
+                context.getRequest().getDocument().getTitle(),
+                context.getCurrentContent()
+        );
     }
 
     private String emptyIfBlank(String value) {

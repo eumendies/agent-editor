@@ -27,5 +27,8 @@ class DocumentServiceTest {
         assertFalse(publicMethods.contains("startAgentTaskAsync"));
         assertFalse(publicMethods.contains("getTaskStatus"));
         assertFalse(publicMethods.contains("getTaskSteps"));
+        assertFalse(publicMethods.contains("buildSnapshot"));
+        assertFalse(publicMethods.contains("readNode"));
+        assertFalse(publicMethods.contains("applyPatch"));
     }
 }

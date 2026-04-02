@@ -10,6 +10,7 @@ import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import com.agent.editor.agent.v2.task.TaskRequest;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
@@ -65,12 +66,12 @@ class ReactAgentContextFactoryTest {
                         "task-2",
                         "session-2",
                         AgentType.REACT,
-                        new DocumentSnapshot("doc-1", "Title", "body"),
+                        new DocumentSnapshot("doc-1", "Title", "# Intro\n\nbody"),
                         "rewrite this",
                         3
                 ),
                 1,
-                "body",
+                "# Intro\n\nbody",
                 new ChatTranscriptMemory(List.of(
                         new ChatMessage.UserChatMessage("previous turn"),
                         new ChatMessage.ToolExecutionResultChatMessage(
@@ -92,6 +93,10 @@ class ReactAgentContextFactoryTest {
         assertEquals(4, invocationContext.getMessages().size());
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains("ReAct-style document editing agent"));
+        assertTrue(systemMessage.text().contains(DocumentToolNames.READ_DOCUMENT_NODE));
+        assertTrue(systemMessage.text().contains(DocumentToolNames.PATCH_DOCUMENT_NODE));
+        assertTrue(systemMessage.text().contains("Current document structure"));
+        assertTrue(systemMessage.text().contains("Intro"));
         UserMessage previousTurn = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
         assertEquals("previous turn", previousTurn.singleText());
         ToolExecutionResultMessage toolMessage = assertInstanceOf(
@@ -123,12 +128,12 @@ class ReactAgentContextFactoryTest {
                         "task-3",
                         "session-3",
                         AgentType.REACT,
-                        new DocumentSnapshot("doc-1", "Title", "body"),
+                        new DocumentSnapshot("doc-1", "Title", "# Intro\n\nbody"),
                         "rewrite this",
                         3
                 ),
                 1,
-                "body",
+                "# Intro\n\nbody",
                 new ChatTranscriptMemory(List.of(
                         new ChatMessage.AiChatMessage("already compressed summary"),
                         new ChatMessage.UserChatMessage("rewrite this")

@@ -7,6 +7,7 @@ import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,10 @@ class GroundedWriterAgentContextFactoryTest {
         assertEquals(3, invocationContext.getMessages().size());
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains("grounded writer worker"));
+        assertTrue(systemMessage.text().contains(DocumentToolNames.READ_DOCUMENT_NODE));
+        assertTrue(systemMessage.text().contains(DocumentToolNames.PATCH_DOCUMENT_NODE));
+        assertTrue(systemMessage.text().contains("Current document structure"));
+        assertTrue(systemMessage.text().contains("Intro"));
         UserMessage historyMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
         assertEquals("older writer turn", historyMessage.singleText());
         UserMessage currentTurnMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));
@@ -55,7 +60,7 @@ class GroundedWriterAgentContextFactoryTest {
                 "task-1",
                 "session-1",
                 AgentType.REACT,
-                new DocumentSnapshot("doc-1", "title", "body"),
+                new DocumentSnapshot("doc-1", "title", "# Intro\n\nbody"),
                 "rewrite the answer using available evidence",
                 3,
                 new ChatTranscriptMemory(List.of(new ChatMessage.UserChatMessage("raw writer memory")))
@@ -73,7 +78,7 @@ class GroundedWriterAgentContextFactoryTest {
                 "task-1",
                 "session-1",
                 AgentType.REACT,
-                new DocumentSnapshot("doc-1", "title", "body"),
+                new DocumentSnapshot("doc-1", "title", "# Intro\n\nbody"),
                 "rewrite the answer using available evidence",
                 3,
                 new ChatTranscriptMemory(List.of(
@@ -83,7 +88,7 @@ class GroundedWriterAgentContextFactoryTest {
                 "task-1",
                 "session-1",
                 AgentType.REACT,
-                new DocumentSnapshot("doc-1", "title", "body"),
+                new DocumentSnapshot("doc-1", "title", "# Intro\n\nbody"),
                 "rewrite the answer using available evidence",
                 3
         ));

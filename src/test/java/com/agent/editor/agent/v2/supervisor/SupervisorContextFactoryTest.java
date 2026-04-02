@@ -161,6 +161,8 @@ class SupervisorContextFactoryTest {
         assertTrue(systemMessage.text().contains("You are a hybrid supervisor for a document workflow"));
         UserMessage message = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
         assertTrue(message.singleText().contains("Task: Improve this document"));
+        assertTrue(message.singleText().contains("Current document structure:"));
+        assertTrue(message.singleText().contains("Intro"));
         assertTrue(message.singleText().contains("writer | role=Writer"));
         AiMessage firstWorkerResult = assertInstanceOf(AiMessage.class, invocationContext.getMessages().get(2));
         assertTrue(firstWorkerResult.text().contains("workerId: " + SupervisorWorkerIds.RESEARCHER));
@@ -217,7 +219,7 @@ class SupervisorContextFactoryTest {
                 "task-1",
                 "session-1",
                 AgentType.SUPERVISOR,
-                new DocumentSnapshot("doc-1", "Title", "body"),
+                new DocumentSnapshot("doc-1", "Title", "# Intro\n\nbody"),
                 "Improve this document",
                 5
         );

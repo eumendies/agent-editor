@@ -3,6 +3,7 @@ package com.agent.editor.utils.rag.markdown;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -23,5 +24,17 @@ public class MarkdownSectionDocument {
 
     public void setSections(List<MarkdownSectionNode> sections) {
         this.sections = sections == null ? List.of() : List.copyOf(sections);
+    }
+
+    public String render() {
+        List<String> parts = new ArrayList<>();
+        if (!leadingContent.isBlank()) {
+            parts.add(leadingContent);
+        }
+        sections.stream()
+                .map(MarkdownSectionNode::render)
+                .filter(text -> !text.isBlank())
+                .forEach(parts::add);
+        return String.join("\n\n", parts).trim();
     }
 }

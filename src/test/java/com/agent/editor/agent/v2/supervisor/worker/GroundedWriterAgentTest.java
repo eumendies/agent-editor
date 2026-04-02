@@ -44,6 +44,8 @@ class GroundedWriterAgentTest {
         GroundedWriterAgent definition = GroundedWriterAgent.blocking(chatModel, new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         definition.decide(context(List.of(
+                readDocumentNodeTool(),
+                patchDocumentNodeTool(),
                 editDocumentTool(),
                 appendToDocumentTool(),
                 getDocumentSnapshotTool(),
@@ -51,6 +53,8 @@ class GroundedWriterAgentTest {
         )));
 
         assertEquals(List.of(
+                DocumentToolNames.READ_DOCUMENT_NODE,
+                DocumentToolNames.PATCH_DOCUMENT_NODE,
                 DocumentToolNames.EDIT_DOCUMENT,
                 DocumentToolNames.APPEND_TO_DOCUMENT,
                 DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
@@ -58,6 +62,8 @@ class GroundedWriterAgentTest {
         ), assertThatToolNames(chatModel.lastRequest));
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
         assertTrue(systemMessage.text().contains("grounded writer worker"));
+        assertTrue(systemMessage.text().contains(DocumentToolNames.READ_DOCUMENT_NODE));
+        assertTrue(systemMessage.text().contains(DocumentToolNames.PATCH_DOCUMENT_NODE));
         assertTrue(systemMessage.text().contains("Do not introduce claims"));
         assertTrue(systemMessage.text().contains(DocumentToolNames.APPEND_TO_DOCUMENT));
         assertTrue(systemMessage.text().contains(DocumentToolNames.GET_DOCUMENT_SNAPSHOT));
@@ -125,6 +131,20 @@ class GroundedWriterAgentTest {
         return ToolSpecification.builder()
                 .name(DocumentToolNames.EDIT_DOCUMENT)
                 .description("edit the document")
+                .build();
+    }
+
+    private ToolSpecification readDocumentNodeTool() {
+        return ToolSpecification.builder()
+                .name(DocumentToolNames.READ_DOCUMENT_NODE)
+                .description("read one document node")
+                .build();
+    }
+
+    private ToolSpecification patchDocumentNodeTool() {
+        return ToolSpecification.builder()
+                .name(DocumentToolNames.PATCH_DOCUMENT_NODE)
+                .description("patch one document node")
                 .build();
     }
 

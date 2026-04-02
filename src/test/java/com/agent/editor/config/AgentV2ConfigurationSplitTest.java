@@ -175,6 +175,16 @@ class AgentV2ConfigurationSplitTest {
         });
     }
 
+    @Test
+    void shouldRegisterStructuredDocumentTools() {
+        contextRunner.run(context -> {
+            ToolRegistry toolRegistry = context.getBean(ToolRegistry.class);
+
+            assertThat(toolRegistry.get(DocumentToolNames.READ_DOCUMENT_NODE)).isNotNull();
+            assertThat(toolRegistry.get(DocumentToolNames.PATCH_DOCUMENT_NODE)).isNotNull();
+        });
+    }
+
     @Configuration
     static class StubDependencyConfig {
 

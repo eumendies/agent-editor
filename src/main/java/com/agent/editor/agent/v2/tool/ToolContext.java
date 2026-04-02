@@ -10,5 +10,11 @@ import lombok.NoArgsConstructor;
 public class ToolContext {
 
     private String taskId;
+    private String documentId;
+    private String documentTitle;
     private String currentContent;
+
+    public ToolContext(String taskId, String currentContent) {
+        this(taskId, null, null, currentContent);
+    }
 }

@@ -80,7 +80,7 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
             if (toolLoopDecision instanceof ToolLoopDecision.ToolCalls toolCalls) {
                 // ToolCalls 不会直接结束任务，runtime 会先执行工具，再把结果折回下一轮上下文。
                 ToolExecutionOutcome outcome = executeTools(
-                        request.getTaskId(),
+                        request,
                         state.getCurrentContent(),
                         toolCalls.getCalls(),
                         request.getAllowedTools()
@@ -106,29 +106,37 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
         throw new IllegalStateException("Execution terminated without completion");
     }
 
-    private ToolExecutionOutcome executeTools(String taskId,
+    private ToolExecutionOutcome executeTools(ExecutionRequest request,
                                               String currentContent,
                                               List<ToolCall> calls,
                                               List<String> allowedTools) {
         List<ToolExecutionRecord> executions = new ArrayList<>();
         String updatedContent = currentContent;
         for (ToolCall call : calls) {
-            eventPublisher.publish(new ExecutionEvent(EventType.TOOL_CALLED, taskId, call.getName()));
+            eventPublisher.publish(new ExecutionEvent(EventType.TOOL_CALLED, request.getTaskId(), call.getName()));
 
             ToolHandler handler = toolRegistry.get(call.getName());
             // 这里同时做“是否存在”和“是否允许”两层校验，错误统一收敛成不可用工具。
             if (handler == null || !toolRegistry.isAllowed(call.getName(), allowedTools)) {
-                eventPublisher.publish(new ExecutionEvent(EventType.TOOL_FAILED, taskId, call.getName()));
+                eventPublisher.publish(new ExecutionEvent(EventType.TOOL_FAILED, request.getTaskId(), call.getName()));
                 throw new IllegalStateException("No tool handler registered for " + call.getName());
             }
 
             // 工具拿到的是“当前阶段文档内容”，多个 tool call 会在同一轮里顺序叠加修改结果。
-            ToolResult result = handler.execute(new ToolInvocation(call.getName(), call.getArguments()), new ToolContext(taskId, updatedContent));
+            ToolResult result = handler.execute(
+                    new ToolInvocation(call.getName(), call.getArguments()),
+                    new ToolContext(
+                            request.getTaskId(),
+                            request.getDocument() == null ? null : request.getDocument().getDocumentId(),
+                            request.getDocument() == null ? null : request.getDocument().getTitle(),
+                            updatedContent
+                    )
+            );
             executions.add(new ToolExecutionRecord(call, result));
             if (result.getUpdatedContent() != null) {
                 updatedContent = result.getUpdatedContent();
             }
-            eventPublisher.publish(new ExecutionEvent(EventType.TOOL_SUCCEEDED, taskId, result.getMessage()));
+            eventPublisher.publish(new ExecutionEvent(EventType.TOOL_SUCCEEDED, request.getTaskId(), result.getMessage()));
         }
         return new ToolExecutionOutcome(executions, updatedContent);
     }

@@ -45,11 +45,13 @@ class EvidenceReviewerAgentTest {
                 .build());
         EvidenceReviewerAgent definition = EvidenceReviewerAgent.blocking(chatModel, new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop()));
 
-        definition.decide(context(List.of(searchContentTool(), analyzeDocumentTool())));
+        definition.decide(context(List.of(readDocumentNodeTool(), searchContentTool(), analyzeDocumentTool(), getDocumentSnapshotTool())));
 
         assertEquals(List.of(
+                DocumentToolNames.READ_DOCUMENT_NODE,
                 DocumentToolNames.SEARCH_CONTENT,
-                DocumentToolNames.ANALYZE_DOCUMENT
+                DocumentToolNames.ANALYZE_DOCUMENT,
+                DocumentToolNames.GET_DOCUMENT_SNAPSHOT
         ), assertThatToolNames(chatModel.lastRequest));
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
         assertTrue(systemMessage.text().contains("reviewer worker"));
@@ -155,10 +157,24 @@ class EvidenceReviewerAgentTest {
                 .build();
     }
 
+    private ToolSpecification readDocumentNodeTool() {
+        return ToolSpecification.builder()
+                .name(DocumentToolNames.READ_DOCUMENT_NODE)
+                .description("read one document node")
+                .build();
+    }
+
     private ToolSpecification analyzeDocumentTool() {
         return ToolSpecification.builder()
                 .name(DocumentToolNames.ANALYZE_DOCUMENT)
                 .description("analyze current document")
+                .build();
+    }
+
+    private ToolSpecification getDocumentSnapshotTool() {
+        return ToolSpecification.builder()
+                .name(DocumentToolNames.GET_DOCUMENT_SNAPSHOT)
+                .description("get latest document snapshot")
                 .build();
     }
 

@@ -12,6 +12,8 @@ import com.agent.editor.agent.v2.core.memory.MemoryCompressor;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.v2.task.TaskRequest;
+import com.agent.editor.service.StructuredDocumentService;
+import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
 import dev.langchain4j.data.message.SystemMessage;
 
 import java.util.ArrayList;
@@ -21,15 +23,31 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
 
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
     private final MemoryCompressor memoryCompressor;
+    private final StructuredDocumentService structuredDocumentService;
 
     public EvidenceReviewerAgentContextFactory(MemoryCompressor memoryCompressor) {
-        this(new ExecutionMemoryChatMessageMapper(), memoryCompressor);
+        this(
+                new ExecutionMemoryChatMessageMapper(),
+                memoryCompressor,
+                new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200)
+        );
     }
 
     public EvidenceReviewerAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
                                                MemoryCompressor memoryCompressor) {
+        this(
+                memoryChatMessageMapper,
+                memoryCompressor,
+                new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200)
+        );
+    }
+
+    public EvidenceReviewerAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
+                                               MemoryCompressor memoryCompressor,
+                                               StructuredDocumentService structuredDocumentService) {
         this.memoryChatMessageMapper = memoryChatMessageMapper;
         this.memoryCompressor = memoryCompressor;
+        this.structuredDocumentService = structuredDocumentService;
     }
 
     @Override
@@ -49,7 +67,7 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
     @Override
     public ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {
         List<dev.langchain4j.data.message.ChatMessage> messages = new ArrayList<>();
-        messages.add(SystemMessage.from(systemPrompt()));
+        messages.add(SystemMessage.from(systemPrompt(context)));
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.getMemory()));
         return new ModelInvocationContext(messages, context.getToolSpecifications(), null);
     }
@@ -68,10 +86,13 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
         return memoryCompressor;
     }
 
-    private String systemPrompt() {
+    private String systemPrompt(AgentRunContext context) {
         return """
                 You are a reviewer worker in a hybrid supervisor workflow.
                 Review whether the latest answer follows the user instruction and stays grounded in the available evidence.
+                Current document structure:
+                %s
+                Use %s for targeted reads when the document is too large for a full snapshot.
                 If you need more local inspection, use the available analysis tools before finalizing your review.
                 Finish by returning exactly one raw JSON object that matches the ReviewerFeedback format.
                 Return only raw JSON with no prose before or after it.
@@ -96,6 +117,20 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
 
                 Valid output example:
                 {"verdict":"REVISE","instructionSatisfied":false,"evidenceGrounded":true,"unsupportedClaims":[],"missingRequirements":["Explain project value"],"feedback":"The draft misses a required point.","reasoning":"The answer is grounded but does not fully satisfy the instruction."}
-                """;
+                """.formatted(
+                structureSummary(context),
+                com.agent.editor.agent.v2.tool.document.DocumentToolNames.READ_DOCUMENT_NODE
+        );
+    }
+
+    private String structureSummary(AgentRunContext context) {
+        if (context.getRequest() == null || context.getRequest().getDocument() == null) {
+            return "(no document)";
+        }
+        return structuredDocumentService.renderStructureSummary(
+                context.getRequest().getDocument().getDocumentId(),
+                context.getRequest().getDocument().getTitle(),
+                context.getCurrentContent()
+        );
     }
 }

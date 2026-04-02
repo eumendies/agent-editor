@@ -72,4 +72,19 @@ public class MarkdownSectionNode {
         // introText 只保留当前章节自己的标题和前言，用于父章节超限时先落一份父级介绍。
         return String.join("\n\n", parts).trim();
     }
+
+    public String render() {
+        List<String> parts = new ArrayList<>();
+        if (!headingLine.isBlank()) {
+            parts.add(headingLine);
+        }
+        if (!bodyText.isBlank()) {
+            parts.add(bodyText);
+        }
+        children.stream()
+                .map(MarkdownSectionNode::render)
+                .filter(text -> !text.isBlank())
+                .forEach(parts::add);
+        return String.join("\n\n", parts).trim();
+    }
 }

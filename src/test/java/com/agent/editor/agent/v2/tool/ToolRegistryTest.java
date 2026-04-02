@@ -2,6 +2,10 @@ package com.agent.editor.agent.v2.tool;
 
 import com.agent.editor.agent.v2.tool.document.AppendToDocumentTool;
 import com.agent.editor.agent.v2.tool.document.GetDocumentSnapshotTool;
+import com.agent.editor.agent.v2.tool.document.PatchDocumentNodeTool;
+import com.agent.editor.agent.v2.tool.document.ReadDocumentNodeTool;
+import com.agent.editor.service.StructuredDocumentService;
+import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,6 +33,20 @@ class ToolRegistryTest {
         assertNotNull(registry.get("getDocumentSnapshot"));
         assertTrue(registry.specifications().stream().anyMatch(spec -> "appendToDocument".equals(spec.name())));
         assertTrue(registry.specifications().stream().anyMatch(spec -> "getDocumentSnapshot".equals(spec.name())));
+    }
+
+    @Test
+    void shouldExposeStructuredDocumentToolsWhenRegistered() {
+        ToolRegistry registry = new ToolRegistry();
+        StructuredDocumentService structuredDocumentService =
+                new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 120, 60);
+        registry.register(new ReadDocumentNodeTool(structuredDocumentService));
+        registry.register(new PatchDocumentNodeTool(structuredDocumentService));
+
+        assertNotNull(registry.get("readDocumentNode"));
+        assertNotNull(registry.get("patchDocumentNode"));
+        assertTrue(registry.specifications().stream().anyMatch(spec -> "readDocumentNode".equals(spec.name())));
+        assertTrue(registry.specifications().stream().anyMatch(spec -> "patchDocumentNode".equals(spec.name())));
     }
 
     private static final class StubToolHandler implements ToolHandler {
