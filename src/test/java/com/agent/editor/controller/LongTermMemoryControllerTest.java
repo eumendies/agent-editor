@@ -84,7 +84,7 @@ class LongTermMemoryControllerTest {
         response.setTaskId(taskId);
         response.setCandidates(List.of(new LongTermMemoryCandidateResponse(
                 candidateId,
-                "TASK_DECISION",
+                "DOCUMENT_DECISION",
                 "Keep section 3 unchanged",
                 "doc-1"
         )));

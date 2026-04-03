@@ -1,7 +1,6 @@
 package com.agent.editor.service;
 
 import com.agent.editor.agent.v2.core.memory.LongTermMemoryItem;
-import com.agent.editor.agent.v2.core.memory.LongTermMemoryScopeType;
 import com.agent.editor.agent.v2.core.memory.LongTermMemoryType;
 import com.agent.editor.agent.v2.core.memory.PendingLongTermMemoryItem;
 import org.junit.jupiter.api.Test;
@@ -67,8 +66,7 @@ class PendingLongTermMemoryServiceTest {
 
     private PendingLongTermMemoryItem candidate(String candidateId, String summary) {
         LongTermMemoryItem memoryItem = new LongTermMemoryItem();
-        memoryItem.setMemoryType(LongTermMemoryType.TASK_DECISION);
-        memoryItem.setScopeType(LongTermMemoryScopeType.DOCUMENT);
+        memoryItem.setMemoryType(LongTermMemoryType.DOCUMENT_DECISION);
         memoryItem.setScopeKey("doc-1");
         memoryItem.setDocumentId("doc-1");
         memoryItem.setSummary(summary);

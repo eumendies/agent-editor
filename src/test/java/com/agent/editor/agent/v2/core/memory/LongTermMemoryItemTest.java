@@ -18,7 +18,6 @@ class LongTermMemoryItemTest {
         LongTermMemoryItem item = new LongTermMemoryItem(
                 "memory-1",
                 LongTermMemoryType.USER_PROFILE,
-                LongTermMemoryScopeType.PROFILE,
                 "default",
                 null,
                 "Prefer concise Chinese answers",
@@ -41,29 +40,25 @@ class LongTermMemoryItemTest {
     void shouldSupportDefaultProfileScopeForUserProfileMemory() {
         LongTermMemoryItem item = new LongTermMemoryItem();
         item.setMemoryType(LongTermMemoryType.USER_PROFILE);
-        item.setScopeType(LongTermMemoryScopeType.PROFILE);
         item.setScopeKey("default");
         item.setSummary("Always answer in Chinese unless asked otherwise");
 
         assertEquals(LongTermMemoryType.USER_PROFILE, item.getMemoryType());
-        assertEquals(LongTermMemoryScopeType.PROFILE, item.getScopeType());
         assertEquals("default", item.getScopeKey());
         assertEquals("Always answer in Chinese unless asked otherwise", item.getSummary());
     }
 
     @Test
-    void shouldCarryDocumentAndSourceMetadataForTaskDecisionMemory() {
+    void shouldCarryDocumentAndSourceMetadataForDocumentDecisionMemory() {
         LongTermMemoryItem item = new LongTermMemoryItem();
-        item.setMemoryType(LongTermMemoryType.TASK_DECISION);
-        item.setScopeType(LongTermMemoryScopeType.DOCUMENT);
+        item.setMemoryType(LongTermMemoryType.DOCUMENT_DECISION);
         item.setScopeKey("doc-123");
         item.setDocumentId("doc-123");
         item.setSourceTaskId("task-9");
         item.setSourceSessionId("session-4");
         item.setSummary("Keep section 3 structure unchanged");
 
-        assertEquals(LongTermMemoryType.TASK_DECISION, item.getMemoryType());
-        assertEquals(LongTermMemoryScopeType.DOCUMENT, item.getScopeType());
+        assertEquals(LongTermMemoryType.DOCUMENT_DECISION, item.getMemoryType());
         assertEquals("doc-123", item.getDocumentId());
         assertEquals("task-9", item.getSourceTaskId());
         assertEquals("session-4", item.getSourceSessionId());

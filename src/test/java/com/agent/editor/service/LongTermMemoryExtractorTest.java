@@ -30,7 +30,7 @@ class LongTermMemoryExtractorTest {
     }
 
     @Test
-    void shouldExtractTaskDecisionCandidateFromExplicitKeepInstruction() {
+    void shouldExtractDocumentDecisionCandidateFromExplicitKeepInstruction() {
         LongTermMemoryExtractor extractor = new LongTermMemoryExtractor();
 
         List<PendingLongTermMemoryItem> candidates = extractor.extractCandidates(
@@ -43,7 +43,7 @@ class LongTermMemoryExtractorTest {
         );
 
         assertEquals(1, candidates.size());
-        assertEquals("TASK_DECISION", candidates.get(0).getMemoryType().name());
+        assertEquals("DOCUMENT_DECISION", candidates.get(0).getMemoryType().name());
         assertEquals("doc-9", candidates.get(0).getDocumentId());
         assertTrue(candidates.get(0).getSummary().contains("Keep section 3 unchanged"));
     }

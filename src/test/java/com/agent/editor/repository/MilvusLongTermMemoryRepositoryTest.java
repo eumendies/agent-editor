@@ -1,7 +1,6 @@
 package com.agent.editor.repository;
 
 import com.agent.editor.agent.v2.core.memory.LongTermMemoryItem;
-import com.agent.editor.agent.v2.core.memory.LongTermMemoryScopeType;
 import com.agent.editor.agent.v2.core.memory.LongTermMemoryType;
 import com.agent.editor.config.LongTermMemoryMilvusProperties;
 import io.milvus.v2.client.MilvusClientV2;
@@ -36,7 +35,6 @@ class MilvusLongTermMemoryRepositoryTest {
         repository.saveAll(List.of(memory(
                 "memory-1",
                 LongTermMemoryType.USER_PROFILE,
-                LongTermMemoryScopeType.PROFILE,
                 "default",
                 null,
                 "Always answer in Chinese",
@@ -50,7 +48,6 @@ class MilvusLongTermMemoryRepositoryTest {
         assertEquals("long_term_memory_v1", request.getCollectionName());
         assertEquals("memory-1", request.getData().get(0).get("memoryId").getAsString());
         assertEquals("USER_PROFILE", request.getData().get(0).get("memoryType").getAsString());
-        assertEquals("PROFILE", request.getData().get(0).get("scopeType").getAsString());
         assertEquals("default", request.getData().get(0).get("scopeKey").getAsString());
         assertEquals("Always answer in Chinese", request.getData().get(0).get("summary").getAsString());
         assertTrue(request.getData().get(0).get("documentId").isJsonNull());
@@ -66,8 +63,7 @@ class MilvusLongTermMemoryRepositoryTest {
 
         repository.saveAll(List.of(memory(
                 "memory-2",
-                LongTermMemoryType.TASK_DECISION,
-                LongTermMemoryScopeType.DOCUMENT,
+                LongTermMemoryType.DOCUMENT_DECISION,
                 "doc-1",
                 "doc-1",
                 "Keep section 3 unchanged",
@@ -78,8 +74,7 @@ class MilvusLongTermMemoryRepositoryTest {
         verify(milvusClient).upsert(requestCaptor.capture());
         UpsertReq request = requestCaptor.getValue();
 
-        assertEquals("TASK_DECISION", request.getData().get(0).get("memoryType").getAsString());
-        assertEquals("DOCUMENT", request.getData().get(0).get("scopeType").getAsString());
+        assertEquals("DOCUMENT_DECISION", request.getData().get(0).get("memoryType").getAsString());
         assertEquals("doc-1", request.getData().get(0).get("scopeKey").getAsString());
         assertEquals("doc-1", request.getData().get(0).get("documentId").getAsString());
         assertEquals("Keep section 3 unchanged", request.getData().get(0).get("summary").getAsString());
@@ -93,8 +88,7 @@ class MilvusLongTermMemoryRepositoryTest {
                 .searchResults(List.of(List.of(SearchResp.SearchResult.builder()
                         .entity(Map.ofEntries(
                                 Map.entry("memoryId", "memory-2"),
-                                Map.entry("memoryType", "TASK_DECISION"),
-                                Map.entry("scopeType", "DOCUMENT"),
+                                Map.entry("memoryType", "DOCUMENT_DECISION"),
                                 Map.entry("scopeKey", "doc-1"),
                                 Map.entry("documentId", "doc-1"),
                                 Map.entry("summary", "Keep section 3 unchanged"),
@@ -112,7 +106,7 @@ class MilvusLongTermMemoryRepositoryTest {
                 new LongTermMemoryMilvusProperties("long_term_memory_v1", 3)
         );
 
-        List<LongTermMemoryItem> results = repository.searchConfirmedTaskDecisions("doc-1", new float[]{0.1f, 0.2f, 0.3f}, 3);
+        List<LongTermMemoryItem> results = repository.searchConfirmedDocumentDecisions("doc-1", new float[]{0.1f, 0.2f, 0.3f}, 3);
 
         assertEquals(1, results.size());
         assertEquals("memory-2", results.get(0).getMemoryId());
@@ -123,12 +117,11 @@ class MilvusLongTermMemoryRepositoryTest {
         ArgumentCaptor<SearchReq> requestCaptor = ArgumentCaptor.forClass(SearchReq.class);
         verify(milvusClient).search(requestCaptor.capture());
         assertEquals("long_term_memory_v1", requestCaptor.getValue().getCollectionName());
-        assertEquals("memoryType == \"TASK_DECISION\" and scopeType == \"DOCUMENT\" and documentId == \"doc-1\"", requestCaptor.getValue().getFilter());
+        assertEquals("memoryType == \"DOCUMENT_DECISION\" and documentId == \"doc-1\"", requestCaptor.getValue().getFilter());
     }
 
     private LongTermMemoryItem memory(String memoryId,
                                       LongTermMemoryType memoryType,
-                                      LongTermMemoryScopeType scopeType,
                                       String scopeKey,
                                       String documentId,
                                       String summary,
@@ -136,7 +129,6 @@ class MilvusLongTermMemoryRepositoryTest {
         return new LongTermMemoryItem(
                 memoryId,
                 memoryType,
-                scopeType,
                 scopeKey,
                 documentId,
                 summary,

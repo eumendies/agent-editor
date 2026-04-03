@@ -32,9 +32,9 @@ public class MemorySearchTool implements ToolHandler {
     public ToolSpecification specification() {
         return ToolSpecification.builder()
                 .name(name())
-                .description("Search confirmed prior task decisions when continuing earlier work or avoiding rejected directions")
+                .description("Search confirmed prior document decisions when continuing earlier work or avoiding rejected directions")
                 .parameters(JsonObjectSchema.builder()
-                        .addStringProperty("query", "Natural language query for prior task decisions")
+                        .addStringProperty("query", "Natural language query for prior document decisions")
                         .addStringProperty("documentId", "Optional document scope for the decision search")
                         .addIntegerProperty("topK", "Optional maximum number of memories to return")
                         .required("query")
@@ -46,7 +46,7 @@ public class MemorySearchTool implements ToolHandler {
     public ToolResult execute(ToolInvocation invocation, ToolContext context) {
         MemorySearchArguments arguments = decodeArguments(invocation.getArguments());
         try {
-            List<RetrievedLongTermMemory> memories = retrievalService.searchConfirmedTaskDecisions(
+            List<RetrievedLongTermMemory> memories = retrievalService.searchConfirmedDocumentDecisions(
                     arguments.getQuery(),
                     arguments.getDocumentId(),
                     arguments.getTopK()

@@ -36,15 +36,15 @@ public class LongTermMemoryRetrievalService {
         return repository.findConfirmedProfiles(DEFAULT_PROFILE_SCOPE);
     }
 
-    public List<RetrievedLongTermMemory> searchConfirmedTaskDecisions(String query,
-                                                                      String documentId,
-                                                                      Integer topK) {
+    public List<RetrievedLongTermMemory> searchConfirmedDocumentDecisions(String query,
+                                                                          String documentId,
+                                                                          Integer topK) {
         if (repository == null || query == null || query.isBlank()) {
             return List.of();
         }
         int limit = topK == null || topK <= 0 ? 3 : topK;
         float[] queryVector = embeddingService.embed(query);
-        return repository.searchConfirmedTaskDecisions(documentId, queryVector, limit).stream()
+        return repository.searchConfirmedDocumentDecisions(documentId, queryVector, limit).stream()
                 .map(memory -> new RetrievedLongTermMemory(
                         memory.getMemoryId(),
                         memory.getMemoryType().name(),

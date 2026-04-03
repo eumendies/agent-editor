@@ -1,7 +1,6 @@
 package com.agent.editor.service;
 
 import com.agent.editor.agent.v2.core.memory.LongTermMemoryItem;
-import com.agent.editor.agent.v2.core.memory.LongTermMemoryScopeType;
 import com.agent.editor.agent.v2.core.memory.LongTermMemoryType;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +37,6 @@ class UserProfilePromptAssemblerTest {
         return new LongTermMemoryItem(
                 "memory-" + summary.hashCode(),
                 LongTermMemoryType.USER_PROFILE,
-                LongTermMemoryScopeType.PROFILE,
                 "default",
                 null,
                 summary,

@@ -19,10 +19,10 @@ class MemorySearchToolTest {
     @Test
     void shouldReturnCondensedTaskDecisionCardsAsJson() {
         LongTermMemoryRetrievalService retrievalService = mock(LongTermMemoryRetrievalService.class);
-        when(retrievalService.searchConfirmedTaskDecisions("previous choices", "doc-1", 2))
+        when(retrievalService.searchConfirmedDocumentDecisions("previous choices", "doc-1", 2))
                 .thenReturn(List.of(new RetrievedLongTermMemory(
                         "memory-2",
-                        "TASK_DECISION",
+                        "DOCUMENT_DECISION",
                         "Keep section 3 unchanged",
                         "Matched the current editing direction for doc-1",
                         "task-1",

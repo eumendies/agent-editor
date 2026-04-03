@@ -16,7 +16,6 @@ public class LongTermMemoryItem {
 
     private String memoryId;
     private LongTermMemoryType memoryType;
-    private LongTermMemoryScopeType scopeType;
     private String scopeKey;
     private String documentId;
     private String summary;
@@ -30,7 +29,6 @@ public class LongTermMemoryItem {
 
     public LongTermMemoryItem(String memoryId,
                               LongTermMemoryType memoryType,
-                              LongTermMemoryScopeType scopeType,
                               String scopeKey,
                               String documentId,
                               String summary,
@@ -43,7 +41,6 @@ public class LongTermMemoryItem {
                               float[] embedding) {
         this.memoryId = memoryId;
         this.memoryType = memoryType;
-        this.scopeType = scopeType;
         this.scopeKey = scopeKey;
         this.documentId = documentId;
         this.summary = summary;

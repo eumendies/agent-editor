@@ -2,7 +2,6 @@ package com.agent.editor.service;
 
 import com.agent.editor.agent.v2.core.memory.ExecutionMemory;
 import com.agent.editor.agent.v2.core.memory.LongTermMemoryItem;
-import com.agent.editor.agent.v2.core.memory.LongTermMemoryScopeType;
 import com.agent.editor.agent.v2.core.memory.LongTermMemoryType;
 import com.agent.editor.agent.v2.core.memory.PendingLongTermMemoryItem;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +42,6 @@ public class LongTermMemoryExtractor {
         // 只抽带“长期生效”语义的表达，避免普通任务描述误沉淀为 user profile。
         if (looksLikeStablePreference(lower, normalized)) {
             candidates.add(candidate(LongTermMemoryType.USER_PROFILE,
-                    LongTermMemoryScopeType.PROFILE,
                     "default",
                     null,
                     normalized,
@@ -51,10 +49,9 @@ public class LongTermMemoryExtractor {
                     sessionId));
         }
 
-        // task decision 只抽明确的保留/禁止/约束型指令，避免把一般编辑动作误当成长期决策。
+        // document decision 只抽明确的保留/禁止/约束型指令，避免把一般编辑动作误当成长期决策。
         if (looksLikeExplicitDecision(lower, normalized) && documentId != null && !documentId.isBlank()) {
-            candidates.add(candidate(LongTermMemoryType.TASK_DECISION,
-                    LongTermMemoryScopeType.DOCUMENT,
+            candidates.add(candidate(LongTermMemoryType.DOCUMENT_DECISION,
                     documentId,
                     documentId,
                     normalized,
@@ -65,7 +62,6 @@ public class LongTermMemoryExtractor {
     }
 
     private PendingLongTermMemoryItem candidate(LongTermMemoryType memoryType,
-                                                LongTermMemoryScopeType scopeType,
                                                 String scopeKey,
                                                 String documentId,
                                                 String summary,
@@ -76,7 +72,6 @@ public class LongTermMemoryExtractor {
         LongTermMemoryItem item = new LongTermMemoryItem(
                 memoryId,
                 memoryType,
-                scopeType,
                 scopeKey,
                 documentId,
                 summary,

@@ -22,7 +22,6 @@ public class PendingLongTermMemoryItem extends LongTermMemoryItem {
         }
         setMemoryId(item.getMemoryId());
         setMemoryType(item.getMemoryType());
-        setScopeType(item.getScopeType());
         setScopeKey(item.getScopeKey());
         setDocumentId(item.getDocumentId());
         setSummary(item.getSummary());

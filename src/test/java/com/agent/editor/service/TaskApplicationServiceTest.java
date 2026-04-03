@@ -8,7 +8,6 @@ import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.core.memory.LongTermMemoryItem;
-import com.agent.editor.agent.v2.core.memory.LongTermMemoryScopeType;
 import com.agent.editor.agent.v2.core.memory.LongTermMemoryType;
 import com.agent.editor.dto.AgentTaskRequest;
 import com.agent.editor.dto.AgentTaskResponse;
@@ -544,7 +543,6 @@ class TaskApplicationServiceTest {
         return new LongTermMemoryItem(
                 "memory-" + summary.hashCode(),
                 LongTermMemoryType.USER_PROFILE,
-                LongTermMemoryScopeType.PROFILE,
                 "default",
                 null,
                 summary,

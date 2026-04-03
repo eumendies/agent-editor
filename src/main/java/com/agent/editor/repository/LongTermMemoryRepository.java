@@ -29,16 +29,16 @@ public interface LongTermMemoryRepository {
     }
 
     /**
-     * 按文档作用域和查询向量检索历史任务决策。
+     * 按文档作用域和查询向量检索历史文档决策。
      *
      * @param documentId 文档标识
      * @param queryVector 查询向量
      * @param topK 返回数量
-     * @return 命中的任务决策记忆
+     * @return 命中的文档决策记忆
      */
-    default List<LongTermMemoryItem> searchConfirmedTaskDecisions(String documentId,
-                                                                  float[] queryVector,
-                                                                  int topK) {
-        throw new UnsupportedOperationException("Task-decision memory search is not implemented");
+    default List<LongTermMemoryItem> searchConfirmedDocumentDecisions(String documentId,
+                                                                      float[] queryVector,
+                                                                      int topK) {
+        throw new UnsupportedOperationException("Document-decision memory search is not implemented");
     }
 }

@@ -1,7 +1,6 @@
 package com.agent.editor.service;
 
 import com.agent.editor.agent.v2.core.memory.LongTermMemoryItem;
-import com.agent.editor.agent.v2.core.memory.LongTermMemoryScopeType;
 import com.agent.editor.agent.v2.core.memory.LongTermMemoryType;
 import com.agent.editor.model.RetrievedLongTermMemory;
 import com.agent.editor.repository.LongTermMemoryRepository;
@@ -29,7 +28,6 @@ class LongTermMemoryRetrievalServiceTest {
                 .thenReturn(List.of(memory(
                         "memory-1",
                         LongTermMemoryType.USER_PROFILE,
-                        LongTermMemoryScopeType.PROFILE,
                         "default",
                         null,
                         "Always answer in Chinese"
@@ -45,22 +43,21 @@ class LongTermMemoryRetrievalServiceTest {
     }
 
     @Test
-    void shouldSearchConfirmedTaskDecisionsWithDocumentScopeAndEmbedding() {
+    void shouldSearchConfirmedDocumentDecisionsWithDocumentScopeAndEmbedding() {
         LongTermMemoryRepository repository = mock(LongTermMemoryRepository.class);
         KnowledgeEmbeddingService embeddingService = mock(KnowledgeEmbeddingService.class);
         when(embeddingService.embed("continue previous editing choices")).thenReturn(new float[]{0.1f, 0.2f});
-        when(repository.searchConfirmedTaskDecisions("doc-1", new float[]{0.1f, 0.2f}, 2))
+        when(repository.searchConfirmedDocumentDecisions("doc-1", new float[]{0.1f, 0.2f}, 2))
                 .thenReturn(List.of(memory(
                         "memory-2",
-                        LongTermMemoryType.TASK_DECISION,
-                        LongTermMemoryScopeType.DOCUMENT,
+                        LongTermMemoryType.DOCUMENT_DECISION,
                         "doc-1",
                         "doc-1",
                         "Keep section 3 unchanged"
                 )));
         LongTermMemoryRetrievalService service = new LongTermMemoryRetrievalService(repository, embeddingService);
 
-        List<RetrievedLongTermMemory> results = service.searchConfirmedTaskDecisions(
+        List<RetrievedLongTermMemory> results = service.searchConfirmedDocumentDecisions(
                 "continue previous editing choices",
                 "doc-1",
                 2
@@ -69,7 +66,7 @@ class LongTermMemoryRetrievalServiceTest {
         assertEquals(1, results.size());
         assertEquals("Keep section 3 unchanged", results.get(0).getSummary());
         verify(embeddingService).embed("continue previous editing choices");
-        verify(repository).searchConfirmedTaskDecisions(eq("doc-1"), any(), eq(2));
+        verify(repository).searchConfirmedDocumentDecisions(eq("doc-1"), any(), eq(2));
     }
 
     @Test
@@ -78,7 +75,7 @@ class LongTermMemoryRetrievalServiceTest {
         KnowledgeEmbeddingService embeddingService = mock(KnowledgeEmbeddingService.class);
         LongTermMemoryRetrievalService service = new LongTermMemoryRetrievalService(repository, embeddingService);
 
-        assertTrue(service.searchConfirmedTaskDecisions("  ", "doc-1", 3).isEmpty());
+        assertTrue(service.searchConfirmedDocumentDecisions("  ", "doc-1", 3).isEmpty());
         verify(embeddingService, never()).embed(any());
     }
 
@@ -91,20 +88,18 @@ class LongTermMemoryRetrievalServiceTest {
         );
 
         assertTrue(service.loadConfirmedProfiles().isEmpty());
-        assertTrue(service.searchConfirmedTaskDecisions("continue previous editing choices", "doc-1", 3).isEmpty());
+        assertTrue(service.searchConfirmedDocumentDecisions("continue previous editing choices", "doc-1", 3).isEmpty());
         verify(embeddingService, never()).embed(any());
     }
 
     private LongTermMemoryItem memory(String memoryId,
                                       LongTermMemoryType memoryType,
-                                      LongTermMemoryScopeType scopeType,
                                       String scopeKey,
                                       String documentId,
                                       String summary) {
         return new LongTermMemoryItem(
                 memoryId,
                 memoryType,
-                scopeType,
                 scopeKey,
                 documentId,
                 summary,

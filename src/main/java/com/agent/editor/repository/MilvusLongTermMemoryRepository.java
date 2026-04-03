@@ -1,7 +1,6 @@
 package com.agent.editor.repository;
 
 import com.agent.editor.agent.v2.core.memory.LongTermMemoryItem;
-import com.agent.editor.agent.v2.core.memory.LongTermMemoryScopeType;
 import com.agent.editor.agent.v2.core.memory.LongTermMemoryType;
 import com.agent.editor.config.LongTermMemoryMilvusProperties;
 import com.google.gson.JsonArray;
@@ -28,7 +27,6 @@ public class MilvusLongTermMemoryRepository implements LongTermMemoryRepository 
 
     private static final String MEMORY_ID = "memoryId";
     private static final String MEMORY_TYPE = "memoryType";
-    private static final String SCOPE_TYPE = "scopeType";
     private static final String SCOPE_KEY = "scopeKey";
     private static final String DOCUMENT_ID = "documentId";
     private static final String SUMMARY = "summary";
@@ -41,7 +39,6 @@ public class MilvusLongTermMemoryRepository implements LongTermMemoryRepository 
     private static final List<String> OUTPUT_FIELDS = List.of(
             MEMORY_ID,
             MEMORY_TYPE,
-            SCOPE_TYPE,
             SCOPE_KEY,
             DOCUMENT_ID,
             SUMMARY,
@@ -91,15 +88,15 @@ public class MilvusLongTermMemoryRepository implements LongTermMemoryRepository 
     }
 
     @Override
-    public List<LongTermMemoryItem> searchConfirmedTaskDecisions(String documentId,
-                                                                 float[] queryVector,
-                                                                 int topK) {
+    public List<LongTermMemoryItem> searchConfirmedDocumentDecisions(String documentId,
+                                                                     float[] queryVector,
+                                                                     int topK) {
         SearchResp response = milvusClient.search(SearchReq.builder()
                 .collectionName(properties.getCollectionName())
                 .annsField(EMBEDDING)
                 .metricType(IndexParam.MetricType.COSINE)
                 .topK(topK)
-                .filter(buildTaskDecisionFilter(documentId))
+                .filter(buildDocumentDecisionFilter(documentId))
                 .outputFields(OUTPUT_FIELDS)
                 .data(List.of(new FloatVec(queryVector)))
                 .build());
@@ -115,7 +112,6 @@ public class MilvusLongTermMemoryRepository implements LongTermMemoryRepository 
         JsonObject row = new JsonObject();
         row.addProperty(MEMORY_ID, item.getMemoryId());
         row.addProperty(MEMORY_TYPE, item.getMemoryType().name());
-        row.addProperty(SCOPE_TYPE, item.getScopeType().name());
         row.addProperty(SCOPE_KEY, item.getScopeKey());
         row.add(DOCUMENT_ID, item.getDocumentId() == null ? JsonNull.INSTANCE : new JsonPrimitive(item.getDocumentId()));
         row.addProperty(SUMMARY, item.getSummary());
@@ -144,7 +140,6 @@ public class MilvusLongTermMemoryRepository implements LongTermMemoryRepository 
         LongTermMemoryItem item = new LongTermMemoryItem();
         item.setMemoryId(asString(entity.get(MEMORY_ID)));
         item.setMemoryType(LongTermMemoryType.valueOf(asString(entity.get(MEMORY_TYPE))));
-        item.setScopeType(LongTermMemoryScopeType.valueOf(asString(entity.get(SCOPE_TYPE))));
         item.setScopeKey(asString(entity.get(SCOPE_KEY)));
         item.setDocumentId(asString(entity.get(DOCUMENT_ID)));
         item.setSummary(asString(entity.get(SUMMARY)));
@@ -158,17 +153,15 @@ public class MilvusLongTermMemoryRepository implements LongTermMemoryRepository 
 
     private String buildProfileFilter(String scopeKey) {
         return MEMORY_TYPE + " == " + quote(LongTermMemoryType.USER_PROFILE.name())
-                + " and " + SCOPE_TYPE + " == " + quote(LongTermMemoryScopeType.PROFILE.name())
                 + " and " + SCOPE_KEY + " == " + quote(scopeKey);
     }
 
-    private String buildTaskDecisionFilter(String documentId) {
-        String baseFilter = MEMORY_TYPE + " == " + quote(LongTermMemoryType.TASK_DECISION.name())
-                + " and " + SCOPE_TYPE + " == " + quote(LongTermMemoryScopeType.DOCUMENT.name());
+    private String buildDocumentDecisionFilter(String documentId) {
+        String baseFilter = MEMORY_TYPE + " == " + quote(LongTermMemoryType.DOCUMENT_DECISION.name());
         if (documentId == null || documentId.isBlank()) {
             return baseFilter;
         }
-        // task decision 首先按 document 作用域裁剪，再做向量召回，避免不同文档间的旧决策串味。
+        // document decision 先按文档裁剪，再做向量召回，避免不同文档间的旧决策串味。
         return baseFilter + " and " + DOCUMENT_ID + " == " + quote(documentId);
     }
 
