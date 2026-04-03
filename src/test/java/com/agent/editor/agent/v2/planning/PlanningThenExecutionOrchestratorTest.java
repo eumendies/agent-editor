@@ -15,8 +15,13 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
+import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
+import com.agent.editor.config.DocumentToolModeProperties;
+import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.trace.TraceStore;
+import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -38,7 +43,8 @@ class PlanningThenExecutionOrchestratorTest {
                 new FailIfCalledPlanningAgentImpl(),
                 executionRuntime,
                 new CompletingExecutionAgent(),
-                new PlanningAgentContextFactory(NoOpMemoryCompressors.noop())
+                new PlanningAgentContextFactory(NoOpMemoryCompressors.noop()),
+                documentToolAccessPolicy(100)
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -69,7 +75,8 @@ class PlanningThenExecutionOrchestratorTest {
                 new StaticPlanningAgentImpl(plan("unused")),
                 runtime,
                 new CompletingExecutionAgent(),
-                new PlanningAgentContextFactory(NoOpMemoryCompressors.noop())
+                new PlanningAgentContextFactory(NoOpMemoryCompressors.noop()),
+                documentToolAccessPolicy(100)
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -110,6 +117,42 @@ class PlanningThenExecutionOrchestratorTest {
         ));
         assertFalse(secondStepMemory.getMessages().stream().anyMatch(ChatMessage.ToolExecutionResultChatMessage.class::isInstance));
         assertFalse(secondStepMemory.getMessages().stream().anyMatch(ChatMessage.AiToolCallChatMessage.class::isInstance));
+    }
+
+    @Test
+    void shouldUseIncrementalDocumentToolsForLongPlanningExecutionSteps() {
+        RecordingPlanningRuntime planningRuntime = new RecordingPlanningRuntime(plan("Add outline"));
+        RecordingExecutionRuntime executionRuntime = new RecordingExecutionRuntime();
+        PlanningThenExecutionOrchestrator orchestrator = new PlanningThenExecutionOrchestrator(
+                planningRuntime,
+                new StaticPlanningAgentImpl(plan("unused")),
+                executionRuntime,
+                new CompletingExecutionAgent(),
+                new PlanningAgentContextFactory(NoOpMemoryCompressors.noop()),
+                documentToolAccessPolicy(10)
+        );
+
+        orchestrator.execute(new TaskRequest(
+                "task-3",
+                "session-3",
+                AgentType.PLANNING,
+                new DocumentSnapshot("doc-3", "Title", "x".repeat(80)),
+                "Improve document",
+                5
+        ));
+
+        assertEquals(List.of(
+                DocumentToolNames.READ_DOCUMENT_NODE,
+                DocumentToolNames.PATCH_DOCUMENT_NODE,
+                DocumentToolNames.SEARCH_CONTENT
+        ), executionRuntime.requests().get(0).getAllowedTools());
+    }
+
+    private DocumentToolAccessPolicy documentToolAccessPolicy(int threshold) {
+        return new DocumentToolAccessPolicy(
+                new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200),
+                new DocumentToolModeProperties(threshold)
+        );
     }
 
     private static PlanResult plan(String... instructions) {

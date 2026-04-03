@@ -18,6 +18,9 @@ import com.agent.editor.agent.v2.supervisor.worker.WorkerRegistry;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
+import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
+import com.agent.editor.agent.v2.tool.document.DocumentToolAccessRole;
+import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,19 +39,22 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
     private final ExecutionRuntime executionRuntime;
     private final EventPublisher eventPublisher;
     private final SupervisorContextFactory supervisorContextFactory;
+    private final DocumentToolAccessPolicy documentToolAccessPolicy;
 
     public SupervisorOrchestrator(SupervisorAgent supervisorAgent,
                                   SupervisorExecutionRuntime supervisorExecutionRuntime,
                                   WorkerRegistry workerRegistry,
                                   ExecutionRuntime executionRuntime,
                                   EventPublisher eventPublisher,
-                                  SupervisorContextFactory supervisorContextFactory) {
+                                  SupervisorContextFactory supervisorContextFactory,
+                                  DocumentToolAccessPolicy documentToolAccessPolicy) {
         this.supervisorAgent = supervisorAgent;
         this.supervisorExecutionRuntime = supervisorExecutionRuntime;
         this.workerRegistry = workerRegistry;
         this.executionRuntime = executionRuntime;
         this.eventPublisher = eventPublisher;
         this.supervisorContextFactory = supervisorContextFactory;
+        this.documentToolAccessPolicy = documentToolAccessPolicy;
     }
 
     /**
@@ -103,21 +109,23 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                         worker.getWorkerId()
                 ));
 
+                DocumentSnapshot workerDocument = new DocumentSnapshot(
+                        request.getDocument().getDocumentId(),
+                        request.getDocument().getTitle(),
+                        currentContent
+                );
+                DocumentToolMode documentToolMode = resolveWorkerDocumentToolMode(worker, workerDocument);
                 ExecutionResult result = executionRuntime.run(
                         worker.getAgent(),
-                        new ExecutionRequest(
+                        workerExecutionRequest(
                                 request.getTaskId(),
                                 request.getSessionId(),
-                                AgentType.REACT,
-                                new DocumentSnapshot(
-                                        request.getDocument().getDocumentId(),
-                                        request.getDocument().getTitle(),
-                                        currentContent
-                                ),
+                                workerDocument,
                                 assignWorker.getInstruction(),
                                 resolveWorkerMaxIterations(request, worker),
                                 worker.getWorkerId(),
-                                worker.getAllowedTools()
+                                worker,
+                                documentToolMode
                         ),
                         supervisorContextFactory.buildWorkerExecutionContext(
                                 conversationState,
@@ -168,5 +176,60 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
             return Math.min(request.getMaxIterations(), RESEARCHER_MAX_ITERATIONS);
         }
         return request.getMaxIterations();
+    }
+
+    private ExecutionRequest workerExecutionRequest(String taskId,
+                                                    String sessionId,
+                                                    DocumentSnapshot workerDocument,
+                                                    String instruction,
+                                                    int maxIterations,
+                                                    String workerId,
+                                                    SupervisorContext.WorkerDefinition worker,
+                                                    DocumentToolMode documentToolMode) {
+        ExecutionRequest executionRequest = new ExecutionRequest(
+                taskId,
+                sessionId,
+                AgentType.REACT,
+                workerDocument,
+                instruction,
+                maxIterations,
+                workerId,
+                resolveWorkerAllowedTools(worker, documentToolMode)
+        );
+        executionRequest.setDocumentToolMode(documentToolMode);
+        return executionRequest;
+    }
+
+    private List<String> resolveWorkerAllowedTools(SupervisorContext.WorkerDefinition worker,
+                                                   DocumentToolMode documentToolMode) {
+        DocumentToolAccessRole role = workerAccessRole(worker);
+        if (role == null) {
+            return worker.getAllowedTools();
+        }
+        return documentToolAccessPolicy.allowedTools(documentToolMode, role);
+    }
+
+    private DocumentToolMode resolveWorkerDocumentToolMode(SupervisorContext.WorkerDefinition worker,
+                                                           DocumentSnapshot currentDocument) {
+        DocumentToolAccessRole role = workerAccessRole(worker);
+        if (role == null || role == DocumentToolAccessRole.RESEARCH) {
+            return DocumentToolMode.FULL;
+        }
+        return documentToolAccessPolicy.resolveMode(currentDocument);
+    }
+
+    private DocumentToolAccessRole workerAccessRole(SupervisorContext.WorkerDefinition worker) {
+        List<String> capabilities = worker.getCapabilities();
+        // capability 驱动角色识别，避免后续增加同类 worker 时还要同步维护一份硬编码 ID 白名单。
+        if (capabilities.contains("research")) {
+            return DocumentToolAccessRole.RESEARCH;
+        }
+        if (capabilities.contains("review")) {
+            return DocumentToolAccessRole.REVIEW;
+        }
+        if (capabilities.contains("write") || capabilities.contains("edit")) {
+            return DocumentToolAccessRole.WRITE;
+        }
+        return null;
     }
 }

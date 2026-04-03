@@ -44,6 +44,8 @@ rag:
   retrieve-top-k: 12
 
 agent:
+  document-tool-mode:
+    long-document-threshold-tokens: 4000
   memory-compression:
     trigger-total-tokens: 128000
     preserve-latest-message-count: 6

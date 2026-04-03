@@ -2,6 +2,7 @@ package com.agent.editor.agent.v2.core.runtime;
 
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
+import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -28,6 +29,8 @@ public class ExecutionRequest {
     private int maxIterations;
     // supervisor 为子 worker 指定的执行者 ID。
     private String workerId;
+    // 当前任务选定的文档工具模式，供 prompt 与工具策略共享同一判断结果。
+    private DocumentToolMode documentToolMode = DocumentToolMode.FULL;
     // 本次执行允许暴露给模型的工具白名单。
     private List<String> allowedTools = List.of();
 
@@ -70,5 +73,9 @@ public class ExecutionRequest {
 
     public void setAllowedTools(List<String> allowedTools) {
         this.allowedTools = allowedTools == null ? List.of() : List.copyOf(allowedTools);
+    }
+
+    public void setDocumentToolMode(DocumentToolMode documentToolMode) {
+        this.documentToolMode = documentToolMode == null ? DocumentToolMode.FULL : documentToolMode;
     }
 }

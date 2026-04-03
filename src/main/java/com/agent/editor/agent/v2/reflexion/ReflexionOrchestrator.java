@@ -10,38 +10,33 @@ import com.agent.editor.agent.v2.core.state.*;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
+import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
+import com.agent.editor.agent.v2.tool.document.DocumentToolAccessRole;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
+import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
 import java.util.List;
 
 public class ReflexionOrchestrator implements TaskOrchestrator {
-
-    private static final List<String> ACTOR_ALLOWED_TOOLS = List.of(
-            DocumentToolNames.EDIT_DOCUMENT,
-            DocumentToolNames.APPEND_TO_DOCUMENT,
-            DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
-            DocumentToolNames.SEARCH_CONTENT
-    );
-    private static final List<String> CRITIC_ALLOWED_TOOLS = List.of(
-            DocumentToolNames.SEARCH_CONTENT,
-            DocumentToolNames.ANALYZE_DOCUMENT
-    );
 
     private final ExecutionRuntime runtime;
     private final Agent actorDefinition;
     private final ReflexionCritic criticDefinition;
     private final ReflexionActorContextFactory actorContextFactory;
     private final ReflexionCriticContextFactory criticContextFactory;
+    private final DocumentToolAccessPolicy documentToolAccessPolicy;
 
     public ReflexionOrchestrator(ExecutionRuntime runtime,
                                  Agent actorDefinition,
                                  ReflexionCritic criticDefinition,
                                  ReflexionActorContextFactory actorContextFactory,
-                                 ReflexionCriticContextFactory criticContextFactory) {
+                                 ReflexionCriticContextFactory criticContextFactory,
+                                 DocumentToolAccessPolicy documentToolAccessPolicy) {
         this.runtime = runtime;
         this.actorDefinition = actorDefinition;
         this.criticDefinition = criticDefinition;
         this.actorContextFactory = actorContextFactory;
         this.criticContextFactory = criticContextFactory;
+        this.documentToolAccessPolicy = documentToolAccessPolicy;
     }
 
     /**
@@ -83,27 +78,43 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
     }
 
     private ExecutionRequest actorRequest(TaskRequest request, String currentContent) {
-        return new ExecutionRequest(
+        DocumentSnapshot currentDocument = new DocumentSnapshot(
+                request.getDocument().getDocumentId(),
+                request.getDocument().getTitle(),
+                currentContent
+        );
+        DocumentToolMode documentToolMode = documentToolAccessPolicy.resolveMode(currentDocument);
+        ExecutionRequest executionRequest = new ExecutionRequest(
                 request.getTaskId(),
                 request.getSessionId(),
                 AgentType.REFLEXION,
-                new DocumentSnapshot(request.getDocument().getDocumentId(), request.getDocument().getTitle(), currentContent),
+                currentDocument,
                 request.getInstruction(),
                 request.getMaxIterations(),
-                ACTOR_ALLOWED_TOOLS
+                documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.WRITE)
         );
+        executionRequest.setDocumentToolMode(documentToolMode);
+        return executionRequest;
     }
 
     private ExecutionRequest criticRequest(TaskRequest request, String currentContent) {
-        return new ExecutionRequest(
+        DocumentSnapshot currentDocument = new DocumentSnapshot(
+                request.getDocument().getDocumentId(),
+                request.getDocument().getTitle(),
+                currentContent
+        );
+        DocumentToolMode documentToolMode = documentToolAccessPolicy.resolveMode(currentDocument);
+        ExecutionRequest executionRequest = new ExecutionRequest(
                 request.getTaskId(),
                 request.getSessionId(),
                 AgentType.REFLEXION,
-                new DocumentSnapshot(request.getDocument().getDocumentId(), request.getDocument().getTitle(), currentContent),
+                currentDocument,
                 "critic current content",
                 request.getMaxIterations(),
-                CRITIC_ALLOWED_TOOLS
+                documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.REVIEW)
         );
+        executionRequest.setDocumentToolMode(documentToolMode);
+        return executionRequest;
     }
 
 }

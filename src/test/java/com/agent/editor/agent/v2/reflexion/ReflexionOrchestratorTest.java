@@ -21,7 +21,11 @@ import com.agent.editor.agent.v2.tool.ToolHandler;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
 import com.agent.editor.agent.v2.tool.ToolResult;
+import com.agent.editor.config.DocumentToolModeProperties;
+import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
+import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
+import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -51,7 +55,8 @@ class ReflexionOrchestratorTest {
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"done"}
                         """),
                 new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
-                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())
+                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                documentToolAccessPolicy(100)
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -79,6 +84,7 @@ class ReflexionOrchestratorTest {
                 DocumentToolNames.SEARCH_CONTENT
         ), runtime.actorAllowedTools.get(0));
         assertEquals(List.of(
+                DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
                 DocumentToolNames.SEARCH_CONTENT,
                 DocumentToolNames.ANALYZE_DOCUMENT
         ), runtime.criticAllowedTools.get(0));
@@ -104,7 +110,8 @@ class ReflexionOrchestratorTest {
                         """
                 ),
                 new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
-                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())
+                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                documentToolAccessPolicy(100)
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -151,7 +158,8 @@ class ReflexionOrchestratorTest {
                         """
                 ),
                 new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
-                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())
+                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                documentToolAccessPolicy(100)
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -184,7 +192,8 @@ class ReflexionOrchestratorTest {
                         """
                 ),
                 new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
-                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())
+                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                documentToolAccessPolicy(100)
         );
 
         orchestrator.execute(new TaskRequest(
@@ -227,7 +236,8 @@ class ReflexionOrchestratorTest {
                 new ActorAgent(),
                 ReflexionCritic.blocking(criticModel, new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())),
                 new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
-                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())
+                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                documentToolAccessPolicy(100)
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -248,6 +258,50 @@ class ReflexionOrchestratorTest {
         assertTrue(criticModel.requests().get(1).messages().stream()
                 .map(Object::toString)
                 .anyMatch(text -> text.contains("analyzeDocument => intro needs tightening")));
+    }
+
+    @Test
+    void shouldUseIncrementalToolsForLongDocumentActorAndCritic() {
+        RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
+        ReflexionOrchestrator orchestrator = new ReflexionOrchestrator(
+                runtime,
+                new ActorAgent(),
+                criticWithResponses("""
+                        {"verdict":"PASS","feedback":"Looks good","reasoning":"done"}
+                        """),
+                new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
+                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                documentToolAccessPolicy(10)
+        );
+
+        orchestrator.execute(new TaskRequest(
+                "task-reflex-6",
+                "session-reflex-6",
+                AgentType.REFLEXION,
+                new DocumentSnapshot("doc-6", "Title", "x".repeat(80)),
+                "Improve the draft",
+                3
+        ));
+
+        assertEquals(List.of(
+                DocumentToolNames.READ_DOCUMENT_NODE,
+                DocumentToolNames.PATCH_DOCUMENT_NODE,
+                DocumentToolNames.SEARCH_CONTENT
+        ), runtime.actorAllowedTools.get(0));
+        assertEquals(DocumentToolMode.INCREMENTAL, runtime.actorRequests.get(0).getDocumentToolMode());
+        assertEquals(List.of(
+                DocumentToolNames.READ_DOCUMENT_NODE,
+                DocumentToolNames.SEARCH_CONTENT,
+                DocumentToolNames.ANALYZE_DOCUMENT
+        ), runtime.criticAllowedTools.get(0));
+        assertEquals(DocumentToolMode.INCREMENTAL, runtime.criticRequests.get(0).getDocumentToolMode());
+    }
+
+    private DocumentToolAccessPolicy documentToolAccessPolicy(int threshold) {
+        return new DocumentToolAccessPolicy(
+                new StructuredDocumentService(new com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder(), 4_000, 1_200),
+                new DocumentToolModeProperties(threshold)
+        );
     }
 
     private ReflexionCritic criticWithResponses(String... responses) {
@@ -283,12 +337,15 @@ class ReflexionOrchestratorTest {
         private final List<AgentRunContext> criticStates = new ArrayList<>();
         private final List<List<String>> actorAllowedTools = new ArrayList<>();
         private final List<List<String>> criticAllowedTools = new ArrayList<>();
+        private final List<ExecutionRequest> actorRequests = new ArrayList<>();
+        private final List<ExecutionRequest> criticRequests = new ArrayList<>();
 
         @Override
         public ExecutionResult run(Agent definition, ExecutionRequest request, AgentRunContext initialState) {
             if (definition instanceof ReflexionCritic criticDefinition) {
                 criticStates.add(initialState);
                 criticAllowedTools.add(request.getAllowedTools());
+                criticRequests.add(request);
                 ToolLoopDecision.Complete complete = (ToolLoopDecision.Complete) criticDefinition.decide(
                         initialState.withRequest(request).withToolSpecifications(List.of())
                 );
@@ -298,6 +355,7 @@ class ReflexionOrchestratorTest {
 
             actorStates.add(initialState);
             actorAllowedTools.add(request.getAllowedTools());
+            actorRequests.add(request);
             ToolLoopDecision.Complete complete = (ToolLoopDecision.Complete) ((ToolLoopAgent) definition).decide(
                     initialState.withRequest(request).withToolSpecifications(List.of())
             );

@@ -30,6 +30,8 @@ import com.agent.editor.agent.v2.react.ReActAgentOrchestrator;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.SessionMemoryTaskOrchestrator;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
+import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
+import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.service.TaskQueryService;
 import com.agent.editor.websocket.WebSocketService;
 import dev.langchain4j.model.chat.ChatModel;
@@ -39,7 +41,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Map;
 
 @Configuration
-@EnableConfigurationProperties(MemoryCompressionProperties.class)
+@EnableConfigurationProperties({MemoryCompressionProperties.class, DocumentToolModeProperties.class})
 public class TaskOrchestratorConfig {
 
     @Bean
@@ -101,6 +103,12 @@ public class TaskOrchestratorConfig {
     }
 
     @Bean
+    public DocumentToolAccessPolicy documentToolAccessPolicy(StructuredDocumentService structuredDocumentService,
+                                                             DocumentToolModeProperties documentToolModeProperties) {
+        return new DocumentToolAccessPolicy(structuredDocumentService, documentToolModeProperties);
+    }
+
+    @Bean
     public TaskOrchestrator taskOrchestrator(ToolLoopExecutionRuntime executionRuntime,
                                              PlanningExecutionRuntime planningExecutionRuntime,
                                              SupervisorExecutionRuntime supervisorExecutionRuntime,
@@ -117,14 +125,21 @@ public class TaskOrchestratorConfig {
                                              PlanningAgentContextFactory planningAgentContextFactory,
                                              ReflexionActorContextFactory reflexionActorContextFactory,
                                              ReflexionCriticContextFactory reflexionCriticContextFactory,
-                                             SupervisorContextFactory supervisorContextFactory) {
-        TaskOrchestrator reactOrchestrator = new ReActAgentOrchestrator(executionRuntime, reactAgentDefinition, reactAgentContextFactory);
+                                             SupervisorContextFactory supervisorContextFactory,
+                                             DocumentToolAccessPolicy documentToolAccessPolicy) {
+        TaskOrchestrator reactOrchestrator = new ReActAgentOrchestrator(
+                executionRuntime,
+                reactAgentDefinition,
+                reactAgentContextFactory,
+                documentToolAccessPolicy
+        );
         TaskOrchestrator planningOrchestrator = new PlanningThenExecutionOrchestrator(
                 planningExecutionRuntime,
                 planningAgentImplDefinition,
                 executionRuntime,
                 reactAgentDefinition,
-                planningAgentContextFactory
+                planningAgentContextFactory,
+                documentToolAccessPolicy
         );
         TaskOrchestrator supervisorOrchestrator = new SupervisorOrchestrator(
                 supervisorAgentDefinition,
@@ -132,14 +147,16 @@ public class TaskOrchestratorConfig {
                 workerRegistry,
                 executionRuntime,
                 eventPublisher,
-                supervisorContextFactory
+                supervisorContextFactory,
+                documentToolAccessPolicy
         );
         TaskOrchestrator reflexionOrchestrator = new ReflexionOrchestrator(
                 executionRuntime,
                 reflexionActorDefinition,
                 reflexionCriticDefinition,
                 reflexionActorContextFactory,
-                reflexionCriticContextFactory
+                reflexionCriticContextFactory,
+                documentToolAccessPolicy
         );
 
         return new SessionMemoryTaskOrchestrator(new RoutingTaskOrchestrator(Map.of(

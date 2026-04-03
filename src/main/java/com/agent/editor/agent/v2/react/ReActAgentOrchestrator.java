@@ -9,17 +9,25 @@ import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
+import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
+import com.agent.editor.agent.v2.tool.document.DocumentToolAccessRole;
+import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
 
 public class ReActAgentOrchestrator implements TaskOrchestrator {
 
     private final ExecutionRuntime runtime;
     private final Agent agent;
     private final ReactAgentContextFactory contextFactory;
+    private final DocumentToolAccessPolicy documentToolAccessPolicy;
 
-    public ReActAgentOrchestrator(ExecutionRuntime runtime, Agent agent, ReactAgentContextFactory contextFactory) {
+    public ReActAgentOrchestrator(ExecutionRuntime runtime,
+                                  Agent agent,
+                                  ReactAgentContextFactory contextFactory,
+                                  DocumentToolAccessPolicy documentToolAccessPolicy) {
         this.runtime = runtime;
         this.agent = agent;
         this.contextFactory = contextFactory;
+        this.documentToolAccessPolicy = documentToolAccessPolicy;
     }
 
     /**
@@ -31,16 +39,20 @@ public class ReActAgentOrchestrator implements TaskOrchestrator {
     @Override
     public TaskResult execute(TaskRequest request) {
         AgentRunContext initialState = contextFactory.prepareInitialContext(request);
+        DocumentToolMode documentToolMode = documentToolAccessPolicy.resolveMode(request.getDocument());
+        ExecutionRequest executionRequest = new ExecutionRequest(
+                request.getTaskId(),
+                request.getSessionId(),
+                request.getAgentType(),
+                request.getDocument(),
+                request.getInstruction(),
+                request.getMaxIterations(),
+                documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.WRITE)
+        );
+        executionRequest.setDocumentToolMode(documentToolMode);
         ExecutionResult result = runtime.run(
                 agent,
-                new ExecutionRequest(
-                        request.getTaskId(),
-                        request.getSessionId(),
-                        request.getAgentType(),
-                        request.getDocument(),
-                        request.getInstruction(),
-                        request.getMaxIterations()
-                ),
+                executionRequest,
                 initialState
         );
         return new TaskResult(TaskStatus.COMPLETED, result.getFinalContent(), result.getFinalState().getMemory());

@@ -68,6 +68,8 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(GroundedWriterAgentContextFactory.class);
             assertThat(context).hasSingleBean(EvidenceReviewerAgentContextFactory.class);
             assertThat(context).hasSingleBean(MemoryCompressionProperties.class);
+            assertThat(context).hasSingleBean(DocumentToolModeProperties.class);
+            assertThat(context).hasSingleBean(com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy.class);
             assertThat(context.containsBean("agentV2Config")).isFalse();
             assertThat(context.containsBean("legacyEventAdapter")).isFalse();
         });
@@ -85,6 +87,17 @@ class AgentV2ConfigurationSplitTest {
             assertThat(properties.getTriggerTotalTokens()).isEqualTo(4321);
             assertThat(properties.getPreserveLatestMessageCount()).isEqualTo(5);
             assertThat(properties.getFallbackMaxMessageCount()).isEqualTo(77);
+        });
+    }
+
+    @Test
+    void shouldBindDocumentToolModePropertiesFromConfiguration() {
+        contextRunner.withPropertyValues(
+                "agent.document-tool-mode.long-document-threshold-tokens=4321"
+        ).run(context -> {
+            DocumentToolModeProperties properties = context.getBean(DocumentToolModeProperties.class);
+
+            assertThat(properties.getLongDocumentThresholdTokens()).isEqualTo(4321);
         });
     }
 

@@ -12,6 +12,9 @@ import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
+import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
+import com.agent.editor.agent.v2.tool.document.DocumentToolAccessRole;
+import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
 
 /**
  * 两阶段编排：先由 planner 拆任务，再把每个 plan step 交给执行 agent 串行落地。
@@ -23,17 +26,20 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
     private final ExecutionRuntime toolLoopExecutionRuntime;
     private final Agent executionAgent;
     private final PlanningAgentContextFactory planningContextFactory;
+    private final DocumentToolAccessPolicy documentToolAccessPolicy;
 
     public PlanningThenExecutionOrchestrator(ExecutionRuntime planningRuntime,
                                              PlanningAgentImpl planningAgentImpl,
                                              ExecutionRuntime toolLoopExecutionRuntime,
                                              Agent executionAgent,
-                                             PlanningAgentContextFactory planningContextFactory) {
+                                             PlanningAgentContextFactory planningContextFactory,
+                                             DocumentToolAccessPolicy documentToolAccessPolicy) {
         this.planningRuntime = planningRuntime;
         this.planningAgentImpl = planningAgentImpl;
         this.toolLoopExecutionRuntime = toolLoopExecutionRuntime;
         this.executionAgent = executionAgent;
         this.planningContextFactory = planningContextFactory;
+        this.documentToolAccessPolicy = documentToolAccessPolicy;
     }
 
     /**
@@ -64,21 +70,26 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
         String currentContent = request.getDocument().getContent();
         for (PlanResult.PlanStep step : plan.getPlans()) {
             AgentRunContext stepState = planningContextFactory.prepareExecutionStepContext(executionPlanningState, step);
+            DocumentSnapshot currentDocument = new DocumentSnapshot(
+                    request.getDocument().getDocumentId(),
+                    request.getDocument().getTitle(),
+                    currentContent
+            );
+            DocumentToolMode documentToolMode = documentToolAccessPolicy.resolveMode(currentDocument);
+            ExecutionRequest executionRequest = new ExecutionRequest(
+                    request.getTaskId(),
+                    request.getSessionId(),
+                    AgentType.REACT,
+                    currentDocument,
+                    step.getInstruction(),
+                    request.getMaxIterations(),
+                    documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.WRITE)
+            );
+            executionRequest.setDocumentToolMode(documentToolMode);
             // 每个步骤都基于上一步的文档内容继续执行，形成显式的阶段性产物传递。
             ExecutionResult result = toolLoopExecutionRuntime.run(
                     executionAgent,
-                    new ExecutionRequest(
-                            request.getTaskId(),
-                            request.getSessionId(),
-                            AgentType.REACT,
-                            new DocumentSnapshot(
-                                    request.getDocument().getDocumentId(),
-                                    request.getDocument().getTitle(),
-                                    currentContent
-                            ),
-                            step.getInstruction(),
-                            request.getMaxIterations()
-                    ),
+                    executionRequest,
                     stepState
             );
             // 每一步都把上一步的产物作为新的文档输入，形成显式串行阶段链。
