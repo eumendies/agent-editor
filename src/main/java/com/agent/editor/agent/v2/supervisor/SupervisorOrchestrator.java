@@ -81,7 +81,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
             );
             ExecutionResult<SupervisorDecision> supervisorResult = supervisorExecutionRuntime.run(
                     supervisorAgent,
-                    new ExecutionRequest(
+                    withUserProfileGuidance(new ExecutionRequest(
                             request.getTaskId(),
                             request.getSessionId(),
                             AgentType.SUPERVISOR,
@@ -92,7 +92,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                             ),
                             request.getInstruction(),
                             request.getMaxIterations()
-                    ),
+                    ), request),
                     supervisorContext
             );
             SupervisorDecision decision = supervisorResult.getResult();
@@ -123,6 +123,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                                 workerDocument,
                                 assignWorker.getInstruction(),
                                 resolveWorkerMaxIterations(request, worker),
+                                request.getUserProfileGuidance(),
                                 worker.getWorkerId(),
                                 worker,
                                 documentToolMode
@@ -183,6 +184,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                                                     DocumentSnapshot workerDocument,
                                                     String instruction,
                                                     int maxIterations,
+                                                    String userProfileGuidance,
                                                     String workerId,
                                                     SupervisorContext.WorkerDefinition worker,
                                                     DocumentToolMode documentToolMode) {
@@ -196,7 +198,13 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                 workerId,
                 resolveWorkerAllowedTools(worker, documentToolMode)
         );
+        executionRequest.setUserProfileGuidance(userProfileGuidance);
         executionRequest.setDocumentToolMode(documentToolMode);
+        return executionRequest;
+    }
+
+    private ExecutionRequest withUserProfileGuidance(ExecutionRequest executionRequest, TaskRequest taskRequest) {
+        executionRequest.setUserProfileGuidance(taskRequest.getUserProfileGuidance());
         return executionRequest;
     }
 

@@ -7,20 +7,27 @@ import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
+import com.agent.editor.agent.v2.core.memory.LongTermMemoryItem;
+import com.agent.editor.agent.v2.core.memory.LongTermMemoryScopeType;
+import com.agent.editor.agent.v2.core.memory.LongTermMemoryType;
 import com.agent.editor.dto.AgentTaskRequest;
 import com.agent.editor.dto.AgentTaskResponse;
+import com.agent.editor.dto.LongTermMemoryCandidateResponse;
 import com.agent.editor.dto.PendingDocumentChange;
 import com.agent.editor.model.AgentMode;
 import com.agent.editor.websocket.WebSocketService;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.task.TaskExecutor;
 
+import java.time.LocalDateTime;
 import java.util.ArrayDeque;
+import java.util.List;
 import java.util.Queue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.inOrder;
@@ -44,6 +51,8 @@ class TaskApplicationServiceTest {
                 diffService,
                 pendingChangeService,
                 orchestrator,
+                mock(LongTermMemoryRetrievalService.class),
+                new UserProfilePromptAssembler(),
                 mock(WebSocketService.class),
                 mock(EventPublisher.class),
                 directTaskExecutor()
@@ -63,6 +72,80 @@ class TaskApplicationServiceTest {
         assertEquals(originalContent, documentService.getDocument("doc-001").getContent());
         assertEquals("rewritten content", pendingChangeService.getPendingChange("doc-001").getProposedContent());
         assertEquals("COMPLETED", service.getTaskStatus(response.getTaskId()).getStatus());
+    }
+
+    @Test
+    void shouldLoadConfirmedProfilesIntoTaskRequestBeforeExecution() {
+        DocumentService documentService = new DocumentService();
+        TaskQueryService queryService = new TaskQueryService();
+        DiffService diffService = new DiffService();
+        PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
+        CapturingTaskOrchestrator orchestrator = new CapturingTaskOrchestrator();
+        LongTermMemoryRetrievalService retrievalService = mock(LongTermMemoryRetrievalService.class);
+        when(retrievalService.loadConfirmedProfiles()).thenReturn(List.of(profile("Always answer in Chinese")));
+        TaskApplicationService service = new TaskApplicationService(
+                documentService,
+                queryService,
+                diffService,
+                pendingChangeService,
+                orchestrator,
+                retrievalService,
+                new UserProfilePromptAssembler(),
+                mock(WebSocketService.class),
+                mock(EventPublisher.class),
+                directTaskExecutor()
+        );
+
+        AgentTaskRequest request = new AgentTaskRequest();
+        request.setDocumentId("doc-001");
+        request.setInstruction("rewrite");
+        request.setMode(AgentMode.REACT);
+
+        service.execute(request);
+
+        assertTrue(orchestrator.lastRequest.getUserProfileGuidance().contains("Always answer in Chinese"));
+    }
+
+    @Test
+    void shouldStoreExtractedLongTermMemoryCandidatesAfterExecution() {
+        DocumentService documentService = new DocumentService();
+        TaskQueryService queryService = new TaskQueryService();
+        DiffService diffService = new DiffService();
+        PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
+        PendingLongTermMemoryService pendingLongTermMemoryService = new PendingLongTermMemoryService();
+        LongTermMemoryExtractor extractor = mock(LongTermMemoryExtractor.class);
+        when(extractor.extractCandidates(any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(new com.agent.editor.agent.v2.core.memory.PendingLongTermMemoryItem(
+                        "candidate-1",
+                        profile("Always answer in Chinese")
+                )));
+        TaskApplicationService service = new TaskApplicationService(
+                documentService,
+                queryService,
+                diffService,
+                pendingChangeService,
+                new StubTaskOrchestrator(),
+                mock(LongTermMemoryRetrievalService.class),
+                new UserProfilePromptAssembler(),
+                extractor,
+                pendingLongTermMemoryService,
+                mock(com.agent.editor.repository.LongTermMemoryRepository.class),
+                mock(WebSocketService.class),
+                mock(EventPublisher.class),
+                directTaskExecutor()
+        );
+
+        AgentTaskRequest request = new AgentTaskRequest();
+        request.setDocumentId("doc-001");
+        request.setInstruction("rewrite");
+        request.setMode(AgentMode.REACT);
+
+        AgentTaskResponse response = service.execute(request);
+
+        assertEquals(1, response.getPendingMemoryCandidates().size());
+        LongTermMemoryCandidateResponse candidate = response.getPendingMemoryCandidates().get(0);
+        assertEquals("candidate-1", candidate.getCandidateId());
+        assertEquals(1, service.getPendingLongTermMemoryCandidates(response.getTaskId()).getCandidates().size());
     }
 
     @Test
@@ -455,6 +538,24 @@ class TaskApplicationServiceTest {
 
     private static TaskExecutor directTaskExecutor() {
         return Runnable::run;
+    }
+
+    private static LongTermMemoryItem profile(String summary) {
+        return new LongTermMemoryItem(
+                "memory-" + summary.hashCode(),
+                LongTermMemoryType.USER_PROFILE,
+                LongTermMemoryScopeType.PROFILE,
+                "default",
+                null,
+                summary,
+                summary,
+                "task-1",
+                "session-1",
+                List.of("confirmed"),
+                LocalDateTime.of(2026, 4, 3, 10, 0),
+                LocalDateTime.of(2026, 4, 3, 10, 5),
+                new float[]{0.1f, 0.2f}
+        );
     }
 
     private static final class CapturingTaskExecutor implements TaskExecutor {

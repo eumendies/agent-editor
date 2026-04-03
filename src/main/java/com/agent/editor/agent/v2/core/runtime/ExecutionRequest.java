@@ -29,6 +29,8 @@ public class ExecutionRequest {
     private int maxIterations;
     // supervisor 为子 worker 指定的执行者 ID。
     private String workerId;
+    // 任务初始化时固定注入的已确认用户偏好。
+    private String userProfileGuidance = "";
     // 当前任务选定的文档工具模式，供 prompt 与工具策略共享同一判断结果。
     private DocumentToolMode documentToolMode = DocumentToolMode.FULL;
     // 本次执行允许暴露给模型的工具白名单。
@@ -73,6 +75,10 @@ public class ExecutionRequest {
 
     public void setAllowedTools(List<String> allowedTools) {
         this.allowedTools = allowedTools == null ? List.of() : List.copyOf(allowedTools);
+    }
+
+    public void setUserProfileGuidance(String userProfileGuidance) {
+        this.userProfileGuidance = userProfileGuidance == null ? "" : userProfileGuidance;
     }
 
     public void setDocumentToolMode(DocumentToolMode documentToolMode) {

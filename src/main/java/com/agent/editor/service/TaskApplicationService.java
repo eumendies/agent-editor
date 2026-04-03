@@ -12,11 +12,17 @@ import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.dto.AgentTaskRequest;
 import com.agent.editor.dto.AgentTaskResponse;
+import com.agent.editor.dto.LongTermMemoryCandidateResponse;
 import com.agent.editor.dto.PendingDocumentChange;
+import com.agent.editor.dto.PendingLongTermMemoryResponse;
+import com.agent.editor.agent.v2.core.memory.PendingLongTermMemoryItem;
+import com.agent.editor.repository.LongTermMemoryRepository;
 import com.agent.editor.model.AgentStep;
 import com.agent.editor.model.AgentMode;
 import com.agent.editor.model.Document;
 import com.agent.editor.websocket.WebSocketService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
@@ -33,9 +39,96 @@ public class TaskApplicationService {
     private final DiffService diffService;
     private final PendingDocumentChangeService pendingDocumentChangeService;
     private final TaskOrchestrator taskOrchestrator;
+    private final LongTermMemoryRetrievalService longTermMemoryRetrievalService;
+    private final UserProfilePromptAssembler userProfilePromptAssembler;
+    private final LongTermMemoryExtractor longTermMemoryExtractor;
+    private final PendingLongTermMemoryService pendingLongTermMemoryService;
+    private final LongTermMemoryRepository longTermMemoryRepository;
     private final WebSocketService webSocketService;
     private final EventPublisher eventPublisher;
     private final TaskExecutor taskExecutor;
+
+    @Autowired
+    public TaskApplicationService(DocumentService documentService,
+                                  TaskQueryService taskQueryService,
+                                  DiffService diffService,
+                                  PendingDocumentChangeService pendingDocumentChangeService,
+                                  TaskOrchestrator taskOrchestrator,
+                                  LongTermMemoryRetrievalService longTermMemoryRetrievalService,
+                                  UserProfilePromptAssembler userProfilePromptAssembler,
+                                  LongTermMemoryExtractor longTermMemoryExtractor,
+                                  PendingLongTermMemoryService pendingLongTermMemoryService,
+                                  ObjectProvider<LongTermMemoryRepository> longTermMemoryRepositoryProvider,
+                                  WebSocketService webSocketService,
+                                  EventPublisher eventPublisher,
+                                  @Qualifier("agentTaskExecutor") TaskExecutor taskExecutor) {
+        this(documentService,
+                taskQueryService,
+                diffService,
+                pendingDocumentChangeService,
+                taskOrchestrator,
+                longTermMemoryRetrievalService,
+                userProfilePromptAssembler,
+                longTermMemoryExtractor,
+                pendingLongTermMemoryService,
+                longTermMemoryRepositoryProvider.getIfAvailable(),
+                webSocketService,
+                eventPublisher,
+                taskExecutor);
+    }
+
+    public TaskApplicationService(DocumentService documentService,
+                                  TaskQueryService taskQueryService,
+                                  DiffService diffService,
+                                  PendingDocumentChangeService pendingDocumentChangeService,
+                                  TaskOrchestrator taskOrchestrator,
+                                  LongTermMemoryRetrievalService longTermMemoryRetrievalService,
+                                  UserProfilePromptAssembler userProfilePromptAssembler,
+                                  LongTermMemoryExtractor longTermMemoryExtractor,
+                                  PendingLongTermMemoryService pendingLongTermMemoryService,
+                                  LongTermMemoryRepository longTermMemoryRepository,
+                                  WebSocketService webSocketService,
+                                  EventPublisher eventPublisher,
+                                  @Qualifier("agentTaskExecutor") TaskExecutor taskExecutor) {
+        this.documentService = documentService;
+        this.taskQueryService = taskQueryService;
+        this.diffService = diffService;
+        this.pendingDocumentChangeService = pendingDocumentChangeService;
+        this.taskOrchestrator = taskOrchestrator;
+        this.longTermMemoryRetrievalService = longTermMemoryRetrievalService;
+        this.userProfilePromptAssembler = userProfilePromptAssembler;
+        this.longTermMemoryExtractor = longTermMemoryExtractor;
+        this.pendingLongTermMemoryService = pendingLongTermMemoryService;
+        this.longTermMemoryRepository = longTermMemoryRepository;
+        this.webSocketService = webSocketService;
+        this.eventPublisher = eventPublisher;
+        this.taskExecutor = taskExecutor;
+    }
+
+    public TaskApplicationService(DocumentService documentService,
+                                  TaskQueryService taskQueryService,
+                                  DiffService diffService,
+                                  PendingDocumentChangeService pendingDocumentChangeService,
+                                  TaskOrchestrator taskOrchestrator,
+                                  LongTermMemoryRetrievalService longTermMemoryRetrievalService,
+                                  UserProfilePromptAssembler userProfilePromptAssembler,
+                                  WebSocketService webSocketService,
+                                  EventPublisher eventPublisher,
+                                  @Qualifier("agentTaskExecutor") TaskExecutor taskExecutor) {
+        this(documentService,
+                taskQueryService,
+                diffService,
+                pendingDocumentChangeService,
+                taskOrchestrator,
+                longTermMemoryRetrievalService,
+                userProfilePromptAssembler,
+                null,
+                null,
+                (LongTermMemoryRepository) null,
+                webSocketService,
+                eventPublisher,
+                taskExecutor);
+    }
 
     public TaskApplicationService(DocumentService documentService,
                                   TaskQueryService taskQueryService,
@@ -45,14 +138,19 @@ public class TaskApplicationService {
                                   WebSocketService webSocketService,
                                   EventPublisher eventPublisher,
                                   @Qualifier("agentTaskExecutor") TaskExecutor taskExecutor) {
-        this.documentService = documentService;
-        this.taskQueryService = taskQueryService;
-        this.diffService = diffService;
-        this.pendingDocumentChangeService = pendingDocumentChangeService;
-        this.taskOrchestrator = taskOrchestrator;
-        this.webSocketService = webSocketService;
-        this.eventPublisher = eventPublisher;
-        this.taskExecutor = taskExecutor;
+        this(documentService,
+                taskQueryService,
+                diffService,
+                pendingDocumentChangeService,
+                taskOrchestrator,
+                null,
+                new UserProfilePromptAssembler(),
+                null,
+                null,
+                (LongTermMemoryRepository) null,
+                webSocketService,
+                eventPublisher,
+                taskExecutor);
     }
 
     public AgentTaskResponse execute(AgentTaskRequest request) {
@@ -60,7 +158,12 @@ public class TaskApplicationService {
         taskQueryService.save(new TaskState(context.getTaskId(), TaskStatus.RUNNING, null));
         TaskResult result = executeTask(context, request);
         taskQueryService.save(new TaskState(context.getTaskId(), result.getStatus(), result.getFinalContent()));
-        return buildCompletedResponse(context.getTaskId(), context.getDocumentId(), result);
+        return buildCompletedResponse(
+                context.getTaskId(),
+                context.getDocumentId(),
+                result,
+                pendingCandidateResponses(context.getTaskId())
+        );
     }
 
     public AgentTaskResponse executeV2(AgentTaskRequest request) {
@@ -109,14 +212,16 @@ public class TaskApplicationService {
     }
 
     private TaskResult executeTask(ExecutionContext context, AgentTaskRequest request) {
-        TaskResult result = taskOrchestrator.execute(new TaskRequest(
+        TaskRequest taskRequest = new TaskRequest(
                 context.getTaskId(),
                 context.getSessionId(),
                 context.getAgentType(),
                 new DocumentSnapshot(context.getDocumentId(), context.getDocumentTitle(), context.getOriginalContent()),
                 request.getInstruction(),
                 request.getMaxSteps() != null ? request.getMaxSteps() : 10
-        ));
+        );
+        taskRequest.setUserProfileGuidance(loadUserProfileGuidance());
+        TaskResult result = taskOrchestrator.execute(taskRequest);
 
         // agent 完成后先落待确认候选稿，只有用户确认应用时才真正改写文档正文。
         if (result.getFinalContent() != null) {
@@ -127,7 +232,44 @@ public class TaskApplicationService {
                     result.getFinalContent()
             );
         }
+        extractAndStorePendingLongTermMemoryCandidates(context, request, result);
         return result;
+    }
+
+    private String loadUserProfileGuidance() {
+        if (longTermMemoryRetrievalService == null || userProfilePromptAssembler == null) {
+            return "";
+        }
+        return userProfilePromptAssembler.assemble(longTermMemoryRetrievalService.loadConfirmedProfiles());
+    }
+
+    public PendingLongTermMemoryResponse getPendingLongTermMemoryCandidates(String taskId) {
+        if (pendingLongTermMemoryService == null) {
+            return null;
+        }
+        List<PendingLongTermMemoryItem> candidates = pendingLongTermMemoryService.getPendingCandidates(taskId);
+        if (candidates == null) {
+            return null;
+        }
+        return toPendingResponse(taskId, candidates);
+    }
+
+    public PendingLongTermMemoryResponse confirmLongTermMemoryCandidates(String taskId, List<String> candidateIds) {
+        if (pendingLongTermMemoryService == null || longTermMemoryRepository == null) {
+            throw new IllegalStateException("Long-term memory confirmation is not configured");
+        }
+        List<PendingLongTermMemoryItem> confirmed = pendingLongTermMemoryService.confirmCandidates(taskId, candidateIds);
+        longTermMemoryRepository.saveAll(confirmed.stream()
+                .map(item -> (com.agent.editor.agent.v2.core.memory.LongTermMemoryItem) item)
+                .toList());
+        return toPendingResponse(taskId, confirmed);
+    }
+
+    public PendingLongTermMemoryResponse discardLongTermMemoryCandidates(String taskId, List<String> candidateIds) {
+        if (pendingLongTermMemoryService == null) {
+            throw new IllegalStateException("Long-term memory discard is not configured");
+        }
+        return toPendingResponse(taskId, pendingLongTermMemoryService.discardCandidates(taskId, candidateIds));
     }
 
     private void runAsyncTask(ExecutionContext context, AgentTaskRequest request) {
@@ -198,6 +340,13 @@ public class TaskApplicationService {
     }
 
     private AgentTaskResponse buildCompletedResponse(String taskId, String documentId, TaskResult result) {
+        return buildCompletedResponse(taskId, documentId, result, List.of());
+    }
+
+    private AgentTaskResponse buildCompletedResponse(String taskId,
+                                                     String documentId,
+                                                     TaskResult result,
+                                                     List<LongTermMemoryCandidateResponse> pendingCandidates) {
         AgentTaskResponse response = new AgentTaskResponse();
         response.setTaskId(taskId);
         response.setDocumentId(documentId);
@@ -205,6 +354,7 @@ public class TaskApplicationService {
         response.setFinalResult(result.getFinalContent());
         response.setStartTime(LocalDateTime.now());
         response.setEndTime(LocalDateTime.now());
+        response.setPendingMemoryCandidates(pendingCandidates);
         return response;
     }
 
@@ -238,6 +388,49 @@ public class TaskApplicationService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private void extractAndStorePendingLongTermMemoryCandidates(ExecutionContext context,
+                                                                AgentTaskRequest request,
+                                                                TaskResult result) {
+        if (longTermMemoryExtractor == null || pendingLongTermMemoryService == null) {
+            return;
+        }
+        List<PendingLongTermMemoryItem> candidates = longTermMemoryExtractor.extractCandidates(
+                context.getTaskId(),
+                context.getSessionId(),
+                context.getDocumentId(),
+                request.getInstruction(),
+                result.getMemory(),
+                result.getFinalContent()
+        );
+        if (!candidates.isEmpty()) {
+            pendingLongTermMemoryService.savePendingCandidates(context.getTaskId(), candidates);
+        }
+    }
+
+    private List<LongTermMemoryCandidateResponse> pendingCandidateResponses(String taskId) {
+        PendingLongTermMemoryResponse response = getPendingLongTermMemoryCandidates(taskId);
+        return response == null ? List.of() : response.getCandidates();
+    }
+
+    private PendingLongTermMemoryResponse toPendingResponse(String taskId,
+                                                            List<PendingLongTermMemoryItem> candidates) {
+        PendingLongTermMemoryResponse response = new PendingLongTermMemoryResponse();
+        response.setTaskId(taskId);
+        response.setCandidates(candidates == null ? List.of() : candidates.stream()
+                .map(this::toCandidateResponse)
+                .toList());
+        return response;
+    }
+
+    private LongTermMemoryCandidateResponse toCandidateResponse(PendingLongTermMemoryItem candidate) {
+        return new LongTermMemoryCandidateResponse(
+                candidate.getCandidateId(),
+                candidate.getMemoryType() == null ? null : candidate.getMemoryType().name(),
+                candidate.getSummary(),
+                candidate.getDocumentId()
+        );
     }
 
     private static final class ExecutionContext {

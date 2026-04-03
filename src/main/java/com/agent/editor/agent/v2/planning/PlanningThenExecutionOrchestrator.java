@@ -54,14 +54,14 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
         AgentRunContext planningState = planningContextFactory.prepareInitialContext(request);
         ExecutionResult<PlanResult> planningResult = planningRuntime.run(
                 planningAgentImpl,
-                new ExecutionRequest(
+                withUserProfileGuidance(new ExecutionRequest(
                         request.getTaskId(),
                         request.getSessionId(),
                         AgentType.PLANNING,
                         request.getDocument(),
                         request.getInstruction(),
                         request.getMaxIterations()
-                ),
+                ), request),
                 planningState
         );
         PlanResult plan = planningResult.getResult();
@@ -85,6 +85,7 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
                     request.getMaxIterations(),
                     documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.WRITE)
             );
+            executionRequest.setUserProfileGuidance(request.getUserProfileGuidance());
             executionRequest.setDocumentToolMode(documentToolMode);
             // 每个步骤都基于上一步的文档内容继续执行，形成显式的阶段性产物传递。
             ExecutionResult result = toolLoopExecutionRuntime.run(
@@ -98,5 +99,10 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
         }
 
         return new TaskResult(TaskStatus.COMPLETED, currentContent, executionPlanningState.getMemory());
+    }
+
+    private ExecutionRequest withUserProfileGuidance(ExecutionRequest executionRequest, TaskRequest taskRequest) {
+        executionRequest.setUserProfileGuidance(taskRequest.getUserProfileGuidance());
+        return executionRequest;
     }
 }

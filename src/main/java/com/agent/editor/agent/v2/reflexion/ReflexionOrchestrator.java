@@ -93,6 +93,7 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
                 request.getMaxIterations(),
                 documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.WRITE)
         );
+        executionRequest.setUserProfileGuidance(request.getUserProfileGuidance());
         executionRequest.setDocumentToolMode(documentToolMode);
         return executionRequest;
     }
@@ -113,6 +114,7 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
                 request.getMaxIterations(),
                 documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.REVIEW)
         );
+        executionRequest.setUserProfileGuidance(request.getUserProfileGuidance());
         executionRequest.setDocumentToolMode(documentToolMode);
         return executionRequest;
     }

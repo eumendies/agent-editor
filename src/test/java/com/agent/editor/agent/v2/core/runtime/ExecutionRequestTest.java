@@ -29,6 +29,23 @@ class ExecutionRequestTest {
         assertEquals("task-1", request.getTaskId());
         assertEquals(AgentType.REACT, request.getAgentType());
         assertEquals("body", request.getDocument().getContent());
+        assertEquals("", request.getUserProfileGuidance());
+    }
+
+    @Test
+    void shouldRetainExplicitUserProfileGuidance() {
+        ExecutionRequest request = new ExecutionRequest(
+                "task-1",
+                "session-1",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-1", "title", "body"),
+                "rewrite this",
+                6
+        );
+
+        request.setUserProfileGuidance("Confirmed user profile:\n- Always answer in Chinese");
+
+        assertTrue(request.getUserProfileGuidance().contains("Always answer in Chinese"));
     }
 
     @Test

@@ -135,6 +135,7 @@ public class ReactAgentContextFactory implements AgentContextFactory, MemoryComp
                 Your primary job is to update the current document when the user asks you to write.
 
                 %s
+                %s
                 ## Workflow
                 Think step by step:
                 %s
@@ -152,6 +153,7 @@ public class ReactAgentContextFactory implements AgentContextFactory, MemoryComp
                 After completing a document-writing task, keep your final text concise and only confirm that the document was updated.
                 """.formatted(
                 documentGuidanceSection,
+                profileGuidanceSection(context),
                 workflow,
                 toolRules
         );
@@ -193,6 +195,18 @@ public class ReactAgentContextFactory implements AgentContextFactory, MemoryComp
             return DocumentToolMode.FULL;
         }
         return context.getRequest().getDocumentToolMode();
+    }
+
+    private String profileGuidanceSection(AgentRunContext context) {
+        if (context.getRequest() == null || context.getRequest().getUserProfileGuidance() == null
+                || context.getRequest().getUserProfileGuidance().isBlank()) {
+            return "";
+        }
+        return """
+                ## Confirmed User Profile
+                %s
+
+                """.formatted(context.getRequest().getUserProfileGuidance());
     }
 
 }

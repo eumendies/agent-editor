@@ -156,6 +156,34 @@ class ReactAgentContextFactoryTest {
     }
 
     @Test
+    void shouldIncludeConfirmedUserProfileGuidanceInSystemPrompt() {
+        ReactAgentContextFactory factory = new ReactAgentContextFactory(NoOpMemoryCompressors.noop());
+        ExecutionRequest request = fullRequest(
+                "task-5",
+                "session-5",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-1", "Title", "# Intro\n\nbody"),
+                "rewrite this",
+                3
+        );
+        request.setUserProfileGuidance("Confirmed user profile:\n- Always answer in Chinese");
+
+        var invocationContext = factory.buildModelInvocationContext(new AgentRunContext(
+                request,
+                1,
+                "# Intro\n\nbody",
+                new ChatTranscriptMemory(List.of(new ChatMessage.UserChatMessage("rewrite this"))),
+                ExecutionStage.RUNNING,
+                null,
+                List.of()
+        ));
+
+        SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
+        assertTrue(systemMessage.text().contains("Confirmed user profile"));
+        assertTrue(systemMessage.text().contains("Always answer in Chinese"));
+    }
+
+    @Test
     void shouldBuildModelInvocationContextWithoutCompressingAgain() {
         AtomicInteger compressionCalls = new AtomicInteger();
         ReactAgentContextFactory factory = new ReactAgentContextFactory(

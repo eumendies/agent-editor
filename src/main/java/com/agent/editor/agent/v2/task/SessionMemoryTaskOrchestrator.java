@@ -26,7 +26,8 @@ public class SessionMemoryTaskOrchestrator implements TaskOrchestrator {
                 request.getDocument(),
                 request.getInstruction(),
                 request.getMaxIterations(),
-                memory
+                memory,
+                request.getUserProfileGuidance()
         ));
         if (result.getMemory() instanceof ChatTranscriptMemory transcriptMemory) {
             sessionMemoryStore.save(request.getSessionId(), transcriptMemory);

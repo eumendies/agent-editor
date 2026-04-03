@@ -122,6 +122,7 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
                 Write or revise the document using only the available context and retrieved evidence in memory.
 
                 %s
+                %s
                 ## Workflow
                 %s
 
@@ -140,6 +141,7 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
                 Keep your final text concise once the document update is complete.
                 """.formatted(
                 documentGuidanceSection,
+                profileGuidanceSection(context),
                 workflow,
                 toolRules
         );
@@ -181,5 +183,17 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
             return DocumentToolMode.FULL;
         }
         return context.getRequest().getDocumentToolMode();
+    }
+
+    private String profileGuidanceSection(AgentRunContext context) {
+        if (context.getRequest() == null || context.getRequest().getUserProfileGuidance() == null
+                || context.getRequest().getUserProfileGuidance().isBlank()) {
+            return "";
+        }
+        return """
+                ## Confirmed User Profile
+                %s
+
+                """.formatted(context.getRequest().getUserProfileGuidance());
     }
 }

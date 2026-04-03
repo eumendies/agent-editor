@@ -49,6 +49,7 @@ public class ReActAgentOrchestrator implements TaskOrchestrator {
                 request.getMaxIterations(),
                 documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.WRITE)
         );
+        executionRequest.setUserProfileGuidance(request.getUserProfileGuidance());
         executionRequest.setDocumentToolMode(documentToolMode);
         ExecutionResult result = runtime.run(
                 agent,
