@@ -36,6 +36,12 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
         this.planningContextFactory = planningContextFactory;
     }
 
+    /**
+     * 先生成计划，再按计划步骤串行执行编辑。
+     *
+     * @param request 任务输入
+     * @return 所有计划步骤执行完成后的任务结果
+     */
     @Override
     public TaskResult execute(TaskRequest request) {
         // planning 与 execution 都通过 runtime 承接，编排层只负责阶段串联。

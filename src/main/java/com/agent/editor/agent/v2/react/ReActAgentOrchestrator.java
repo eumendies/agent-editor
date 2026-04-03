@@ -22,6 +22,12 @@ public class ReActAgentOrchestrator implements TaskOrchestrator {
         this.contextFactory = contextFactory;
     }
 
+    /**
+     * 用单个 ReAct agent 执行整个任务。
+     *
+     * @param request 任务输入
+     * @return runtime 最终状态映射出的任务结果
+     */
     @Override
     public TaskResult execute(TaskRequest request) {
         AgentRunContext initialState = contextFactory.prepareInitialContext(request);

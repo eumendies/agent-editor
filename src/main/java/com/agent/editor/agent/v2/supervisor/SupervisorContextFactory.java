@@ -83,6 +83,15 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
         );
     }
 
+    /**
+     * 基于当前会话状态重建一份 supervisor 视角的上下文快照。
+     *
+     * @param request 原始任务请求
+     * @param conversationState 当前 supervisor 侧会话状态
+     * @param workerResults 累积的 worker 执行结果
+     * @param availableWorkers 当前允许调度的 worker 列表
+     * @return 单轮 supervisor 决策使用的上下文
+     */
     public SupervisorContext buildSupervisorContext(TaskRequest request,
                                                     AgentRunContext conversationState,
                                                     List<SupervisorContext.WorkerResult> workerResults,
@@ -112,6 +121,14 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
                 .build();
     }
 
+    /**
+     * 将 supervisor 会话状态转换为 worker 可执行的上下文，并把本轮分派指令追加为最新 user message。
+     *
+     * @param conversationState 当前 supervisor 会话状态
+     * @param currentContent 交给 worker 处理的最新文档内容
+     * @param instruction 发给 worker 的指令
+     * @return worker 执行起点上下文
+     */
     public AgentRunContext buildWorkerExecutionContext(AgentRunContext conversationState,
                                                        String currentContent,
                                                        String instruction) {
@@ -131,6 +148,14 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
         );
     }
 
+    /**
+     * 将单个 worker 的最终结果压缩成摘要回写到 supervisor 会话记忆中。
+     *
+     * @param conversationState 当前 supervisor 会话状态
+     * @param workerId 刚完成执行的 worker 标识
+     * @param result worker 最终执行结果
+     * @return 供下一轮 supervisor 继续使用的新上下文
+     */
     @CompressContextMemory
     public AgentRunContext summarizeWorkerResult(AgentRunContext conversationState,
                                                  String workerId,
@@ -145,6 +170,12 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
                 .withStage(ExecutionStage.RUNNING);
     }
 
+    /**
+     * 将 supervisor 上下文转换为路由模型调用上下文。
+     *
+     * @param context 当前 supervisor 状态
+     * @return 带结构化输出约束的模型调用上下文
+     */
     @Override
     public ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {
         if (!(context instanceof SupervisorContext supervisorContext)) {
@@ -153,6 +184,13 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
         return buildRoutingInvocationContext(supervisorContext, supervisorContext.getAvailableWorkers());
     }
 
+    /**
+     * 按给定候选 worker 列表构造一次路由模型调用。
+     *
+     * @param context 当前 supervisor 状态
+     * @param candidates 本轮允许选择的 worker 集合
+     * @return 只允许输出路由 JSON 的模型调用上下文
+     */
     public ModelInvocationContext buildRoutingInvocationContext(SupervisorContext context,
                                                                 List<SupervisorContext.WorkerDefinition> candidates) {
         // 历史 worker result 逐条映射为 AI 消息，避免把执行轨迹挤成一大段字符串后丢失轮次边界。
@@ -185,6 +223,13 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
         );
     }
 
+    /**
+     * 在模型路由不可用时，为指定 worker 生成可直接执行的兜底指令。
+     *
+     * @param worker 目标 worker 定义
+     * @param context 当前 supervisor 状态
+     * @return 包含角色描述和原始任务的兜底执行指令
+     */
     public String buildFallbackInstruction(SupervisorContext.WorkerDefinition worker, SupervisorContext context) {
         return worker.getRole() + ": " + worker.getDescription() + "\nTask: " + context.getRequest().getInstruction();
     }
@@ -221,6 +266,12 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
         return memoryCompressor;
     }
 
+    /**
+     * 将候选 worker 列表渲染成供模型阅读的文本摘要。
+     *
+     * @param candidates 候选 worker 列表
+     * @return 每个 worker 一行的文本表示；为空时返回占位文案
+     */
     public String renderCandidates(List<SupervisorContext.WorkerDefinition> candidates) {
         if (candidates.isEmpty()) {
             return "No candidate workers";

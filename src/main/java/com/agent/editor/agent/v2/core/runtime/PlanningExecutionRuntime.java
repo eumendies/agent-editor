@@ -20,6 +20,13 @@ public class PlanningExecutionRuntime implements ExecutionRuntime {
         this.eventPublisher = eventPublisher;
     }
 
+    /**
+     * 使用默认初始上下文执行 planner。
+     *
+     * @param agent planner agent
+     * @param request 本次规划请求
+     * @return 仅包含计划结果与计划摘要的执行结果
+     */
     @Override
     public ExecutionResult run(Agent agent, ExecutionRequest request) {
         if (!(agent instanceof PlanningAgent)) {
@@ -28,6 +35,14 @@ public class PlanningExecutionRuntime implements ExecutionRuntime {
         return runInternal((PlanningAgent) agent, request, new AgentRunContext(0, request.getDocument().getContent()).withRequest(request));
     }
 
+    /**
+     * 在调用方提供的 planning 上下文中执行 planner。
+     *
+     * @param agent planner agent
+     * @param request 本次规划请求
+     * @param initialContext 预先构造的 planning 上下文
+     * @return 仅包含计划结果与计划摘要的执行结果
+     */
     @Override
     public ExecutionResult run(Agent agent, ExecutionRequest request, AgentRunContext initialContext) {
         if (!(agent instanceof PlanningAgent)) {
@@ -36,6 +51,14 @@ public class PlanningExecutionRuntime implements ExecutionRuntime {
         return runInternal((PlanningAgent) agent, request, initialContext);
     }
 
+    /**
+     * 执行一次单轮 planning，并把计划摘要写回最终状态记忆。
+     *
+     * @param agent planner 实现
+     * @param request 本次规划请求
+     * @param initialContext planner 起始上下文
+     * @return 带有结构化计划和摘要文本的执行结果
+     */
     public ExecutionResult runInternal(PlanningAgent agent, ExecutionRequest request, AgentRunContext initialContext) {
         eventPublisher.publish(new ExecutionEvent(EventType.TASK_STARTED, request.getTaskId(), "execution started"));
 

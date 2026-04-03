@@ -22,6 +22,13 @@ public class SupervisorExecutionRuntime implements ExecutionRuntime {
         this.eventPublisher = eventPublisher;
     }
 
+    /**
+     * 使用空 worker 结果和空候选集创建默认 supervisor 初始上下文后执行。
+     *
+     * @param agent supervisor agent
+     * @param request 本轮 supervisor 路由请求
+     * @return supervisor 的单次路由决策结果
+     */
     @Override
     public ExecutionResult<SupervisorDecision> run(Agent agent, ExecutionRequest request) {
         if (!(agent instanceof SupervisorAgent supervisorAgent)) {
@@ -41,6 +48,14 @@ public class SupervisorExecutionRuntime implements ExecutionRuntime {
         return runInternal(supervisorAgent, request, initialContext);
     }
 
+    /**
+     * 在显式提供的 {@link SupervisorContext} 上执行一次 supervisor 决策。
+     *
+     * @param agent supervisor agent
+     * @param request 本轮 supervisor 路由请求
+     * @param initialContext 调用方组装好的 supervisor 上下文
+     * @return supervisor 的单次路由决策结果
+     */
     @Override
     public ExecutionResult<SupervisorDecision> run(Agent agent, ExecutionRequest request, AgentRunContext initialContext) {
         if (!(agent instanceof SupervisorAgent supervisorAgent)) {
@@ -52,6 +67,14 @@ public class SupervisorExecutionRuntime implements ExecutionRuntime {
         return runInternal(supervisorAgent, request, supervisorContext);
     }
 
+    /**
+     * 将当前 supervisor 上下文复制成独立快照，执行一次决策，并把决策摘要落入最终记忆。
+     *
+     * @param agent supervisor 实现
+     * @param request 本轮 supervisor 路由请求
+     * @param initialContext 作为决策输入的 supervisor 状态
+     * @return 带有路由结果、最终消息和最终内容的执行结果
+     */
     private ExecutionResult<SupervisorDecision> runInternal(SupervisorAgent agent,
                                                             ExecutionRequest request,
                                                             SupervisorContext initialContext) {

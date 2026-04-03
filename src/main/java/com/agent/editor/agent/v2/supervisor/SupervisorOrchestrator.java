@@ -51,6 +51,12 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
         this.supervisorContextFactory = supervisorContextFactory;
     }
 
+    /**
+     * 驱动 supervisor 与 worker 的多轮协作，直到 supervisor 明确完成任务。
+     *
+     * @param request 任务输入
+     * @return 最终任务结果以及会话记忆摘要
+     */
     @Override
     public TaskResult execute(TaskRequest request) {
         // conversationState 保存“对后续 agent 可见的会话态”，currentContent 则单独保留当前文档正文。

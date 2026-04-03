@@ -44,6 +44,12 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
         this.criticContextFactory = criticContextFactory;
     }
 
+    /**
+     * 执行 actor -> critic 的反思循环，直到 critic 放行或达到轮次上限。
+     *
+     * @param request 任务输入
+     * @return 最终文档内容以及 actor 侧累积记忆
+     */
     @Override
     public TaskResult execute(TaskRequest request) {
         // actor state 跨轮复用，保存上一轮真正沉淀下来的编辑上下文与 critique 历史。

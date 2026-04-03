@@ -64,6 +64,12 @@ public class ReactAgentContextFactory implements AgentContextFactory, MemoryComp
         );
     }
 
+    /**
+     * 组装 ReAct agent 的模型调用上下文。
+     *
+     * @param context 当前执行状态
+     * @return 带系统提示词、会话记忆和工具规格的模型调用上下文
+     */
     @Override
     public ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {
         List<dev.langchain4j.data.message.ChatMessage> messages = new ArrayList<>();

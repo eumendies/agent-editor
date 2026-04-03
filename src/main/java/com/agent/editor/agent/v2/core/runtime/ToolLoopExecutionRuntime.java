@@ -38,6 +38,14 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
         this.eventPublisher = eventPublisher;
     }
 
+    /**
+     * 使用默认初始上下文启动工具循环。
+     *
+     * @param agent 需要进入 decision/tool loop 的 agent
+     * @param request 本次执行请求
+     * @return 最终执行结果
+     * @throws InCorrectAgentException 当传入的 agent 不是 {@link ToolLoopAgent} 时抛出
+     */
     @Override
     public ExecutionResult run(Agent agent, ExecutionRequest request) throws InCorrectAgentException {
         if (!(agent instanceof ToolLoopAgent)) {
@@ -46,6 +54,15 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
         return runInternal((ToolLoopAgent) agent, request, new AgentRunContext(0, request.getDocument().getContent()).withRequest(request));
     }
 
+    /**
+     * 在调用方提供的起始上下文上执行工具循环。
+     *
+     * @param agent 需要进入 decision/tool loop 的 agent
+     * @param request 本次执行请求
+     * @param initialContext 预先组装好的上下文
+     * @return 最终执行结果
+     * @throws InCorrectAgentException 当传入的 agent 不是 {@link ToolLoopAgent} 时抛出
+     */
     @Override
     public ExecutionResult run(Agent agent, ExecutionRequest request, AgentRunContext initialContext) throws InCorrectAgentException {
         if (!(agent instanceof ToolLoopAgent)) {
@@ -54,6 +71,14 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
         return runInternal((ToolLoopAgent) agent, request, initialContext);
     }
 
+    /**
+     * 负责维护工具循环中的最新文档内容、工具调用轨迹和终止条件。
+     *
+     * @param agent 工具循环 agent
+     * @param request 本次执行请求
+     * @param initialContext 循环起始状态
+     * @return 最终执行结果
+     */
     public ExecutionResult runInternal(ToolLoopAgent agent, ExecutionRequest request, AgentRunContext initialContext) {
         eventPublisher.publish(new ExecutionEvent(EventType.TASK_STARTED, request.getTaskId(), "execution started"));
 

@@ -66,6 +66,14 @@ public class ReflexionCriticContextFactory implements AgentContextFactory, Memor
         );
     }
 
+    /**
+     * 为每轮 critic 评审创建 fresh 上下文，避免继承上一轮 critic 的推理轨迹。
+     *
+     * @param request 原始任务请求
+     * @param actorState 当前 actor 状态
+     * @param actorSummary actor 对本轮结果的摘要
+     * @return 仅包含评审所需关键信息的新上下文
+     */
     @CompressContextMemory
     public AgentRunContext prepareReviewContext(TaskRequest request, AgentRunContext actorState, String actorSummary) {
         return new AgentRunContext(
@@ -87,6 +95,12 @@ public class ReflexionCriticContextFactory implements AgentContextFactory, Memor
         );
     }
 
+    /**
+     * 构造 critic 的分析阶段模型上下文，允许继续调用工具搜证。
+     *
+     * @param context critic 当前状态
+     * @return 带分析系统提示词和工具规格的模型调用上下文
+     */
     @Override
     public ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {
         List<dev.langchain4j.data.message.ChatMessage> messages = new ArrayList<>();
@@ -95,6 +109,13 @@ public class ReflexionCriticContextFactory implements AgentContextFactory, Memor
         return new ModelInvocationContext(messages, context.getToolSpecifications(), null);
     }
 
+    /**
+     * 构造 critic 的收口阶段模型上下文，强制输出结构化 verdict。
+     *
+     * @param context critic 当前状态
+     * @param analysisText 前一阶段产出的分析文本
+     * @return 不允许再调用工具、只允许输出 JSON verdict 的上下文
+     */
     public ModelInvocationContext buildFinalizationInvocationContext(AgentRunContext context, String analysisText) {
         List<dev.langchain4j.data.message.ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(finalizationSystemPrompt()));
