@@ -98,8 +98,9 @@ class ReactAgentContextFactoryTest {
         assertTrue(systemMessage.text().contains("## Workflow"));
         assertTrue(systemMessage.text().contains("## Tool Rules"));
         assertTrue(systemMessage.text().contains("## Forbidden Actions"));
-        assertTrue(systemMessage.text().contains("Current document structure"));
-        assertTrue(systemMessage.text().contains("Intro"));
+        assertTrue(systemMessage.text().contains("## Document Structure JSON"));
+        assertTrue(systemMessage.text().contains("\"nodeId\":\"node-1\""));
+        assertTrue(systemMessage.text().contains("\"headingText\":\"Intro\""));
         UserMessage previousTurn = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
         assertEquals("previous turn", previousTurn.singleText());
         ToolExecutionResultMessage toolMessage = assertInstanceOf(

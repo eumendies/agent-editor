@@ -9,6 +9,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 public class PatchDocumentNodeTool implements ToolHandler {
 
@@ -59,7 +62,16 @@ public class PatchDocumentNodeTool implements ToolHandler {
                         arguments.getReason()
                 )
         );
-        return new ToolResult(serialize(result), result.getUpdatedContent());
+        return new ToolResult(
+                serialize(new PatchToolResponse(
+                        result.getStatus(),
+                        result.getDocumentVersion(),
+                        arguments.getNodeId(),
+                        arguments.getBlockId(),
+                        arguments.getOperation()
+                )),
+                result.getUpdatedContent()
+        );
     }
 
     private String serialize(Object value) {
@@ -68,5 +80,17 @@ public class PatchDocumentNodeTool implements ToolHandler {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Failed to serialize result for " + name(), e);
         }
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    private static class PatchToolResponse {
+
+        private String status;
+        private String documentVersion;
+        private String nodeId;
+        private String blockId;
+        private String operation;
     }
 }

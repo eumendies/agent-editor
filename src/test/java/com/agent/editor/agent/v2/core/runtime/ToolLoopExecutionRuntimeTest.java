@@ -294,6 +294,35 @@ class ToolLoopExecutionRuntimeTest {
         ));
     }
 
+    @Test
+    void shouldKeepUpdatedDocumentOutOfToolTranscriptWhenToolOnlyUsesInternalStateUpdate() {
+        ToolRegistry registry = new ToolRegistry();
+        registry.register(new InternalOnlyUpdateToolHandler());
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
+                registry,
+                event -> {}
+        );
+        ExecutionRequest request = new ExecutionRequest(
+                "task-8",
+                "session-8",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-8", "title", "body"),
+                "use tool",
+                3
+        );
+
+        ExecutionResult result = runtime.run(new InternalUpdateToolAgent(), request);
+
+        assertEquals("body rewritten", result.getFinalContent());
+        ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) result.getFinalState().getMemory();
+        assertTrue(transcriptMemory.getMessages().stream().anyMatch(message ->
+                message instanceof ChatMessage.ToolExecutionResultChatMessage toolMessage
+                        && "internalPatch".equals(toolMessage.getName())
+                        && toolMessage.getText().contains("\"status\":\"ok\"")
+                        && !toolMessage.getText().contains("body rewritten")
+        ));
+    }
+
     private static final class CompletingAgent implements ToolLoopAgent {
 
         @Override
@@ -439,6 +468,25 @@ class ToolLoopExecutionRuntimeTest {
                 .count();
     }
 
+    private static final class InternalUpdateToolAgent implements ToolLoopAgent {
+
+        @Override
+        public AgentType type() {
+            return AgentType.REACT;
+        }
+
+        @Override
+        public ToolLoopDecision decide(AgentRunContext context) {
+            if (toolResultCount(context) == 0) {
+                return new ToolLoopDecision.ToolCalls(
+                        List.of(new ToolCall("internalPatch", "{\"replacement\":\"body rewritten\"}")),
+                        "need internal patch"
+                );
+            }
+            return new ToolLoopDecision.Complete("updated", "tool finished");
+        }
+    }
+
     private static final class AppendToDocumentHandler implements ToolHandler {
 
         @Override
@@ -459,6 +507,31 @@ class ToolLoopExecutionRuntimeTest {
                     .parameters(dev.langchain4j.model.chat.request.json.JsonObjectSchema.builder()
                             .addStringProperty("content")
                             .required("content")
+                            .build())
+                    .build();
+        }
+    }
+
+    private static final class InternalOnlyUpdateToolHandler implements ToolHandler {
+
+        @Override
+        public String name() {
+            return "internalPatch";
+        }
+
+        @Override
+        public ToolResult execute(ToolInvocation invocation, ToolContext context) {
+            return new ToolResult("{\"status\":\"ok\",\"operation\":\"replace_node\"}", "body rewritten");
+        }
+
+        @Override
+        public dev.langchain4j.agent.tool.ToolSpecification specification() {
+            return dev.langchain4j.agent.tool.ToolSpecification.builder()
+                    .name("internalPatch")
+                    .description("Update document content without echoing the full document")
+                    .parameters(dev.langchain4j.model.chat.request.json.JsonObjectSchema.builder()
+                            .addStringProperty("replacement")
+                            .required("replacement")
                             .build())
                     .build();
         }

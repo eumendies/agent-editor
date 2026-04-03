@@ -165,8 +165,9 @@ class SupervisorContextFactoryTest {
         UserMessage message = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
         assertTrue(message.singleText().contains("## Task"));
         assertTrue(message.singleText().contains("Improve this document"));
-        assertTrue(message.singleText().contains("## Document Structure"));
-        assertTrue(message.singleText().contains("Intro"));
+        assertTrue(message.singleText().contains("## Document Structure JSON"));
+        assertTrue(message.singleText().contains("\"nodeId\":\"node-1\""));
+        assertTrue(message.singleText().contains("\"headingText\":\"Intro\""));
         assertTrue(message.singleText().contains("## Candidate Workers"));
         assertTrue(message.singleText().contains("writer | role=Writer"));
         AiMessage firstWorkerResult = assertInstanceOf(AiMessage.class, invocationContext.getMessages().get(2));

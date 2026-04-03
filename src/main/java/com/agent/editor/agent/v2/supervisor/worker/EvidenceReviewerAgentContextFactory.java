@@ -93,8 +93,10 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
                 Review whether the latest answer follows the user instruction and stays grounded in the available evidence.
 
                 ## Document Model
-                The document is managed as a structured outline.
-                Current document structure:
+                The document structure is provided as JSON.
+                Use the nodeId values from the JSON structure when you need targeted reads.
+
+                ## Document Structure JSON
                 %s
 
                 ## Workflow
@@ -127,16 +129,16 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
                 Valid output example:
                 {"verdict":"REVISE","instructionSatisfied":false,"evidenceGrounded":true,"unsupportedClaims":[],"missingRequirements":["Explain project value"],"feedback":"The draft misses a required point.","reasoning":"The answer is grounded but does not fully satisfy the instruction."}
                 """.formatted(
-                structureSummary(context),
+                structureJson(context),
                 com.agent.editor.agent.v2.tool.document.DocumentToolNames.READ_DOCUMENT_NODE
         );
     }
 
-    private String structureSummary(AgentRunContext context) {
+    private String structureJson(AgentRunContext context) {
         if (context.getRequest() == null || context.getRequest().getDocument() == null) {
             return "(no document)";
         }
-        return structuredDocumentService.renderStructureSummary(
+        return structuredDocumentService.renderStructureJson(
                 context.getRequest().getDocument().getTitle(),
                 context.getCurrentContent()
         );

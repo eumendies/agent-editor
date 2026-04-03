@@ -55,6 +55,30 @@ class StructuredDocumentServiceTest {
     }
 
     @Test
+    void shouldRenderStructureJsonWithNodeIdsForModelConsumption() {
+        StructuredDocumentService service = new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 120, 60);
+
+        String structureJson = service.renderStructureJson("Title", """
+                preface
+
+                # Intro
+
+                short intro
+
+                ## Detail
+
+                short detail
+                """);
+
+        assertTrue(structureJson.startsWith("{"));
+        assertTrue(structureJson.contains("\"documentStructure\""));
+        assertTrue(structureJson.contains("\"nodeId\":\"node-1\""));
+        assertTrue(structureJson.contains("\"headingText\":\"(leading content)\""));
+        assertTrue(structureJson.contains("\"headingText\":\"Intro\""));
+        assertTrue(structureJson.contains("\"path\":\"Intro > Detail\""));
+    }
+
+    @Test
     void shouldSplitOversizedLeafIntoStableBlocksAndReadSingleBlockContent() {
         StructuredDocumentService service = new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 120, 60);
         String markdown = """

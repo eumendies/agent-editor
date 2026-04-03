@@ -36,7 +36,7 @@ public class PlanningAgentImpl implements PlanningAgent {
     @Override
     public PlanResult createPlan(AgentRunContext context) {
         String instruction = context.getRequest().getInstruction();
-        String documentContent = structuredDocumentService.renderStructureSummary(
+        String documentContent = structuredDocumentService.renderStructureJson(
                 context.getRequest().getDocument().getTitle(),
                 context.getCurrentContent()
         );

@@ -30,7 +30,9 @@ class PlanningAgentImplTest {
     @Test
     void shouldMapTypedPlanFromAiService() {
         PlanningAgentImpl definition = new PlanningAgentImpl((document, instruction) -> {
-            assertTrue(document.contains("- Intro"));
+            assertTrue(document.contains("\"documentStructure\""));
+            assertTrue(document.contains("\"nodeId\":\"node-1\""));
+            assertTrue(document.contains("\"headingText\":\"Intro\""));
             assertFalse(document.contains("body paragraph that should stay out of the planning context"));
             return new PlanningResponse(List.of(
                     new PlanningResponse.Step("Review structure"),

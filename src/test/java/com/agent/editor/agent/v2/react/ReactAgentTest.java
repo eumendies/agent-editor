@@ -96,9 +96,12 @@ class ReactAgentTest {
         assertTrue(prompt.contains("## Tool Rules"));
         assertTrue(prompt.contains("## Forbidden Actions"));
         assertTrue(prompt.contains("## Output Rules"));
-        assertTrue(prompt.contains("Inspect the structure summary before reading document content."));
+        assertTrue(prompt.contains("The document structure is provided as JSON."));
+        assertTrue(prompt.contains("must use the nodeId values from the JSON structure"));
+        assertTrue(prompt.contains("## Document Structure JSON"));
         assertTrue(prompt.contains("readDocumentNode"));
         assertTrue(prompt.contains("patchDocumentNode"));
+        assertTrue(prompt.contains("\"nodeId\":\"node-1\""));
         assertTrue(!prompt.contains("must call editDocument"));
         assertTrue(!prompt.contains("appendToDocument when you only need to append"));
         assertTrue(!prompt.contains("getDocumentSnapshot when you need the latest full document content"));

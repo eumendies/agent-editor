@@ -23,7 +23,7 @@ class PatchDocumentNodeToolTest {
             new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 120, 60);
 
     @Test
-    void shouldReplaceNormalNodeAndReturnUpdatedDocumentCandidate() {
+    void shouldReplaceNormalNodeWithoutEchoingUpdatedDocumentInToolMessage() {
         String markdown = """
                 # Intro
 
@@ -45,6 +45,10 @@ class PatchDocumentNodeToolTest {
         );
 
         assertTrue(result.getMessage().contains("\"status\":\"ok\""));
+        assertTrue(result.getMessage().contains("\"nodeId\":\"" + intro.getNodeId() + "\""));
+        assertTrue(result.getMessage().contains("\"operation\":\"replace_node\""));
+        assertTrue(!result.getMessage().contains("rewritten intro"));
+        assertTrue(!result.getMessage().contains("\"updatedContent\""));
         assertTrue(result.getUpdatedContent().contains("rewritten intro"));
         assertEquals(DocumentToolNames.PATCH_DOCUMENT_NODE, tool.specification().name());
     }
@@ -73,6 +77,9 @@ class PatchDocumentNodeToolTest {
         );
 
         assertTrue(result.getMessage().contains("\"status\":\"ok\""));
+        assertTrue(result.getMessage().contains("\"blockId\":\"" + firstBlock.getBlockId() + "\""));
+        assertTrue(!result.getMessage().contains("rewritten leaf block"));
+        assertTrue(!result.getMessage().contains("\"updatedContent\""));
         assertTrue(result.getUpdatedContent().contains("rewritten leaf block"));
     }
 

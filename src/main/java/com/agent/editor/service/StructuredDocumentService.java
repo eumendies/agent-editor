@@ -6,6 +6,8 @@ import com.agent.editor.agent.v2.core.state.LeafBlockSnapshot;
 import com.agent.editor.utils.rag.markdown.MarkdownSectionDocument;
 import com.agent.editor.utils.rag.markdown.MarkdownSectionNode;
 import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -15,13 +17,16 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Data
 public class StructuredDocumentService {
 
     private static final String LEADING_CONTENT_LABEL = "(leading content)";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final MarkdownSectionTreeBuilder markdownSectionTreeBuilder;
     private final int overflowThreshold;
@@ -44,18 +49,21 @@ public class StructuredDocumentService {
     }
 
     /**
-     * 把结构快照渲染成紧凑的目录摘要，供 planning/react/supervisor 在不加载全文时快速定位章节。
+     * 把结构快照渲染成结构化 JSON，供模型直接读取 nodeId/path/overflow 等字段。
      */
-    public String renderStructureSummary(String title, String content) {
+    public String renderStructureJson(String title, String content) {
         DocumentStructureSnapshot snapshot = buildSnapshot(title, content);
-        if (snapshot.getNodes().isEmpty()) {
-            return "(no headings)";
+        Map<String, Object> structurePayload = new LinkedHashMap<>();
+        structurePayload.put("title", snapshot.getTitle());
+        structurePayload.put("documentVersion", snapshot.getDocumentVersion());
+        structurePayload.put("estimatedTokens", snapshot.getEstimatedTokens());
+        structurePayload.put("oversizedNodeCount", snapshot.getOversizedNodeCount());
+        structurePayload.put("documentStructure", snapshot.getNodes());
+        try {
+            return OBJECT_MAPPER.writeValueAsString(structurePayload);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Failed to serialize document structure JSON", exception);
         }
-        List<String> lines = new ArrayList<>();
-        for (DocumentStructureNode node : snapshot.getNodes()) {
-            appendStructureLine(lines, node, 0);
-        }
-        return String.join("\n", lines);
     }
 
     public NodeReadResult readNode(String title,
@@ -490,15 +498,6 @@ public class StructuredDocumentService {
 
     private String blockId(String nodeId, int ordinal, String blockText) {
         return nodeId + "-block-" + ordinal;
-    }
-
-    private void appendStructureLine(List<String> lines, DocumentStructureNode node, int depth) {
-        String prefix = "  ".repeat(Math.max(0, depth));
-        String overflowSuffix = node.isOverflow() ? " [overflow]" : "";
-        lines.add(prefix + "- " + node.getHeadingText() + overflowSuffix);
-        for (DocumentStructureNode child : node.getChildren()) {
-            appendStructureLine(lines, child, depth + 1);
-        }
     }
 
     private static final class Counter {

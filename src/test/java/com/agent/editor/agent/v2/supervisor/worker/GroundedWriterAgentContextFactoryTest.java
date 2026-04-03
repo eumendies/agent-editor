@@ -47,8 +47,9 @@ class GroundedWriterAgentContextFactoryTest {
         assertTrue(systemMessage.text().contains("## Tool Rules"));
         assertTrue(systemMessage.text().contains("## Evidence Constraints"));
         assertTrue(!systemMessage.text().contains("Use editDocument when you need to replace the document content."));
-        assertTrue(systemMessage.text().contains("Current document structure"));
-        assertTrue(systemMessage.text().contains("Intro"));
+        assertTrue(systemMessage.text().contains("## Document Structure JSON"));
+        assertTrue(systemMessage.text().contains("must use the nodeId values from the JSON structure"));
+        assertTrue(systemMessage.text().contains("\"headingText\":\"Intro\""));
         UserMessage historyMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
         assertEquals("older writer turn", historyMessage.singleText());
         UserMessage currentTurnMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));

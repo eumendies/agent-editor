@@ -200,14 +200,14 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
                 ## Task
                 %s
 
-                ## Document Structure
+                ## Document Structure JSON
                 %s
 
                 ## Candidate Workers
                 %s
                 """.formatted(
                 context.getRequest().getInstruction(),
-                structureSummary(context),
+                structureJson(context),
                 renderCandidates(candidates)
         )));
         context.getWorkerResults().stream()
@@ -343,11 +343,11 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
                 """;
     }
 
-    private String structureSummary(SupervisorContext context) {
+    private String structureJson(SupervisorContext context) {
         if (context.getRequest() == null || context.getRequest().getDocument() == null) {
             return "(no document)";
         }
-        return structuredDocumentService.renderStructureSummary(
+        return structuredDocumentService.renderStructureJson(
                 context.getRequest().getDocument().getTitle(),
                 context.getCurrentContent()
         );

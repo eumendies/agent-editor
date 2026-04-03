@@ -99,15 +99,17 @@ public class ReactAgentContextFactory implements AgentContextFactory, MemoryComp
                 Your primary job is to update the current document when the user asks you to write.
 
                 ## Document Model
-                The document is managed as a structured outline, not as a single flat text blob.
-                Inspect the structure summary before reading document content.
-                Current document structure:
+                The document structure is provided as JSON.
+                You must use the nodeId values from the JSON structure when calling document read or patch tools.
+                Do not guess nodeId values.
+
+                ## Document Structure JSON
                 %s
 
                 ## Workflow
                 Think step by step:
                 1. Analyze the user's instruction.
-                2. Inspect the structure summary and identify the target section before reading content.
+                2. Inspect the structure JSON and identify the target section by nodeId before reading content.
                 3. Take ONE action at a time using the available tools when an action is needed.
                 4. Observe the result of that action.
                 5. Decide whether to continue with another action or finish.
@@ -116,7 +118,7 @@ public class ReactAgentContextFactory implements AgentContextFactory, MemoryComp
                 Prefer %s for targeted reads.
                 Prefer %s for targeted writes.
                 Read the relevant node or block before modifying it.
-                If the requested location is unclear, inspect structure first and then choose the smallest affected section.
+                If the requested location is unclear, inspect the structure JSON first and then choose the smallest affected section.
 
                 ## Forbidden Actions
                 Do not draft document content directly in chat when the user expects the document to be updated.
@@ -127,17 +129,17 @@ public class ReactAgentContextFactory implements AgentContextFactory, MemoryComp
                 Only reply directly in chat when the user explicitly wants you to explain, analyze, answer questions, or discuss options without editing the document.
                 After completing a document-writing task, keep your final text concise and only confirm that the document was updated.
                 """.formatted(
-                structureSummary(context),
+                structureJson(context),
                 com.agent.editor.agent.v2.tool.document.DocumentToolNames.READ_DOCUMENT_NODE,
                 com.agent.editor.agent.v2.tool.document.DocumentToolNames.PATCH_DOCUMENT_NODE
         );
     }
 
-    private String structureSummary(AgentRunContext context) {
+    private String structureJson(AgentRunContext context) {
         if (context.getRequest() == null || context.getRequest().getDocument() == null) {
             return "(no document)";
         }
-        return structuredDocumentService.renderStructureSummary(
+        return structuredDocumentService.renderStructureJson(
                 context.getRequest().getDocument().getTitle(),
                 context.getCurrentContent()
         );

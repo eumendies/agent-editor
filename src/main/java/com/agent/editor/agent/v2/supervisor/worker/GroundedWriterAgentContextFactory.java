@@ -93,13 +93,15 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
                 Write or revise the document using only the available context and retrieved evidence in memory.
 
                 ## Document Model
-                The document is managed as a structured outline.
-                Inspect the structure summary before editing.
-                Current document structure:
+                The document structure is provided as JSON.
+                You must use the nodeId values from the JSON structure when reading or patching the document.
+                Do not guess nodeId values.
+
+                ## Document Structure JSON
                 %s
 
                 ## Workflow
-                1. Inspect the structure summary and locate the smallest section that needs changes.
+                1. Inspect the structure JSON and locate the smallest section that needs changes.
                 2. Use %s to read the relevant node or block before editing.
                 3. Use %s to update only the sections you inspected.
                 4. Stop once the requested update is complete.
@@ -110,7 +112,7 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
 
                 ## Tool Rules
                 Prefer targeted node reads and targeted node patches over whole-document rewrites.
-                If the target location is ambiguous, inspect structure first and then choose the smallest affected section.
+                If the target location is ambiguous, inspect the structure JSON first and then choose the smallest affected section.
 
                 ## Forbidden Actions
                 Do not output draft document content directly in chat when the document should be updated.
@@ -119,17 +121,17 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
                 ## Output Rules
                 Keep your final text concise once the document update is complete.
                 """.formatted(
-                structureSummary(context),
+                structureJson(context),
                 com.agent.editor.agent.v2.tool.document.DocumentToolNames.READ_DOCUMENT_NODE,
                 com.agent.editor.agent.v2.tool.document.DocumentToolNames.PATCH_DOCUMENT_NODE
         );
     }
 
-    private String structureSummary(AgentRunContext context) {
+    private String structureJson(AgentRunContext context) {
         if (context.getRequest() == null || context.getRequest().getDocument() == null) {
             return "(no document)";
         }
-        return structuredDocumentService.renderStructureSummary(
+        return structuredDocumentService.renderStructureJson(
                 context.getRequest().getDocument().getTitle(),
                 context.getCurrentContent()
         );
