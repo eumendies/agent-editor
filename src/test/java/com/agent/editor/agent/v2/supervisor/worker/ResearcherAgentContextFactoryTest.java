@@ -39,6 +39,9 @@ class ResearcherAgentContextFactoryTest {
 
         assertEquals(3, invocationContext.getMessages().size());
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
+        assertTrue(systemMessage.text().contains("## Role"));
+        assertTrue(systemMessage.text().contains("## Workflow"));
+        assertTrue(systemMessage.text().contains("## Output Rules"));
         assertTrue(systemMessage.text().contains("researcher worker"));
         assertTrue(systemMessage.text().contains("Use " + DocumentToolNames.RETRIEVE_KNOWLEDGE));
         assertTrue(systemMessage.text().contains("rewrite the query"));

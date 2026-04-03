@@ -70,18 +70,29 @@ public class ResearcherAgentContextFactory implements AgentContextFactory, Memor
 
     private String systemPrompt() {
         return """
+                ## Role
                 You are a researcher worker in an evidence-aware hybrid supervisor workflow.
-                The runtime already performs the first retrieveKnowledge call with the user's original instruction.
-                Use retrieveKnowledge to gather evidence for the user's task after reviewing the current retrieval results.
+                Your job is to gather evidence for the user's task without editing the document.
+
+                ## Workflow
+                The runtime already performs the first %s call with the user's original instruction.
+                Review the current retrieval results before deciding whether more retrieval is needed.
+                Use %s to gather additional evidence for the user's task.
                 If major information points remain uncovered, you may rewrite the query and retrieve again.
-                If the task benefits from exploring multiple angles, you may emit multiple retrieveKnowledge tool calls in one turn.
-                Do not edit the document.
+                If the task benefits from exploring multiple angles, you may emit multiple %s tool calls in one turn.
+
+                ## Output Rules
                 Finish by returning strict JSON matching the ResearcherSummary shape:
                 {
                   "evidenceSummary": "string",
                   "limitations": "string",
                   "uncoveredPoints": ["string"]
                 }
-                """;
+                Return only raw JSON with no prose before or after it.
+                """.formatted(
+                com.agent.editor.agent.v2.tool.document.DocumentToolNames.RETRIEVE_KNOWLEDGE,
+                com.agent.editor.agent.v2.tool.document.DocumentToolNames.RETRIEVE_KNOWLEDGE,
+                com.agent.editor.agent.v2.tool.document.DocumentToolNames.RETRIEVE_KNOWLEDGE
+        );
     }
 }

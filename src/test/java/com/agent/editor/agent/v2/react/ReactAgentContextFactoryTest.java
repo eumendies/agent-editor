@@ -9,6 +9,7 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
+import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -56,13 +57,17 @@ class ReactAgentContextFactoryTest {
     @Test
     void shouldBuildModelInvocationContextFromTranscriptAndVisibleTools() {
         ReactAgentContextFactory factory = new ReactAgentContextFactory(NoOpMemoryCompressors.noop());
-        ToolSpecification toolSpecification = ToolSpecification.builder()
-                .name("editDocument")
-                .description("edit document")
+        ToolSpecification readToolSpecification = ToolSpecification.builder()
+                .name(DocumentToolNames.READ_DOCUMENT_NODE)
+                .description("read document node")
+                .build();
+        ToolSpecification patchToolSpecification = ToolSpecification.builder()
+                .name(DocumentToolNames.PATCH_DOCUMENT_NODE)
+                .description("patch document node")
                 .build();
 
         AgentRunContext context = new AgentRunContext(
-                new ExecutionRequest(
+                incrementalRequest(
                         "task-2",
                         "session-2",
                         AgentType.REACT,
@@ -84,12 +89,12 @@ class ReactAgentContextFactoryTest {
                 )),
                 ExecutionStage.RUNNING,
                 null,
-                List.of(toolSpecification)
+                List.of(readToolSpecification, patchToolSpecification)
         );
 
         var invocationContext = factory.buildModelInvocationContext(context);
 
-        assertEquals(List.of(toolSpecification), invocationContext.getToolSpecifications());
+        assertEquals(List.of(readToolSpecification, patchToolSpecification), invocationContext.getToolSpecifications());
         assertEquals(4, invocationContext.getMessages().size());
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains("ReAct-style document editing agent"));
@@ -113,6 +118,44 @@ class ReactAgentContextFactoryTest {
     }
 
     @Test
+    void shouldDescribeWholeDocumentWorkflowWhenOnlyFullDocumentToolsAreVisible() {
+        ReactAgentContextFactory factory = new ReactAgentContextFactory(NoOpMemoryCompressors.noop());
+        ToolSpecification toolSpecification = ToolSpecification.builder()
+                .name(DocumentToolNames.GET_DOCUMENT_SNAPSHOT)
+                .description("read the latest full document")
+                .build();
+
+        var invocationContext = factory.buildModelInvocationContext(new AgentRunContext(
+                fullRequest(
+                        "task-4",
+                        "session-4",
+                        AgentType.REACT,
+                        new DocumentSnapshot("doc-1", "Title", "# Intro\n\nbody"),
+                        "rewrite this",
+                        3
+                ),
+                1,
+                "# Intro\n\nbody",
+                new ChatTranscriptMemory(List.of(
+                        new ChatMessage.UserChatMessage("rewrite this")
+                )),
+                ExecutionStage.RUNNING,
+                null,
+                List.of(toolSpecification)
+        ));
+
+        SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
+        assertTrue(systemMessage.text().contains(DocumentToolNames.GET_DOCUMENT_SNAPSHOT));
+        assertTrue(systemMessage.text().contains("## Current Document Content"));
+        assertTrue(systemMessage.text().contains("# Intro\n\nbody"));
+        assertTrue(!systemMessage.text().contains("## Document Model"));
+        assertTrue(!systemMessage.text().contains("## Document Structure JSON"));
+        assertTrue(!systemMessage.text().contains("nodeId"));
+        assertTrue(!systemMessage.text().contains("Prefer " + DocumentToolNames.READ_DOCUMENT_NODE + " for targeted reads."));
+        assertTrue(!systemMessage.text().contains("Prefer " + DocumentToolNames.PATCH_DOCUMENT_NODE + " for targeted writes."));
+    }
+
+    @Test
     void shouldBuildModelInvocationContextWithoutCompressingAgain() {
         AtomicInteger compressionCalls = new AtomicInteger();
         ReactAgentContextFactory factory = new ReactAgentContextFactory(
@@ -128,7 +171,7 @@ class ReactAgentContextFactoryTest {
         );
 
         var invocationContext = factory.buildModelInvocationContext(new AgentRunContext(
-                new ExecutionRequest(
+                fullRequest(
                         "task-3",
                         "session-3",
                         AgentType.REACT,
@@ -158,5 +201,27 @@ class ReactAgentContextFactoryTest {
         UserMessage currentTurn = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));
         assertEquals("rewrite this", currentTurn.singleText());
         assertEquals(0, compressionCalls.get());
+    }
+
+    private ExecutionRequest incrementalRequest(String taskId,
+                                                String sessionId,
+                                                AgentType agentType,
+                                                DocumentSnapshot document,
+                                                String instruction,
+                                                int maxIterations) {
+        ExecutionRequest request = new ExecutionRequest(taskId, sessionId, agentType, document, instruction, maxIterations);
+        request.setDocumentToolMode(DocumentToolMode.INCREMENTAL);
+        return request;
+    }
+
+    private ExecutionRequest fullRequest(String taskId,
+                                         String sessionId,
+                                         AgentType agentType,
+                                         DocumentSnapshot document,
+                                         String instruction,
+                                         int maxIterations) {
+        ExecutionRequest request = new ExecutionRequest(taskId, sessionId, agentType, document, instruction, maxIterations);
+        request.setDocumentToolMode(DocumentToolMode.FULL);
+        return request;
     }
 }

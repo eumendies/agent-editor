@@ -12,6 +12,10 @@ import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.v2.task.TaskRequest;
+import com.agent.editor.service.StructuredDocumentService;
+import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
+import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ResponseFormat;
@@ -41,15 +45,31 @@ public class ReflexionCriticContextFactory implements AgentContextFactory, Memor
 
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
     private final MemoryCompressor memoryCompressor;
+    private final StructuredDocumentService structuredDocumentService;
 
     public ReflexionCriticContextFactory(MemoryCompressor memoryCompressor) {
-        this(new ExecutionMemoryChatMessageMapper(), memoryCompressor);
+        this(
+                new ExecutionMemoryChatMessageMapper(),
+                memoryCompressor,
+                new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200)
+        );
     }
 
     public ReflexionCriticContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
                                          MemoryCompressor memoryCompressor) {
+        this(
+                memoryChatMessageMapper,
+                memoryCompressor,
+                new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200)
+        );
+    }
+
+    public ReflexionCriticContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
+                                         MemoryCompressor memoryCompressor,
+                                         StructuredDocumentService structuredDocumentService) {
         this.memoryChatMessageMapper = memoryChatMessageMapper;
         this.memoryCompressor = memoryCompressor;
+        this.structuredDocumentService = structuredDocumentService;
     }
 
     @Override
@@ -76,18 +96,14 @@ public class ReflexionCriticContextFactory implements AgentContextFactory, Memor
      */
     @CompressContextMemory
     public AgentRunContext prepareReviewContext(TaskRequest request, AgentRunContext actorState, String actorSummary) {
+        DocumentToolMode documentToolMode = documentToolMode(actorState);
         return new AgentRunContext(
                 actorState.getRequest(),
                 0,
                 actorState.getCurrentContent(),
                 new ChatTranscriptMemory(List.of(
                         new ChatMessage.UserChatMessage(request.getInstruction()),
-                        new ChatMessage.AiChatMessage("""
-                                Current Content:
-                                %s
-                                Actor Summary:
-                                %s
-                                """.formatted(actorState.getCurrentContent(), actorSummary))
+                        new ChatMessage.AiChatMessage(reviewSeedMessage(actorState, actorSummary, documentToolMode))
                 )),
                 ExecutionStage.RUNNING,
                 actorState.getPendingReason(),
@@ -104,7 +120,7 @@ public class ReflexionCriticContextFactory implements AgentContextFactory, Memor
     @Override
     public ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {
         List<dev.langchain4j.data.message.ChatMessage> messages = new ArrayList<>();
-        messages.add(SystemMessage.from(analysisSystemPrompt()));
+        messages.add(SystemMessage.from(analysisSystemPrompt(context)));
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.getMemory()));
         return new ModelInvocationContext(messages, context.getToolSpecifications(), null);
     }
@@ -117,19 +133,11 @@ public class ReflexionCriticContextFactory implements AgentContextFactory, Memor
      * @return 不允许再调用工具、只允许输出 JSON verdict 的上下文
      */
     public ModelInvocationContext buildFinalizationInvocationContext(AgentRunContext context, String analysisText) {
+        DocumentToolMode documentToolMode = documentToolMode(context);
         List<dev.langchain4j.data.message.ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(finalizationSystemPrompt()));
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.getMemory()));
-        messages.add(UserMessage.from("""
-                Current document:
-                %s
-
-                Draft critique analysis:
-                %s
-                """.formatted(
-                context.getCurrentContent(),
-                analysisText == null ? "" : analysisText
-        )));
+        messages.add(UserMessage.from(finalizationReviewPayload(context, analysisText, documentToolMode)));
         return new ModelInvocationContext(
                 messages,
                 List.of(),
@@ -154,28 +162,136 @@ public class ReflexionCriticContextFactory implements AgentContextFactory, Memor
         return memoryCompressor;
     }
 
-    private String analysisSystemPrompt() {
+    private String analysisSystemPrompt(AgentRunContext context) {
+        DocumentToolMode documentToolMode = documentToolMode(context);
+        String reviewWorkflow = reviewWorkflow(documentToolMode);
+        String documentGuidanceSection = documentGuidanceSection(context, documentToolMode);
         return """
+                ## Role
                 You are a critic for a document editing reflexion workflow.
-                Review the current draft against the instruction.
-                Use tools whenever more evidence is needed.
+                Review the current draft against the instruction and decide whether the actor can pass or must revise.
+
+                %s
+                ## Workflow
+                %s
                 You may call tools multiple times until you have enough evidence.
+
+                ## Tool Rules
+                Base your judgement on the instruction, the current draft, and the evidence already present in memory.
+                Use tools only when they provide additional evidence you do not already have.
+
+                ## Output Rules
                 When you are ready to finish, return critique JSON with:
+                - verdict: PASS or REVISE
+                - feedback: concise actionable feedback
+                - reasoning: concise explanation
+                """.formatted(
+                documentGuidanceSection,
+                reviewWorkflow
+        );
+    }
+
+    private String finalizationSystemPrompt() {
+        return """
+                ## Role
+                You are a critic for a document editing reflexion workflow.
+                Finalize the critique based on the gathered evidence.
+
+                ## Workflow
+                Do not call any tools.
+                Convert the gathered evidence into a final verdict.
+
+                ## Output Rules
+                Return only strict JSON with:
                 - verdict: PASS or REVISE
                 - feedback: concise actionable feedback
                 - reasoning: concise explanation
                 """;
     }
 
-    private String finalizationSystemPrompt() {
+    private String reviewWorkflow(DocumentToolMode documentToolMode) {
+        if (documentToolMode == DocumentToolMode.INCREMENTAL) {
+            return "Use " + DocumentToolNames.READ_DOCUMENT_NODE
+                    + " for targeted inspection when the document is too large for a full snapshot.";
+        }
+        return "Use " + DocumentToolNames.GET_DOCUMENT_SNAPSHOT
+                + " when you need the latest whole-document snapshot for review. The current prompt already includes the latest full draft.";
+    }
+
+    private String structureJson(AgentRunContext context) {
+        if (context.getRequest() == null || context.getRequest().getDocument() == null) {
+            return "(no document)";
+        }
+        return structuredDocumentService.renderStructureJson(
+                context.getRequest().getDocument().getTitle(),
+                context.getCurrentContent()
+        );
+    }
+
+    private String documentGuidanceSection(AgentRunContext context, DocumentToolMode documentToolMode) {
+        if (documentToolMode == DocumentToolMode.INCREMENTAL) {
+            return """
+                    ## Document Structure JSON
+                    %s
+
+                    """.formatted(structureJson(context));
+        }
+        // critic 在 full-mode 下直接看到正文，才能保持“小文档沿用全量读取”的原有评审路径。
         return """
-                You are a critic for a document editing reflexion workflow.
-                Finalize the critique based on the gathered evidence.
-                Do not call any tools.
-                Return only strict JSON with:
-                - verdict: PASS or REVISE
-                - feedback: concise actionable feedback
-                - reasoning: concise explanation
-                """;
+                ## Current Document Content
+                %s
+
+                """.formatted(context.getCurrentContent() == null ? "" : context.getCurrentContent());
+    }
+
+    private String reviewSeedMessage(AgentRunContext context, String actorSummary, DocumentToolMode documentToolMode) {
+        if (documentToolMode == DocumentToolMode.INCREMENTAL) {
+            return """
+                    Document Structure JSON:
+                    %s
+                    Actor Summary:
+                    %s
+                    """.formatted(structureJson(context), actorSummary);
+        }
+        return """
+                Current Document Content:
+                %s
+                Actor Summary:
+                %s
+                """.formatted(context.getCurrentContent() == null ? "" : context.getCurrentContent(), actorSummary);
+    }
+
+    private String finalizationReviewPayload(AgentRunContext context,
+                                             String analysisText,
+                                             DocumentToolMode documentToolMode) {
+        if (documentToolMode == DocumentToolMode.INCREMENTAL) {
+            return """
+                    Document Structure JSON:
+                    %s
+
+                    Draft critique analysis:
+                    %s
+                    """.formatted(
+                    structureJson(context),
+                    analysisText == null ? "" : analysisText
+            );
+        }
+        return """
+                Current Document Content:
+                %s
+
+                Draft critique analysis:
+                %s
+                """.formatted(
+                context.getCurrentContent() == null ? "" : context.getCurrentContent(),
+                analysisText == null ? "" : analysisText
+        );
+    }
+
+    private DocumentToolMode documentToolMode(AgentRunContext context) {
+        if (context.getRequest() == null || context.getRequest().getDocumentToolMode() == null) {
+            return DocumentToolMode.FULL;
+        }
+        return context.getRequest().getDocumentToolMode();
     }
 }

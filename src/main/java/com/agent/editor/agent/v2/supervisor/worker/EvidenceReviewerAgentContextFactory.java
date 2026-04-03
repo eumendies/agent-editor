@@ -12,6 +12,8 @@ import com.agent.editor.agent.v2.core.memory.MemoryCompressor;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.v2.task.TaskRequest;
+import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
 import dev.langchain4j.data.message.SystemMessage;
@@ -87,20 +89,21 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
     }
 
     private String systemPrompt(AgentRunContext context) {
+        DocumentToolMode documentToolMode = documentToolMode(context);
+        String documentGuidanceSection = documentGuidanceSection(context, documentToolMode);
+        String reviewWorkflow = documentToolMode == DocumentToolMode.INCREMENTAL
+                ? "Use %s for targeted reads when the document is too large for a full snapshot."
+                        .formatted(DocumentToolNames.READ_DOCUMENT_NODE)
+                : "Use %s when you need the latest full document snapshot for review."
+                        .formatted(DocumentToolNames.GET_DOCUMENT_SNAPSHOT);
         return """
                 ## Role
                 You are a reviewer worker in a hybrid supervisor workflow.
                 Review whether the latest answer follows the user instruction and stays grounded in the available evidence.
 
-                ## Document Model
-                The document structure is provided as JSON.
-                Use the nodeId values from the JSON structure when you need targeted reads.
-
-                ## Document Structure JSON
                 %s
-
                 ## Workflow
-                Use %s for targeted reads when the document is too large for a full snapshot.
+                %s
                 If you need more local inspection, use the available analysis tools before finalizing your review.
                 Base your verdict on the instruction, the latest content, and the evidence available in memory.
 
@@ -129,8 +132,8 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
                 Valid output example:
                 {"verdict":"REVISE","instructionSatisfied":false,"evidenceGrounded":true,"unsupportedClaims":[],"missingRequirements":["Explain project value"],"feedback":"The draft misses a required point.","reasoning":"The answer is grounded but does not fully satisfy the instruction."}
                 """.formatted(
-                structureJson(context),
-                com.agent.editor.agent.v2.tool.document.DocumentToolNames.READ_DOCUMENT_NODE
+                documentGuidanceSection,
+                reviewWorkflow
         );
     }
 
@@ -142,5 +145,32 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
                 context.getRequest().getDocument().getTitle(),
                 context.getCurrentContent()
         );
+    }
+
+    private String documentGuidanceSection(AgentRunContext context, DocumentToolMode documentToolMode) {
+        if (documentToolMode == DocumentToolMode.INCREMENTAL) {
+            return """
+                    ## Document Model
+                    The document structure is provided as JSON.
+                    Use the nodeId values from the JSON structure when you need targeted reads.
+
+                    ## Document Structure JSON
+                    %s
+
+                    """.formatted(structureJson(context));
+        }
+        // reviewer 在 full-mode 下应直接看到正文，避免为普通文档多消耗一次快照工具调用。
+        return """
+                ## Current Document Content
+                %s
+
+                """.formatted(context.getCurrentContent() == null ? "" : context.getCurrentContent());
+    }
+
+    private DocumentToolMode documentToolMode(AgentRunContext context) {
+        if (context.getRequest() == null || context.getRequest().getDocumentToolMode() == null) {
+            return DocumentToolMode.FULL;
+        }
+        return context.getRequest().getDocumentToolMode();
     }
 }

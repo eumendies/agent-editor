@@ -9,6 +9,7 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
+import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -43,21 +44,15 @@ class GroundedWriterAgentTest {
                 .build());
         GroundedWriterAgent definition = GroundedWriterAgent.blocking(chatModel, new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
 
-        definition.decide(context(List.of(
+        definition.decide(context(DocumentToolMode.INCREMENTAL, List.of(
                 readDocumentNodeTool(),
                 patchDocumentNodeTool(),
-                editDocumentTool(),
-                appendToDocumentTool(),
-                getDocumentSnapshotTool(),
                 searchContentTool()
         )));
 
         assertEquals(List.of(
                 DocumentToolNames.READ_DOCUMENT_NODE,
                 DocumentToolNames.PATCH_DOCUMENT_NODE,
-                DocumentToolNames.EDIT_DOCUMENT,
-                DocumentToolNames.APPEND_TO_DOCUMENT,
-                DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
                 DocumentToolNames.SEARCH_CONTENT
         ), assertThatToolNames(chatModel.lastRequest));
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
@@ -86,7 +81,7 @@ class GroundedWriterAgentTest {
                 .build());
         GroundedWriterAgent definition = GroundedWriterAgent.blocking(chatModel, new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
 
-        ToolLoopDecision toolLoopDecision = definition.decide(context(List.of(editDocumentTool())));
+        ToolLoopDecision toolLoopDecision = definition.decide(context(DocumentToolMode.FULL, List.of(editDocumentTool())));
 
         ToolLoopDecision.ToolCalls toolCalls = assertInstanceOf(ToolLoopDecision.ToolCalls.class, toolLoopDecision);
         assertEquals(DocumentToolNames.EDIT_DOCUMENT, toolCalls.getCalls().get(0).getName());
@@ -100,7 +95,7 @@ class GroundedWriterAgentTest {
         StubGroundedWriterContextFactory contextFactory = new StubGroundedWriterContextFactory();
         GroundedWriterAgent definition = GroundedWriterAgent.blocking(chatModel, contextFactory);
 
-        definition.decide(context(List.of(editDocumentTool())));
+        definition.decide(context(DocumentToolMode.FULL, List.of(editDocumentTool())));
 
         assertEquals(1, contextFactory.buildInvocationCount);
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
@@ -109,16 +104,18 @@ class GroundedWriterAgentTest {
         assertEquals("custom writer input", userMessage.singleText());
     }
 
-    private AgentRunContext context(List<ToolSpecification> toolSpecifications) {
+    private AgentRunContext context(DocumentToolMode documentToolMode, List<ToolSpecification> toolSpecifications) {
+        ExecutionRequest request = new ExecutionRequest(
+                "task-1",
+                "session-1",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-1", "title", "body"),
+                "rewrite the answer using available evidence",
+                3
+        );
+        request.setDocumentToolMode(documentToolMode);
         return new AgentRunContext(
-                new ExecutionRequest(
-                        "task-1",
-                        "session-1",
-                        AgentType.REACT,
-                        new DocumentSnapshot("doc-1", "title", "body"),
-                        "rewrite the answer using available evidence",
-                        3
-                ),
+                request,
                 0,
                 "body",
                 new ChatTranscriptMemory(List.of(

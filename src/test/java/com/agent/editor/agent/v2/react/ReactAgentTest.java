@@ -9,6 +9,9 @@ import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.memory.ChatMessage;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
+import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -86,7 +89,28 @@ class ReactAgentTest {
                 .build());
         ReactAgent definition = definition(chatModel);
 
-        definition.decide(context());
+        ExecutionRequest incrementalRequest = new ExecutionRequest(
+                "task-1",
+                "session-1",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-1", "title", "# Intro\n\nbody"),
+                "rewrite this",
+                3
+        );
+        incrementalRequest.setDocumentToolMode(DocumentToolMode.INCREMENTAL);
+        definition.decide(context()
+                .withRequest(incrementalRequest)
+                .withCurrentContent("# Intro\n\nbody")
+                .withToolSpecifications(java.util.List.of(
+                        ToolSpecification.builder()
+                                .name(DocumentToolNames.READ_DOCUMENT_NODE)
+                                .description("read document node")
+                                .build(),
+                        ToolSpecification.builder()
+                                .name(DocumentToolNames.PATCH_DOCUMENT_NODE)
+                                .description("patch document node")
+                                .build()
+                )));
 
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
         String prompt = systemMessage.text();

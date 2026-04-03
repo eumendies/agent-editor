@@ -7,6 +7,9 @@ import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.core.runtime.ExecutionRequest;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
+import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import org.junit.jupiter.api.Test;
@@ -76,6 +79,27 @@ class EvidenceReviewerAgentContextFactoryTest {
         assertEquals("review whether the answer follows the instruction and evidence", memory.getMessages().get(1).getText());
     }
 
+    @Test
+    void shouldDescribeSnapshotWorkflowWhenFullReviewToolsAreVisible() {
+        EvidenceReviewerAgentContextFactory factory = new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop());
+
+        var invocationContext = factory.buildModelInvocationContext(context().withToolSpecifications(List.of(
+                ToolSpecification.builder()
+                        .name(DocumentToolNames.GET_DOCUMENT_SNAPSHOT)
+                        .description("get full document")
+                        .build()
+        )));
+
+        SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
+        assertTrue(systemMessage.text().contains(DocumentToolNames.GET_DOCUMENT_SNAPSHOT));
+        assertTrue(systemMessage.text().contains("## Current Document Content"));
+        assertTrue(systemMessage.text().contains("body"));
+        assertTrue(!systemMessage.text().contains("## Document Model"));
+        assertTrue(!systemMessage.text().contains("## Document Structure JSON"));
+        assertTrue(!systemMessage.text().contains("nodeId"));
+        assertTrue(!systemMessage.text().contains("Use " + DocumentToolNames.READ_DOCUMENT_NODE + " for targeted reads when the document is too large for a full snapshot."));
+    }
+
     private AgentRunContext context() {
         EvidenceReviewerAgentContextFactory factory = new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop());
         return factory.prepareInitialContext(new com.agent.editor.agent.v2.task.TaskRequest(
@@ -88,13 +112,19 @@ class EvidenceReviewerAgentContextFactoryTest {
                 new ChatTranscriptMemory(List.of(
                         new ChatMessage.UserChatMessage("older reviewer turn")
                 ))
-        )).withRequest(new ExecutionRequest(
+        )).withRequest(fullRequest());
+    }
+
+    private ExecutionRequest fullRequest() {
+        ExecutionRequest request = new ExecutionRequest(
                 "task-1",
                 "session-1",
                 AgentType.REACT,
                 new DocumentSnapshot("doc-1", "title", "body"),
                 "review whether the answer follows the instruction and evidence",
                 3
-        ));
+        );
+        request.setDocumentToolMode(DocumentToolMode.FULL);
+        return request;
     }
 }

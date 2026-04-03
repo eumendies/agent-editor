@@ -10,6 +10,8 @@ import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import com.agent.editor.agent.v2.task.TaskRequest;
+import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -40,7 +42,7 @@ class ReflexionCriticContextFactoryTest {
                 3
         );
         AgentRunContext actorState = new AgentRunContext(
-                new ExecutionRequest(
+                fullRequest(
                         "task-1",
                         "session-1",
                         AgentType.REFLEXION,
@@ -66,8 +68,7 @@ class ReflexionCriticContextFactoryTest {
         ChatTranscriptMemory memory = assertInstanceOf(ChatTranscriptMemory.class, criticContext.getMemory());
         assertEquals(2, memory.getMessages().size());
         assertEquals("Improve the draft", memory.getMessages().get(0).getText());
-        assertTrue(memory.getMessages().get(1).getText().contains("Current Content:"));
-        assertTrue(memory.getMessages().get(1).getText().contains("updated body"));
+        assertTrue(memory.getMessages().get(1).getText().contains("Actor Summary:"));
         assertTrue(memory.getMessages().get(1).getText().contains("Actor Summary:"));
         assertTrue(memory.getMessages().get(1).getText().contains("actor summary"));
     }
@@ -104,7 +105,7 @@ class ReflexionCriticContextFactoryTest {
                 .build();
 
         AgentRunContext context = new AgentRunContext(
-                new ExecutionRequest(
+                fullRequest(
                         "task-2",
                         "session-2",
                         AgentType.REFLEXION,
@@ -133,15 +134,83 @@ class ReflexionCriticContextFactoryTest {
         assertNull(invocationContext.getResponseFormat());
         assertEquals(List.of(toolSpecification), invocationContext.getToolSpecifications());
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
-        assertTrue(systemMessage.text().contains("You are a critic for a document editing reflexion workflow"));
+        assertTrue(systemMessage.text().contains("## Role"));
+        assertTrue(systemMessage.text().contains("## Workflow"));
+        assertTrue(systemMessage.text().contains("## Output Rules"));
         assertTrue(invocationContext.getMessages().stream().anyMatch(message -> message.toString().contains("intro is too long")));
+    }
+
+    @Test
+    void shouldDescribeIncrementalReviewToolsWhenNodeReadIsVisible() {
+        ReflexionCriticContextFactory factory = new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop());
+        ToolSpecification toolSpecification = ToolSpecification.builder()
+                .name(DocumentToolNames.READ_DOCUMENT_NODE)
+                .description("read one node")
+                .build();
+
+        var invocationContext = factory.buildModelInvocationContext(new AgentRunContext(
+                incrementalRequest(
+                        "task-5",
+                        "session-5",
+                        AgentType.REFLEXION,
+                        new DocumentSnapshot("doc-1", "Title", "# Intro\n\nbody"),
+                        "Review this draft and decide pass or revise",
+                        3
+                ),
+                0,
+                "# Intro\n\nbody",
+                new ChatTranscriptMemory(List.of(
+                        new ChatMessage.UserChatMessage("Improve the draft")
+                )),
+                ExecutionStage.RUNNING,
+                null,
+                List.of(toolSpecification)
+        ));
+
+        SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
+        assertTrue(systemMessage.text().contains(DocumentToolNames.READ_DOCUMENT_NODE));
+        assertTrue(!systemMessage.text().contains(DocumentToolNames.GET_DOCUMENT_SNAPSHOT));
+    }
+
+    @Test
+    void shouldEmbedCurrentDocumentContentWhenFullReviewToolsAreVisible() {
+        ReflexionCriticContextFactory factory = new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop());
+        ToolSpecification toolSpecification = ToolSpecification.builder()
+                .name(DocumentToolNames.GET_DOCUMENT_SNAPSHOT)
+                .description("read full document")
+                .build();
+
+        var invocationContext = factory.buildModelInvocationContext(new AgentRunContext(
+                fullRequest(
+                        "task-6",
+                        "session-6",
+                        AgentType.REFLEXION,
+                        new DocumentSnapshot("doc-1", "Title", "Draft body"),
+                        "Review this draft and decide pass or revise",
+                        3
+                ),
+                0,
+                "Draft body",
+                new ChatTranscriptMemory(List.of(
+                        new ChatMessage.UserChatMessage("Improve the draft")
+                )),
+                ExecutionStage.RUNNING,
+                null,
+                List.of(toolSpecification)
+        ));
+
+        SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
+        assertTrue(systemMessage.text().contains("## Current Document Content"));
+        assertTrue(systemMessage.text().contains("Draft body"));
+        assertTrue(!systemMessage.text().contains("## Document Structure JSON"));
+        assertTrue(!systemMessage.text().contains("nodeId"));
     }
 
     @Test
     void shouldBuildStrictJsonFinalizationInvocationWithoutTools() {
         ReflexionCriticContextFactory factory = new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop());
         AgentRunContext context = new AgentRunContext(
-                new ExecutionRequest(
+                fullRequest(
                         "task-3",
                         "session-3",
                         AgentType.REFLEXION,
@@ -174,6 +243,7 @@ class ReflexionCriticContextFactoryTest {
                 invocationContext.getMessages().get(invocationContext.getMessages().size() - 1)
         );
         assertTrue(finalizationPrompt.singleText().contains("free-form analysis"));
+        assertTrue(!finalizationPrompt.singleText().contains("Current document:"));
     }
 
     @Test
@@ -209,5 +279,27 @@ class ReflexionCriticContextFactoryTest {
         AiMessage message = assertInstanceOf(AiMessage.class, invocationContext.getMessages().get(1));
         assertEquals("existing compressed critic memory", message.text());
         assertEquals(0, compressionCalls.get());
+    }
+
+    private ExecutionRequest incrementalRequest(String taskId,
+                                                String sessionId,
+                                                AgentType agentType,
+                                                DocumentSnapshot document,
+                                                String instruction,
+                                                int maxIterations) {
+        ExecutionRequest request = new ExecutionRequest(taskId, sessionId, agentType, document, instruction, maxIterations);
+        request.setDocumentToolMode(DocumentToolMode.INCREMENTAL);
+        return request;
+    }
+
+    private ExecutionRequest fullRequest(String taskId,
+                                         String sessionId,
+                                         AgentType agentType,
+                                         DocumentSnapshot document,
+                                         String instruction,
+                                         int maxIterations) {
+        ExecutionRequest request = new ExecutionRequest(taskId, sessionId, agentType, document, instruction, maxIterations);
+        request.setDocumentToolMode(DocumentToolMode.FULL);
+        return request;
     }
 }

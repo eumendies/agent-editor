@@ -12,6 +12,8 @@ import com.agent.editor.agent.v2.core.memory.MemoryCompressor;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.v2.task.TaskRequest;
+import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
 import dev.langchain4j.data.message.SystemMessage;
@@ -87,32 +89,48 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
     }
 
     private String systemPrompt(AgentRunContext context) {
+        DocumentToolMode documentToolMode = documentToolMode(context);
+        String documentGuidanceSection = documentGuidanceSection(context, documentToolMode);
+        String workflow = documentToolMode == DocumentToolMode.INCREMENTAL
+                ? """
+                1. Inspect the structure JSON and locate the smallest section that needs changes.
+                2. Use %s to read the relevant node or block before editing.
+                3. Use %s to update only the sections you inspected.
+                4. Stop once the requested update is complete.
+                """.formatted(
+                        DocumentToolNames.READ_DOCUMENT_NODE,
+                        DocumentToolNames.PATCH_DOCUMENT_NODE
+                )
+                : """
+                1. Inspect the latest full document with %s before broad edits.
+                2. Use the available whole-document write tools only when the requested revision naturally spans the whole draft.
+                3. Minimize unnecessary rewrites and stop once the requested update is complete.
+                """.formatted(DocumentToolNames.GET_DOCUMENT_SNAPSHOT);
+        String toolRules = documentToolMode == DocumentToolMode.INCREMENTAL
+                ? """
+                Prefer targeted node reads and targeted node patches over whole-document rewrites.
+                If the target location is ambiguous, inspect the structure JSON first and then choose the smallest affected section.
+                """
+                : """
+                Prefer focused changes even when whole-document tools are visible.
+                Use %s to re-check the latest draft before issuing another whole-document write.
+                """
+                .formatted(DocumentToolNames.GET_DOCUMENT_SNAPSHOT);
         return """
                 ## Role
                 You are a grounded writer worker in a hybrid supervisor workflow.
                 Write or revise the document using only the available context and retrieved evidence in memory.
 
-                ## Document Model
-                The document structure is provided as JSON.
-                You must use the nodeId values from the JSON structure when reading or patching the document.
-                Do not guess nodeId values.
-
-                ## Document Structure JSON
                 %s
-
                 ## Workflow
-                1. Inspect the structure JSON and locate the smallest section that needs changes.
-                2. Use %s to read the relevant node or block before editing.
-                3. Use %s to update only the sections you inspected.
-                4. Stop once the requested update is complete.
+                %s
 
                 ## Evidence Constraints
                 Do not introduce claims that are not supported by the evidence already present in the conversation.
                 If searchContent is available, use it only to inspect the current draft before editing.
 
                 ## Tool Rules
-                Prefer targeted node reads and targeted node patches over whole-document rewrites.
-                If the target location is ambiguous, inspect the structure JSON first and then choose the smallest affected section.
+                %s
 
                 ## Forbidden Actions
                 Do not output draft document content directly in chat when the document should be updated.
@@ -121,9 +139,9 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
                 ## Output Rules
                 Keep your final text concise once the document update is complete.
                 """.formatted(
-                structureJson(context),
-                com.agent.editor.agent.v2.tool.document.DocumentToolNames.READ_DOCUMENT_NODE,
-                com.agent.editor.agent.v2.tool.document.DocumentToolNames.PATCH_DOCUMENT_NODE
+                documentGuidanceSection,
+                workflow,
+                toolRules
         );
     }
 
@@ -135,5 +153,33 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
                 context.getRequest().getDocument().getTitle(),
                 context.getCurrentContent()
         );
+    }
+
+    private String documentGuidanceSection(AgentRunContext context, DocumentToolMode documentToolMode) {
+        if (documentToolMode == DocumentToolMode.INCREMENTAL) {
+            return """
+                    ## Document Model
+                    The document structure is provided as JSON.
+                    You must use the nodeId values from the JSON structure when reading or patching the document.
+                    Do not guess nodeId values.
+
+                    ## Document Structure JSON
+                    %s
+
+                    """.formatted(structureJson(context));
+        }
+        // full-mode 保留正文直出，writer 可以沿用旧的整文阅读路径，不需要先额外补一轮工具调用。
+        return """
+                ## Current Document Content
+                %s
+
+                """.formatted(context.getCurrentContent() == null ? "" : context.getCurrentContent());
+    }
+
+    private DocumentToolMode documentToolMode(AgentRunContext context) {
+        if (context.getRequest() == null || context.getRequest().getDocumentToolMode() == null) {
+            return DocumentToolMode.FULL;
+        }
+        return context.getRequest().getDocumentToolMode();
     }
 }

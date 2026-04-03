@@ -12,6 +12,8 @@ import com.agent.editor.agent.v2.core.context.AgentRunContext;
 import com.agent.editor.agent.v2.core.state.ExecutionStage;
 import com.agent.editor.agent.v2.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.v2.task.TaskRequest;
+import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
+import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
 import dev.langchain4j.data.message.SystemMessage;
@@ -93,32 +95,52 @@ public class ReactAgentContextFactory implements AgentContextFactory, MemoryComp
     }
 
     private String systemPrompt(AgentRunContext context) {
-        return """
-                ## Role
-                You are a ReAct-style document editing agent.
-                Your primary job is to update the current document when the user asks you to write.
-
-                ## Document Model
-                The document structure is provided as JSON.
-                You must use the nodeId values from the JSON structure when calling document read or patch tools.
-                Do not guess nodeId values.
-
-                ## Document Structure JSON
-                %s
-
-                ## Workflow
-                Think step by step:
+        DocumentToolMode documentToolMode = documentToolMode(context);
+        String documentGuidanceSection = documentGuidanceSection(context, documentToolMode);
+        String workflow = documentToolMode == DocumentToolMode.INCREMENTAL
+                ? """
                 1. Analyze the user's instruction.
                 2. Inspect the structure JSON and identify the target section by nodeId before reading content.
                 3. Take ONE action at a time using the available tools when an action is needed.
                 4. Observe the result of that action.
                 5. Decide whether to continue with another action or finish.
-
-                ## Tool Rules
+                """
+                : """
+                1. Analyze the user's instruction.
+                2. Inspect the current document with the available whole-document tools before making broad edits.
+                3. Take ONE action at a time using the available tools when an action is needed.
+                4. Observe the result of that action.
+                5. Decide whether to continue with another action or finish.
+                """;
+        String toolRules = documentToolMode == DocumentToolMode.INCREMENTAL
+                ? """
                 Prefer %s for targeted reads.
                 Prefer %s for targeted writes.
                 Read the relevant node or block before modifying it.
                 If the requested location is unclear, inspect the structure JSON first and then choose the smallest affected section.
+                """
+                .formatted(
+                        DocumentToolNames.READ_DOCUMENT_NODE,
+                        DocumentToolNames.PATCH_DOCUMENT_NODE
+                )
+                : """
+                Use %s to inspect the latest full document state before broad rewrites.
+                Use the available whole-document write tools only when the requested change is document-wide or naturally spans many sections.
+                Prefer the smallest effective write and avoid unnecessary full rewrites.
+                """
+                .formatted(DocumentToolNames.GET_DOCUMENT_SNAPSHOT);
+        return """
+                ## Role
+                You are a ReAct-style document editing agent.
+                Your primary job is to update the current document when the user asks you to write.
+
+                %s
+                ## Workflow
+                Think step by step:
+                %s
+
+                ## Tool Rules
+                %s
 
                 ## Forbidden Actions
                 Do not draft document content directly in chat when the user expects the document to be updated.
@@ -129,9 +151,9 @@ public class ReactAgentContextFactory implements AgentContextFactory, MemoryComp
                 Only reply directly in chat when the user explicitly wants you to explain, analyze, answer questions, or discuss options without editing the document.
                 After completing a document-writing task, keep your final text concise and only confirm that the document was updated.
                 """.formatted(
-                structureJson(context),
-                com.agent.editor.agent.v2.tool.document.DocumentToolNames.READ_DOCUMENT_NODE,
-                com.agent.editor.agent.v2.tool.document.DocumentToolNames.PATCH_DOCUMENT_NODE
+                documentGuidanceSection,
+                workflow,
+                toolRules
         );
     }
 
@@ -143,6 +165,34 @@ public class ReactAgentContextFactory implements AgentContextFactory, MemoryComp
                 context.getRequest().getDocument().getTitle(),
                 context.getCurrentContent()
         );
+    }
+
+    private String documentGuidanceSection(AgentRunContext context, DocumentToolMode documentToolMode) {
+        if (documentToolMode == DocumentToolMode.INCREMENTAL) {
+            return """
+                    ## Document Model
+                    The document structure is provided as JSON.
+                    You must use the nodeId values from the JSON structure when calling document read or patch tools.
+                    Do not guess nodeId values.
+
+                    ## Document Structure JSON
+                    %s
+
+                    """.formatted(structureJson(context));
+        }
+        // full-mode 只给正文，避免把 nodeId 这类增量概念混进整文编辑路径。
+        return """
+                ## Current Document Content
+                %s
+
+                """.formatted(context.getCurrentContent() == null ? "" : context.getCurrentContent());
+    }
+
+    private DocumentToolMode documentToolMode(AgentRunContext context) {
+        if (context.getRequest() == null || context.getRequest().getDocumentToolMode() == null) {
+            return DocumentToolMode.FULL;
+        }
+        return context.getRequest().getDocumentToolMode();
     }
 
 }
