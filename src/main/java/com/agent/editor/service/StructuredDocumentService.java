@@ -35,13 +35,19 @@ public class StructuredDocumentService {
         this.blockSize = blockSize;
     }
 
-    public DocumentStructureSnapshot buildSnapshot(String documentId, String title, String content) {
-        SnapshotState state = buildState(documentId, title, content);
+    /**
+     * 基于当前 Markdown 内容构建结构快照，只暴露章节树、节点大小和超限标记等元数据。
+     */
+    public DocumentStructureSnapshot buildSnapshot(String title, String content) {
+        SnapshotState state = buildState(title, content);
         return state.snapshot();
     }
 
-    public String renderStructureSummary(String documentId, String title, String content) {
-        DocumentStructureSnapshot snapshot = buildSnapshot(documentId, title, content);
+    /**
+     * 把结构快照渲染成紧凑的目录摘要，供 planning/react/supervisor 在不加载全文时快速定位章节。
+     */
+    public String renderStructureSummary(String title, String content) {
+        DocumentStructureSnapshot snapshot = buildSnapshot(title, content);
         if (snapshot.getNodes().isEmpty()) {
             return "(no headings)";
         }
@@ -52,26 +58,29 @@ public class StructuredDocumentService {
         return String.join("\n", lines);
     }
 
-    public NodeReadResult readNode(String documentId,
-                                   String title,
+    public NodeReadResult readNode(String title,
                                    String content,
                                    String nodeId,
                                    String mode,
                                     String blockId) {
-        return readNode(documentId, title, content, nodeId, mode, blockId, false);
+        return readNode(title, content, nodeId, mode, blockId, false);
     }
 
-    public NodeReadResult readNode(String documentId,
-                                   String title,
+    /**
+     * 按 nodeId 读取结构、章节正文或超长叶子块目录。
+     * 普通节点返回当前章节可编辑范围；超长叶子会强制先走块目录，再按 blockId 读取单块内容。
+     */
+    public NodeReadResult readNode(String title,
                                    String content,
                                    String nodeId,
                                    String mode,
                                    String blockId,
                                    boolean includeChildren) {
-        SnapshotState state = buildState(documentId, title, content);
+        SnapshotState state = buildState(title, content);
         IndexedNode indexedNode = state.requireNode(nodeId);
         List<DocumentStructureNode> childSummaries = includeChildren ? indexedNode.childSummaries() : List.of();
 
+        // blocks 模式只返回块目录，不直接回正文；这样超长叶子仍能先看结构再按块下钻。
         if ("blocks".equals(mode)) {
             return new NodeReadResult(
                     nodeId,
@@ -100,6 +109,7 @@ public class StructuredDocumentService {
             );
         }
 
+        // 超长节点在未指定 blockId 时必须先走块目录，避免一次把超限正文重新塞回模型上下文。
         if (indexedNode.node.isOverflow() && (blockId == null || blockId.isBlank())) {
             return new NodeReadResult(
                     nodeId,
@@ -140,11 +150,15 @@ public class StructuredDocumentService {
         );
     }
 
-    public PatchResult applyPatch(String documentId,
-                                  String title,
+    /**
+     * 基于当前文档状态对节点或块应用增量 patch。
+     * 写入前会校验 documentVersion 和 baseHash，成功后统一从 AST 重渲染回 Markdown。
+     */
+    public PatchResult applyPatch(String title,
                                   String content,
                                   PatchRequest request) {
-        SnapshotState state = buildState(documentId, title, content);
+        SnapshotState state = buildState(title, content);
+        // patch 必须同时对齐“文档版本”和“节点/块哈希”，防止模型基于旧快照继续写入。
         if (!Objects.equals(request.getDocumentVersion(), state.snapshot().getDocumentVersion())) {
             return PatchResult.baselineMismatch(state.snapshot().getDocumentVersion());
         }
@@ -171,12 +185,17 @@ public class StructuredDocumentService {
         throw new IllegalArgumentException("Unsupported patch operation: " + request.getOperation());
     }
 
-    private SnapshotState buildState(String documentId, String title, String content) {
+    /**
+     * 解析原始 Markdown，建立“文档 AST + 结构索引 + 节点句柄”的运行时状态。
+     * 这是 read/patch 共用的入口，保证两条链路看到同一套节点定义和版本基线。
+     */
+    private SnapshotState buildState(String title, String content) {
         String safeContent = content == null ? "" : content;
         MarkdownSectionDocument document = markdownSectionTreeBuilder.build(safeContent);
         List<IndexedNode> indexedNodes = new ArrayList<>();
         List<DocumentStructureNode> topLevel = new ArrayList<>();
         Counter counter = new Counter();
+        // 标题前自由文本也要变成可寻址节点，否则纯正文或前言在结构化编辑链路里无法被读取和修改。
         if (!document.getLeadingContent().isBlank()) {
             topLevel.add(indexLeadingContent(document, indexedNodes, counter));
         }
@@ -186,7 +205,7 @@ public class StructuredDocumentService {
         int oversizedNodeCount = (int) indexedNodes.stream().filter(node -> node.node.isOverflow()).count();
         int estimatedTokens = estimateTokens(safeContent);
         DocumentStructureSnapshot snapshot = new DocumentStructureSnapshot(
-                documentId,
+                null,
                 hash(safeContent),
                 title,
                 topLevel,
@@ -231,6 +250,7 @@ public class StructuredDocumentService {
         for (MarkdownSectionNode child : section.getChildren()) {
             children.add(indexNode(document, child, currentPath, indexedNodes, counter));
         }
+        // 结构索引里的正文长度和 overflow 判定只看“当前章节可编辑范围”，不把整棵子树拍平成一个节点。
         String editableText = editableText(section);
         DocumentStructureNode node = new DocumentStructureNode(
                 nodeId,
@@ -253,6 +273,10 @@ public class StructuredDocumentService {
         return section == null ? "" : section.introText();
     }
 
+    /**
+     * 把 replace_node 的 replacement 解析成单个顶级章节。
+     * 允许包含子章节，但不允许带标题前自由文本或多个顶级章节，避免替换边界失控。
+     */
     private MarkdownSectionNode parseNodeReplacement(String replacement) {
         MarkdownSectionDocument replacementDocument = markdownSectionTreeBuilder.build(replacement == null ? "" : replacement);
         if (!replacementDocument.getLeadingContent().isBlank() || replacementDocument.getSections().size() != 1) {
@@ -372,6 +396,7 @@ public class StructuredDocumentService {
             source.setHeadingLevel(replacementNode.getHeadingLevel());
             source.setHeadingLine(replacementNode.getHeadingLine());
             source.setBodyText(replacementNode.getBodyText());
+            // replacement 没带子章节时沿用旧 children，这样“只改父正文”不会误删下级结构。
             if (!replacementNode.getChildren().isEmpty()) {
                 source.setChildren(replacementNode.getChildren());
             }
@@ -398,6 +423,9 @@ public class StructuredDocumentService {
         return blockText.length() <= 40 ? blockText : blockText.substring(0, 40);
     }
 
+    /**
+     * 先按段落切分正文；若单段仍超过 blockSize，再降级成更细粒度的文本片段。
+     */
     private List<TextSegment> splitSegments(String text, int currentBlockSize) {
         if (text == null || text.isBlank()) {
             return List.of();
@@ -410,6 +438,7 @@ public class StructuredDocumentService {
                 paragraphEnd = text.length();
             }
             String paragraph = text.substring(cursor, paragraphEnd);
+            // 优先保持段落原子性；只有单段本身就超限时，才进一步退化成更细粒度切分。
             if (paragraph.length() <= currentBlockSize) {
                 segments.add(new TextSegment(cursor, paragraph));
             } else {
@@ -420,6 +449,9 @@ public class StructuredDocumentService {
         return segments;
     }
 
+    /**
+     * 处理“单段本身超长”的兜底场景，优先按句子边界切，最后才退化为固定窗口。
+     */
     private List<TextSegment> splitLongSegment(String text, int absoluteStartOffset, int currentBlockSize) {
         List<TextSegment> segments = new ArrayList<>();
         int cursor = 0;
@@ -438,7 +470,9 @@ public class StructuredDocumentService {
         return segments;
     }
 
-    // 先尝试按句子边界切；实在没有合适边界，再退化到固定窗口，确保超长单段也能被兜住。
+    /**
+     * 在给定窗口内寻找更自然的切分点，先句末标点，再空白；找不到时直接返回窗口上限。
+     */
     private int findSplitBoundary(String text, int start, int maxEnd) {
         for (int index = maxEnd; index > start; index--) {
             char current = text.charAt(index - 1);
@@ -480,6 +514,7 @@ public class StructuredDocumentService {
                                  DocumentStructureSnapshot snapshot,
                                  List<IndexedNode> indexedNodes) {
         private IndexedNode requireNode(String nodeId) {
+            // nodeId 是结构化编辑的稳定句柄；所有 patch 都先定位节点，再决定正文或块级改写。
             return indexedNodes.stream()
                     .filter(node -> node.node.getNodeId().equals(nodeId))
                     .findFirst()

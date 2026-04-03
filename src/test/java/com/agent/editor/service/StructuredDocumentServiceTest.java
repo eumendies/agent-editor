@@ -19,7 +19,7 @@ class StructuredDocumentServiceTest {
     void shouldBuildStructureSnapshotWithStableHeadingPathsAndOverflowFlags() {
         StructuredDocumentService service = new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 120, 60);
 
-        DocumentStructureSnapshot snapshot = service.buildSnapshot("doc-1", "Title", """
+        DocumentStructureSnapshot snapshot = service.buildSnapshot("Title", """
                 # Intro
 
                 short intro
@@ -33,7 +33,6 @@ class StructuredDocumentServiceTest {
                 %s
                 """.formatted(repeatParagraph("long appendix paragraph", 8)));
 
-        assertEquals("doc-1", snapshot.getDocumentId());
         assertEquals("Title", snapshot.getTitle());
         assertEquals(2, snapshot.getNodes().size());
 
@@ -64,11 +63,10 @@ class StructuredDocumentServiceTest {
                 %s
                 """.formatted(repeatParagraph("leaf paragraph", 10));
 
-        DocumentStructureSnapshot snapshot = service.buildSnapshot("doc-1", "Title", markdown);
+        DocumentStructureSnapshot snapshot = service.buildSnapshot("Title", markdown);
         DocumentStructureNode chapter = snapshot.getNodes().get(0);
 
         StructuredDocumentService.NodeReadResult firstRead = service.readNode(
-                "doc-1",
                 "Title",
                 markdown,
                 chapter.getNodeId(),
@@ -76,7 +74,6 @@ class StructuredDocumentServiceTest {
                 null
         );
         StructuredDocumentService.NodeReadResult secondRead = service.readNode(
-                "doc-1",
                 "Title",
                 markdown,
                 chapter.getNodeId(),
@@ -96,7 +93,6 @@ class StructuredDocumentServiceTest {
         assertFalse(firstBlock.getHash().isBlank());
 
         StructuredDocumentService.NodeReadResult blockContent = service.readNode(
-                "doc-1",
                 "Title",
                 markdown,
                 chapter.getNodeId(),
@@ -119,10 +115,9 @@ class StructuredDocumentServiceTest {
                 %s
                 """.formatted("single paragraph ".repeat(30).trim());
 
-        DocumentStructureSnapshot snapshot = service.buildSnapshot("doc-1", "Title", markdown);
+        DocumentStructureSnapshot snapshot = service.buildSnapshot("Title", markdown);
         DocumentStructureNode chapter = snapshot.getNodes().get(0);
         StructuredDocumentService.NodeReadResult blocks = service.readNode(
-                "doc-1",
                 "Title",
                 markdown,
                 chapter.getNodeId(),
@@ -147,7 +142,7 @@ class StructuredDocumentServiceTest {
                 intro body
                 """;
 
-        DocumentStructureSnapshot snapshot = service.buildSnapshot("doc-1", "Title", markdown);
+        DocumentStructureSnapshot snapshot = service.buildSnapshot("Title", markdown);
 
         assertEquals(2, snapshot.getNodes().size());
         DocumentStructureNode leading = snapshot.getNodes().get(0);
@@ -156,7 +151,6 @@ class StructuredDocumentServiceTest {
         assertTrue(leading.isLeaf());
 
         StructuredDocumentService.NodeReadResult read = service.readNode(
-                "doc-1",
                 "Title",
                 markdown,
                 leading.getNodeId(),
@@ -166,7 +160,6 @@ class StructuredDocumentServiceTest {
         assertEquals("preface line one\n\npreface line two", read.getContent());
 
         StructuredDocumentService.PatchResult patch = service.applyPatch(
-                "doc-1",
                 "Title",
                 markdown,
                 new StructuredDocumentService.PatchRequest(
@@ -198,10 +191,9 @@ class StructuredDocumentServiceTest {
                 child body
                 """;
 
-        DocumentStructureSnapshot snapshot = service.buildSnapshot("doc-1", "Title", markdown);
+        DocumentStructureSnapshot snapshot = service.buildSnapshot("Title", markdown);
         DocumentStructureNode intro = snapshot.getNodes().get(0);
         StructuredDocumentService.NodeReadResult read = service.readNode(
-                "doc-1",
                 "Title",
                 markdown,
                 intro.getNodeId(),
@@ -213,7 +205,6 @@ class StructuredDocumentServiceTest {
         assertFalse(read.getContent().contains("## Detail"));
 
         StructuredDocumentService.PatchResult patch = service.applyPatch(
-                "doc-1",
                 "Title",
                 markdown,
                 new StructuredDocumentService.PatchRequest(
@@ -245,12 +236,11 @@ class StructuredDocumentServiceTest {
                 %s
                 """.formatted(repeatParagraph("leaf paragraph", 10));
 
-        DocumentStructureSnapshot snapshot = service.buildSnapshot("doc-1", "Title", markdown);
+        DocumentStructureSnapshot snapshot = service.buildSnapshot("Title", markdown);
         DocumentStructureNode intro = snapshot.getNodes().get(0);
         DocumentStructureNode chapter = snapshot.getNodes().get(1);
 
         StructuredDocumentService.NodeReadResult introRead = service.readNode(
-                "doc-1",
                 "Title",
                 markdown,
                 intro.getNodeId(),
@@ -258,7 +248,6 @@ class StructuredDocumentServiceTest {
                 null
         );
         StructuredDocumentService.PatchResult nodePatch = service.applyPatch(
-                "doc-1",
                 "Title",
                 markdown,
                 new StructuredDocumentService.PatchRequest(
@@ -276,7 +265,6 @@ class StructuredDocumentServiceTest {
         assertTrue(nodePatch.getUpdatedContent().contains("rewritten intro"));
 
         StructuredDocumentService.NodeReadResult blockDirectory = service.readNode(
-                "doc-1",
                 "Title",
                 nodePatch.getUpdatedContent(),
                 chapter.getNodeId(),
@@ -286,7 +274,6 @@ class StructuredDocumentServiceTest {
         List<LeafBlockSnapshot> blocks = blockDirectory.getBlocks();
         LeafBlockSnapshot firstBlock = blocks.get(0);
         StructuredDocumentService.PatchResult blockPatch = service.applyPatch(
-                "doc-1",
                 "Title",
                 nodePatch.getUpdatedContent(),
                 new StructuredDocumentService.PatchRequest(
@@ -304,7 +291,6 @@ class StructuredDocumentServiceTest {
         assertTrue(blockPatch.getUpdatedContent().contains("rewritten leaf block"));
 
         StructuredDocumentService.PatchResult stalePatch = service.applyPatch(
-                "doc-1",
                 "Title",
                 blockPatch.getUpdatedContent(),
                 new StructuredDocumentService.PatchRequest(
@@ -331,10 +317,9 @@ class StructuredDocumentServiceTest {
                 original intro
                 """;
 
-        DocumentStructureSnapshot snapshot = service.buildSnapshot("doc-1", "Title", markdown);
+        DocumentStructureSnapshot snapshot = service.buildSnapshot("Title", markdown);
         DocumentStructureNode intro = snapshot.getNodes().get(0);
         StructuredDocumentService.NodeReadResult read = service.readNode(
-                "doc-1",
                 "Title",
                 markdown,
                 intro.getNodeId(),
@@ -343,7 +328,6 @@ class StructuredDocumentServiceTest {
         );
 
         StructuredDocumentService.PatchResult patch = service.applyPatch(
-                "doc-1",
                 "Title",
                 markdown,
                 new StructuredDocumentService.PatchRequest(
@@ -373,10 +357,9 @@ class StructuredDocumentServiceTest {
                 same body
                 """;
 
-        DocumentStructureSnapshot snapshot = service.buildSnapshot("doc-1", "Title", markdown);
+        DocumentStructureSnapshot snapshot = service.buildSnapshot("Title", markdown);
         DocumentStructureNode second = snapshot.getNodes().get(1);
         StructuredDocumentService.NodeReadResult read = service.readNode(
-                "doc-1",
                 "Title",
                 markdown,
                 second.getNodeId(),
@@ -385,7 +368,6 @@ class StructuredDocumentServiceTest {
         );
 
         StructuredDocumentService.PatchResult patch = service.applyPatch(
-                "doc-1",
                 "Title",
                 markdown,
                 new StructuredDocumentService.PatchRequest(
@@ -428,10 +410,9 @@ class StructuredDocumentServiceTest {
                 outro body
                 """;
 
-        DocumentStructureSnapshot snapshot = service.buildSnapshot("doc-1", "Title", markdown);
+        DocumentStructureSnapshot snapshot = service.buildSnapshot("Title", markdown);
         DocumentStructureNode intro = snapshot.getNodes().get(0);
         StructuredDocumentService.NodeReadResult read = service.readNode(
-                "doc-1",
                 "Title",
                 markdown,
                 intro.getNodeId(),
@@ -440,7 +421,6 @@ class StructuredDocumentServiceTest {
         );
 
         StructuredDocumentService.PatchResult patch = service.applyPatch(
-                "doc-1",
                 "Title",
                 markdown,
                 new StructuredDocumentService.PatchRequest(

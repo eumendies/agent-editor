@@ -88,16 +88,35 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
 
     private String systemPrompt(AgentRunContext context) {
         return """
+                ## Role
                 You are a grounded writer worker in a hybrid supervisor workflow.
                 Write or revise the document using only the available context and retrieved evidence in memory.
-                Do not introduce claims that are not supported by the evidence already present in the conversation.
+
+                ## Document Model
+                The document is managed as a structured outline.
+                Inspect the structure summary before editing.
                 Current document structure:
                 %s
-                Inspect the structure before editing and prefer %s for reads and %s for writes.
-                Use editDocument when you need to replace the document content.
-                Use appendToDocument when you only need to add content to the end of the current document.
-                Use getDocumentSnapshot when you need the latest current document before deciding the next write.
+
+                ## Workflow
+                1. Inspect the structure summary and locate the smallest section that needs changes.
+                2. Use %s to read the relevant node or block before editing.
+                3. Use %s to update only the sections you inspected.
+                4. Stop once the requested update is complete.
+
+                ## Evidence Constraints
+                Do not introduce claims that are not supported by the evidence already present in the conversation.
                 If searchContent is available, use it only to inspect the current draft before editing.
+
+                ## Tool Rules
+                Prefer targeted node reads and targeted node patches over whole-document rewrites.
+                If the target location is ambiguous, inspect structure first and then choose the smallest affected section.
+
+                ## Forbidden Actions
+                Do not output draft document content directly in chat when the document should be updated.
+                Do not modify a node or block that you have not inspected in the current context.
+
+                ## Output Rules
                 Keep your final text concise once the document update is complete.
                 """.formatted(
                 structureSummary(context),
@@ -111,7 +130,6 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
             return "(no document)";
         }
         return structuredDocumentService.renderStructureSummary(
-                context.getRequest().getDocument().getDocumentId(),
                 context.getRequest().getDocument().getTitle(),
                 context.getCurrentContent()
         );

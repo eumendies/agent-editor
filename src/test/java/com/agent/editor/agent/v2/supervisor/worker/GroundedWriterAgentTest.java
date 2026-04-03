@@ -65,8 +65,11 @@ class GroundedWriterAgentTest {
         assertTrue(systemMessage.text().contains(DocumentToolNames.READ_DOCUMENT_NODE));
         assertTrue(systemMessage.text().contains(DocumentToolNames.PATCH_DOCUMENT_NODE));
         assertTrue(systemMessage.text().contains("Do not introduce claims"));
-        assertTrue(systemMessage.text().contains(DocumentToolNames.APPEND_TO_DOCUMENT));
-        assertTrue(systemMessage.text().contains(DocumentToolNames.GET_DOCUMENT_SNAPSHOT));
+        assertTrue(systemMessage.text().contains("## Workflow"));
+        assertTrue(systemMessage.text().contains("## Evidence Constraints"));
+        assertTrue(systemMessage.text().contains("## Tool Rules"));
+        assertTrue(!systemMessage.text().contains("Use appendToDocument when you only need to add content to the end of the current document."));
+        assertTrue(!systemMessage.text().contains("Use getDocumentSnapshot when you need the latest current document before deciding the next write."));
         UserMessage currentTurn = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
         assertEquals("rewrite the answer using available evidence", currentTurn.singleText());
     }

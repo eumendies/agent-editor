@@ -159,10 +159,15 @@ class SupervisorContextFactoryTest {
         assertEquals(4, invocationContext.getMessages().size());
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains("You are a hybrid supervisor for a document workflow"));
+        assertTrue(systemMessage.text().contains("## Role"));
+        assertTrue(systemMessage.text().contains("## Routing Policy"));
+        assertTrue(systemMessage.text().contains("## Output Rules"));
         UserMessage message = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
-        assertTrue(message.singleText().contains("Task: Improve this document"));
-        assertTrue(message.singleText().contains("Current document structure:"));
+        assertTrue(message.singleText().contains("## Task"));
+        assertTrue(message.singleText().contains("Improve this document"));
+        assertTrue(message.singleText().contains("## Document Structure"));
         assertTrue(message.singleText().contains("Intro"));
+        assertTrue(message.singleText().contains("## Candidate Workers"));
         assertTrue(message.singleText().contains("writer | role=Writer"));
         AiMessage firstWorkerResult = assertInstanceOf(AiMessage.class, invocationContext.getMessages().get(2));
         assertTrue(firstWorkerResult.text().contains("workerId: " + SupervisorWorkerIds.RESEARCHER));

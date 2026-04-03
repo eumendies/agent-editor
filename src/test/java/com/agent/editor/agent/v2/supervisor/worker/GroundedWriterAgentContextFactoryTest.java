@@ -43,6 +43,10 @@ class GroundedWriterAgentContextFactoryTest {
         assertTrue(systemMessage.text().contains("grounded writer worker"));
         assertTrue(systemMessage.text().contains(DocumentToolNames.READ_DOCUMENT_NODE));
         assertTrue(systemMessage.text().contains(DocumentToolNames.PATCH_DOCUMENT_NODE));
+        assertTrue(systemMessage.text().contains("## Workflow"));
+        assertTrue(systemMessage.text().contains("## Tool Rules"));
+        assertTrue(systemMessage.text().contains("## Evidence Constraints"));
+        assertTrue(!systemMessage.text().contains("Use editDocument when you need to replace the document content."));
         assertTrue(systemMessage.text().contains("Current document structure"));
         assertTrue(systemMessage.text().contains("Intro"));
         UserMessage historyMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));

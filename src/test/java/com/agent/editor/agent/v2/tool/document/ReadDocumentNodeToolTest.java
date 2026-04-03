@@ -26,7 +26,7 @@ class ReadDocumentNodeToolTest {
 
                 short intro
                 """;
-        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("doc-1", "Title", markdown);
+        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("Title", markdown);
         DocumentStructureNode intro = snapshot.getNodes().get(0);
         ReadDocumentNodeTool tool = new ReadDocumentNodeTool(structuredDocumentService);
 
@@ -53,7 +53,7 @@ class ReadDocumentNodeToolTest {
 
                 %s
                 """.formatted(repeatParagraph("leaf paragraph", 10));
-        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("doc-1", "Title", markdown);
+        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("Title", markdown);
         DocumentStructureNode chapter = snapshot.getNodes().get(0);
         ReadDocumentNodeTool tool = new ReadDocumentNodeTool(structuredDocumentService);
 
@@ -79,7 +79,7 @@ class ReadDocumentNodeToolTest {
 
                 %s
                 """.formatted(repeatParagraph("leaf paragraph", 10));
-        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("doc-1", "Title", markdown);
+        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("Title", markdown);
         DocumentStructureNode chapter = snapshot.getNodes().get(0);
         ReadDocumentNodeTool tool = new ReadDocumentNodeTool(structuredDocumentService);
 
@@ -108,7 +108,7 @@ class ReadDocumentNodeToolTest {
 
                 child body
                 """;
-        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("doc-1", "Title", markdown);
+        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("Title", markdown);
         DocumentStructureNode intro = snapshot.getNodes().get(0);
         ReadDocumentNodeTool tool = new ReadDocumentNodeTool(structuredDocumentService);
 

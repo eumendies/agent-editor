@@ -45,7 +45,6 @@ public class ReadDocumentNodeTool implements ToolHandler {
     public ToolResult execute(ToolInvocation invocation, ToolContext context) {
         ReadDocumentNodeArguments arguments = ToolArgumentDecoder.decode(invocation.getArguments(), ReadDocumentNodeArguments.class, name());
         StructuredDocumentService.NodeReadResult result = structuredDocumentService.readNode(
-                context.getTaskId(),
                 "",
                 context.getCurrentContent(),
                 arguments.getNodeId(),

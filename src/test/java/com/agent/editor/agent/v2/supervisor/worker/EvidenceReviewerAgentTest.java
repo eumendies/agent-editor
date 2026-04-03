@@ -56,6 +56,9 @@ class EvidenceReviewerAgentTest {
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
         assertTrue(systemMessage.text().contains("reviewer worker"));
         assertTrue(systemMessage.text().contains("ReviewerFeedback"));
+        assertTrue(systemMessage.text().contains("## Role"));
+        assertTrue(systemMessage.text().contains("## Workflow"));
+        assertTrue(systemMessage.text().contains("## Output Rules"));
     }
 
     @Test

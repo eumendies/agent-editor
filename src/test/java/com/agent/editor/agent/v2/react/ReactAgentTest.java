@@ -90,11 +90,18 @@ class ReactAgentTest {
 
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
         String prompt = systemMessage.text();
-        assertTrue(prompt.contains("must call editDocument"));
-        assertTrue(prompt.contains("appendToDocument"));
-        assertTrue(prompt.contains("getDocumentSnapshot"));
-        assertTrue(prompt.contains("overwrite the entire document"));
-        assertTrue(prompt.contains("append to the end"));
+        assertTrue(prompt.contains("## Role"));
+        assertTrue(prompt.contains("## Document Model"));
+        assertTrue(prompt.contains("## Workflow"));
+        assertTrue(prompt.contains("## Tool Rules"));
+        assertTrue(prompt.contains("## Forbidden Actions"));
+        assertTrue(prompt.contains("## Output Rules"));
+        assertTrue(prompt.contains("Inspect the structure summary before reading document content."));
+        assertTrue(prompt.contains("readDocumentNode"));
+        assertTrue(prompt.contains("patchDocumentNode"));
+        assertTrue(!prompt.contains("must call editDocument"));
+        assertTrue(!prompt.contains("appendToDocument when you only need to append"));
+        assertTrue(!prompt.contains("getDocumentSnapshot when you need the latest full document content"));
         assertTrue(prompt.contains("explain, analyze, answer questions, or discuss options"));
         assertTrue(prompt.contains("Think step by step"));
         assertTrue(prompt.contains("Take ONE action at a time"));

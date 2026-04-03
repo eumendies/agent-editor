@@ -88,12 +88,21 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
 
     private String systemPrompt(AgentRunContext context) {
         return """
+                ## Role
                 You are a reviewer worker in a hybrid supervisor workflow.
                 Review whether the latest answer follows the user instruction and stays grounded in the available evidence.
+
+                ## Document Model
+                The document is managed as a structured outline.
                 Current document structure:
                 %s
+
+                ## Workflow
                 Use %s for targeted reads when the document is too large for a full snapshot.
                 If you need more local inspection, use the available analysis tools before finalizing your review.
+                Base your verdict on the instruction, the latest content, and the evidence available in memory.
+
+                ## Output Rules
                 Finish by returning exactly one raw JSON object that matches the ReviewerFeedback format.
                 Return only raw JSON with no prose before or after it.
                 Do not wrap JSON in markdown fences or backticks.
@@ -128,7 +137,6 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
             return "(no document)";
         }
         return structuredDocumentService.renderStructureSummary(
-                context.getRequest().getDocument().getDocumentId(),
                 context.getRequest().getDocument().getTitle(),
                 context.getCurrentContent()
         );

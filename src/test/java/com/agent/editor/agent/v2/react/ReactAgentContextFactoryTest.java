@@ -95,6 +95,9 @@ class ReactAgentContextFactoryTest {
         assertTrue(systemMessage.text().contains("ReAct-style document editing agent"));
         assertTrue(systemMessage.text().contains(DocumentToolNames.READ_DOCUMENT_NODE));
         assertTrue(systemMessage.text().contains(DocumentToolNames.PATCH_DOCUMENT_NODE));
+        assertTrue(systemMessage.text().contains("## Workflow"));
+        assertTrue(systemMessage.text().contains("## Tool Rules"));
+        assertTrue(systemMessage.text().contains("## Forbidden Actions"));
         assertTrue(systemMessage.text().contains("Current document structure"));
         assertTrue(systemMessage.text().contains("Intro"));
         UserMessage previousTurn = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));

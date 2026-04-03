@@ -159,11 +159,13 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
         List<dev.langchain4j.data.message.ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(routingSystemPrompt()));
         messages.add(UserMessage.from("""
-                Task: %s
-                Current document structure:
+                ## Task
                 %s
 
-                Candidate workers:
+                ## Document Structure
+                %s
+
+                ## Candidate Workers
                 %s
                 """.formatted(
                 context.getRequest().getInstruction(),
@@ -261,18 +263,24 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
 
     private String routingSystemPrompt() {
         return """
+                ## Role
                 You are a hybrid supervisor for a document workflow with specialized workers.
+
+                ## Available Actions
                 Decide whether the next step should be:
                 - researcher: gather evidence from the knowledge base
                 - writer: write or revise the document using available context and evidence
                 - reviewer: verify both instruction completion and evidence grounding
                 - complete: stop when the task is already complete
-                Routing policy:
+
+                ## Routing Policy
                 - If the latest worker result is from writer, the default next step is reviewer.
                 - After writer finishes, assign reviewer unless there is a clear reason that more research is required before review.
                 - Do not assign writer again immediately after writer unless reviewer feedback or explicit missing evidence makes another writing pass necessary.
                 - Only choose complete when the latest content has already been reviewed and no further verification is needed.
-                Choose one of the candidate workers or complete the task.
+                - Choose one of the candidate workers or complete the task.
+
+                ## Output Rules
                 Return only JSON using:
                 - action: assign_worker or complete
                 - workerId: candidate worker id when assigning
@@ -289,7 +297,6 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
             return "(no document)";
         }
         return structuredDocumentService.renderStructureSummary(
-                context.getRequest().getDocument().getDocumentId(),
                 context.getRequest().getDocument().getTitle(),
                 context.getCurrentContent()
         );

@@ -29,9 +29,9 @@ class PatchDocumentNodeToolTest {
 
                 original intro
                 """;
-        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("doc-1", "Title", markdown);
+        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("Title", markdown);
         DocumentStructureNode intro = snapshot.getNodes().get(0);
-        String baseHash = structuredDocumentService.readNode("doc-1", "Title", markdown, intro.getNodeId(), "content", null).getBaseHash();
+        String baseHash = structuredDocumentService.readNode("Title", markdown, intro.getNodeId(), "content", null).getBaseHash();
         PatchDocumentNodeTool tool = new PatchDocumentNodeTool(structuredDocumentService);
 
         ToolResult result = tool.execute(
@@ -56,9 +56,9 @@ class PatchDocumentNodeToolTest {
 
                 %s
                 """.formatted(repeatParagraph("leaf paragraph", 10));
-        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("doc-1", "Title", markdown);
+        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("Title", markdown);
         DocumentStructureNode chapter = snapshot.getNodes().get(0);
-        List<LeafBlockSnapshot> blocks = structuredDocumentService.readNode("doc-1", "Title", markdown, chapter.getNodeId(), "blocks", null).getBlocks();
+        List<LeafBlockSnapshot> blocks = structuredDocumentService.readNode("Title", markdown, chapter.getNodeId(), "blocks", null).getBlocks();
         LeafBlockSnapshot firstBlock = blocks.get(0);
         PatchDocumentNodeTool tool = new PatchDocumentNodeTool(structuredDocumentService);
 
@@ -83,7 +83,7 @@ class PatchDocumentNodeToolTest {
 
                 %s
                 """.formatted(repeatParagraph("leaf paragraph", 10));
-        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("doc-1", "Title", markdown);
+        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("Title", markdown);
         DocumentStructureNode chapter = snapshot.getNodes().get(0);
         PatchDocumentNodeTool tool = new PatchDocumentNodeTool(structuredDocumentService);
 

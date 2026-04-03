@@ -47,7 +47,6 @@ public class PatchDocumentNodeTool implements ToolHandler {
     public ToolResult execute(ToolInvocation invocation, ToolContext context) {
         PatchDocumentNodeArguments arguments = ToolArgumentDecoder.decode(invocation.getArguments(), PatchDocumentNodeArguments.class, name());
         StructuredDocumentService.PatchResult result = structuredDocumentService.applyPatch(
-                context.getTaskId(),
                 "",
                 context.getCurrentContent(),
                 new StructuredDocumentService.PatchRequest(
