@@ -50,6 +50,10 @@ agent:
     trigger-total-tokens: 128000
     preserve-latest-message-count: 6
     fallback-max-message-count: 60
+  long-term-memory:
+    milvus:
+      collection-name: long_term_memory_v1
+      embedding-dimension: 1024
 
 milvus:
   enabled: true
