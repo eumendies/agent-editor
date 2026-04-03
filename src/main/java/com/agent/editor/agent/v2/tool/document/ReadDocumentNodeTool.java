@@ -10,6 +10,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 public class ReadDocumentNodeTool implements ToolHandler {
 
@@ -44,15 +47,26 @@ public class ReadDocumentNodeTool implements ToolHandler {
     @Override
     public ToolResult execute(ToolInvocation invocation, ToolContext context) {
         ReadDocumentNodeArguments arguments = ToolArgumentDecoder.decode(invocation.getArguments(), ReadDocumentNodeArguments.class, name());
-        StructuredDocumentService.NodeReadResult result = structuredDocumentService.readNode(
-                "",
-                context.getCurrentContent(),
-                arguments.getNodeId(),
-                arguments.getMode(),
-                arguments.getBlockId(),
-                Boolean.TRUE.equals(arguments.getIncludeChildren())
-        );
-        return new ToolResult(serialize(result));
+        try {
+            StructuredDocumentService.NodeReadResult result = structuredDocumentService.readNode(
+                    "",
+                    context.getCurrentContent(),
+                    arguments.getNodeId(),
+                    arguments.getMode(),
+                    arguments.getBlockId(),
+                    Boolean.TRUE.equals(arguments.getIncludeChildren())
+            );
+            return new ToolResult(serialize(result));
+        } catch (IllegalArgumentException exception) {
+            // 这些校验失败属于模型可恢复输入错误，返回结构化错误比直接打断 agent 更有用。
+            return new ToolResult(serialize(new ErrorToolResponse(
+                    "error",
+                    exception.getMessage(),
+                    arguments.getNodeId(),
+                    arguments.getBlockId(),
+                    null
+            )));
+        }
     }
 
     private String serialize(Object value) {
@@ -61,5 +75,17 @@ public class ReadDocumentNodeTool implements ToolHandler {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Failed to serialize result for " + name(), e);
         }
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    private static class ErrorToolResponse {
+
+        private String status;
+        private String errorMessage;
+        private String nodeId;
+        private String blockId;
+        private String operation;
     }
 }

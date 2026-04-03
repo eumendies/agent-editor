@@ -49,29 +49,40 @@ public class PatchDocumentNodeTool implements ToolHandler {
     @Override
     public ToolResult execute(ToolInvocation invocation, ToolContext context) {
         PatchDocumentNodeArguments arguments = ToolArgumentDecoder.decode(invocation.getArguments(), PatchDocumentNodeArguments.class, name());
-        StructuredDocumentService.PatchResult result = structuredDocumentService.applyPatch(
-                "",
-                context.getCurrentContent(),
-                new StructuredDocumentService.PatchRequest(
-                        arguments.getDocumentVersion(),
-                        arguments.getNodeId(),
-                        arguments.getBlockId(),
-                        arguments.getBaseHash(),
-                        arguments.getOperation(),
-                        arguments.getContent(),
-                        arguments.getReason()
-                )
-        );
-        return new ToolResult(
-                serialize(new PatchToolResponse(
-                        result.getStatus(),
-                        result.getDocumentVersion(),
-                        arguments.getNodeId(),
-                        arguments.getBlockId(),
-                        arguments.getOperation()
-                )),
-                result.getUpdatedContent()
-        );
+        try {
+            StructuredDocumentService.PatchResult result = structuredDocumentService.applyPatch(
+                    "",
+                    context.getCurrentContent(),
+                    new StructuredDocumentService.PatchRequest(
+                            arguments.getDocumentVersion(),
+                            arguments.getNodeId(),
+                            arguments.getBlockId(),
+                            arguments.getBaseHash(),
+                            arguments.getOperation(),
+                            arguments.getContent(),
+                            arguments.getReason()
+                    )
+            );
+            return new ToolResult(
+                    serialize(new PatchToolResponse(
+                            result.getStatus(),
+                            result.getDocumentVersion(),
+                            arguments.getNodeId(),
+                            arguments.getBlockId(),
+                            arguments.getOperation()
+                    )),
+                    result.getUpdatedContent()
+            );
+        } catch (IllegalArgumentException exception) {
+            // patch 校验失败时不能把异常抛给 runtime，否则模型拿不到可自我修正的反馈。
+            return new ToolResult(serialize(new ErrorToolResponse(
+                    "error",
+                    exception.getMessage(),
+                    arguments.getNodeId(),
+                    arguments.getBlockId(),
+                    arguments.getOperation()
+            )));
+        }
     }
 
     private String serialize(Object value) {
@@ -89,6 +100,18 @@ public class PatchDocumentNodeTool implements ToolHandler {
 
         private String status;
         private String documentVersion;
+        private String nodeId;
+        private String blockId;
+        private String operation;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    private static class ErrorToolResponse {
+
+        private String status;
+        private String errorMessage;
         private String nodeId;
         private String blockId;
         private String operation;

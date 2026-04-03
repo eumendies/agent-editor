@@ -8,6 +8,8 @@ import com.agent.editor.agent.v2.tool.ToolInvocation;
 import com.agent.editor.agent.v2.tool.ToolResult;
 import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -18,6 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PatchDocumentNodeToolTest {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final StructuredDocumentService structuredDocumentService =
             new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 120, 60);
@@ -105,6 +109,97 @@ class PatchDocumentNodeToolTest {
         );
 
         assertTrue(result.getMessage().contains("\"status\":\"baseline_mismatch\""));
+        assertNull(result.getUpdatedContent());
+    }
+
+    @Test
+    void shouldReturnJsonErrorWhenPatchNodeIdDoesNotExist() throws Exception {
+        String markdown = """
+                # Intro
+
+                original intro
+                """;
+        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("Title", markdown);
+        PatchDocumentNodeTool tool = new PatchDocumentNodeTool(structuredDocumentService);
+
+        ToolResult result = tool.execute(
+                new ToolInvocation(
+                        DocumentToolNames.PATCH_DOCUMENT_NODE,
+                        """
+                        {"documentVersion":"%s","nodeId":"node-999","baseHash":"hash-1","operation":"replace_node","content":"# Intro\\n\\nrewritten"}
+                        """.formatted(snapshot.getDocumentVersion()).trim()
+                ),
+                new ToolContext("task-1", markdown)
+        );
+
+        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
+        assertEquals("error", payload.get("status").asText());
+        assertTrue(payload.get("errorCode") == null);
+        assertEquals("Unknown nodeId: node-999", payload.get("errorMessage").asText());
+        assertEquals("node-999", payload.get("nodeId").asText());
+        assertEquals("replace_node", payload.get("operation").asText());
+        assertNull(result.getUpdatedContent());
+    }
+
+    @Test
+    void shouldReturnJsonErrorWhenPatchOperationIsUnsupported() throws Exception {
+        String markdown = """
+                # Intro
+
+                original intro
+                """;
+        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("Title", markdown);
+        DocumentStructureNode intro = snapshot.getNodes().get(0);
+        String baseHash = structuredDocumentService.readNode("Title", markdown, intro.getNodeId(), "content", null).getBaseHash();
+        PatchDocumentNodeTool tool = new PatchDocumentNodeTool(structuredDocumentService);
+
+        ToolResult result = tool.execute(
+                new ToolInvocation(
+                        DocumentToolNames.PATCH_DOCUMENT_NODE,
+                        """
+                        {"documentVersion":"%s","nodeId":"%s","baseHash":"%s","operation":"invalid_operation","content":"# Intro\\n\\nrewritten intro"}
+                        """.formatted(snapshot.getDocumentVersion(), intro.getNodeId(), baseHash).trim()
+                ),
+                new ToolContext("task-1", markdown)
+        );
+
+        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
+        assertEquals("error", payload.get("status").asText());
+        assertTrue(payload.get("errorCode") == null);
+        assertEquals("Unsupported patch operation: invalid_operation", payload.get("errorMessage").asText());
+        assertEquals(intro.getNodeId(), payload.get("nodeId").asText());
+        assertEquals("invalid_operation", payload.get("operation").asText());
+        assertNull(result.getUpdatedContent());
+    }
+
+    @Test
+    void shouldReturnJsonErrorWhenNodeReplacementContentIsInvalid() throws Exception {
+        String markdown = """
+                # Intro
+
+                original intro
+                """;
+        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("Title", markdown);
+        DocumentStructureNode intro = snapshot.getNodes().get(0);
+        String baseHash = structuredDocumentService.readNode("Title", markdown, intro.getNodeId(), "content", null).getBaseHash();
+        PatchDocumentNodeTool tool = new PatchDocumentNodeTool(structuredDocumentService);
+
+        ToolResult result = tool.execute(
+                new ToolInvocation(
+                        DocumentToolNames.PATCH_DOCUMENT_NODE,
+                        """
+                        {"documentVersion":"%s","nodeId":"%s","baseHash":"%s","operation":"replace_node","content":"invalid replacement without heading"}
+                        """.formatted(snapshot.getDocumentVersion(), intro.getNodeId(), baseHash).trim()
+                ),
+                new ToolContext("task-1", markdown)
+        );
+
+        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
+        assertEquals("error", payload.get("status").asText());
+        assertTrue(payload.get("errorCode") == null);
+        assertEquals("replace_node content must contain exactly one top-level heading", payload.get("errorMessage").asText());
+        assertEquals(intro.getNodeId(), payload.get("nodeId").asText());
+        assertEquals("replace_node", payload.get("operation").asText());
         assertNull(result.getUpdatedContent());
     }
 

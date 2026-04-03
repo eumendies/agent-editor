@@ -7,6 +7,8 @@ import com.agent.editor.agent.v2.tool.ToolInvocation;
 import com.agent.editor.agent.v2.tool.ToolResult;
 import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -15,6 +17,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ReadDocumentNodeToolTest {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final StructuredDocumentService structuredDocumentService =
             new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 120, 60);
@@ -125,6 +129,88 @@ class ReadDocumentNodeToolTest {
         assertTrue(result.getMessage().contains("\"content\":\"# Intro\\n\\nparent body\""));
         assertTrue(result.getMessage().contains("\"children\""));
         assertTrue(result.getMessage().contains("\"headingText\":\"Detail\""));
+    }
+
+    @Test
+    void shouldReturnJsonErrorWhenNodeIdDoesNotExist() throws Exception {
+        ReadDocumentNodeTool tool = new ReadDocumentNodeTool(structuredDocumentService);
+
+        ToolResult result = tool.execute(
+                new ToolInvocation(
+                        DocumentToolNames.READ_DOCUMENT_NODE,
+                        """
+                        {"nodeId":"node-999","mode":"structure"}
+                        """.trim()
+                ),
+                new ToolContext("task-1", "# Intro")
+        );
+
+        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
+        assertEquals("error", payload.get("status").asText());
+        assertTrue(payload.get("errorCode") == null);
+        assertEquals("Unknown nodeId: node-999", payload.get("errorMessage").asText());
+        assertEquals("node-999", payload.get("nodeId").asText());
+        assertTrue(payload.get("operation").isNull());
+        assertNull(result.getUpdatedContent());
+    }
+
+    @Test
+    void shouldReturnJsonErrorWhenReadModeIsUnsupported() throws Exception {
+        String markdown = """
+                # Intro
+
+                short intro
+                """;
+        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("Title", markdown);
+        DocumentStructureNode intro = snapshot.getNodes().get(0);
+        ReadDocumentNodeTool tool = new ReadDocumentNodeTool(structuredDocumentService);
+
+        ToolResult result = tool.execute(
+                new ToolInvocation(
+                        DocumentToolNames.READ_DOCUMENT_NODE,
+                        """
+                        {"nodeId":"%s","mode":"invalid"}
+                        """.formatted(intro.getNodeId()).trim()
+                ),
+                new ToolContext("task-1", markdown)
+        );
+
+        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
+        assertEquals("error", payload.get("status").asText());
+        assertTrue(payload.get("errorCode") == null);
+        assertEquals("Unsupported read mode: invalid", payload.get("errorMessage").asText());
+        assertEquals(intro.getNodeId(), payload.get("nodeId").asText());
+        assertNull(result.getUpdatedContent());
+    }
+
+    @Test
+    void shouldReturnJsonErrorWhenBlockIdDoesNotExist() throws Exception {
+        String markdown = """
+                # Chapter
+
+                %s
+                """.formatted(repeatParagraph("leaf paragraph", 10));
+        DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("Title", markdown);
+        DocumentStructureNode chapter = snapshot.getNodes().get(0);
+        ReadDocumentNodeTool tool = new ReadDocumentNodeTool(structuredDocumentService);
+
+        ToolResult result = tool.execute(
+                new ToolInvocation(
+                        DocumentToolNames.READ_DOCUMENT_NODE,
+                        """
+                        {"nodeId":"%s","mode":"content","blockId":"missing-block"}
+                        """.formatted(chapter.getNodeId()).trim()
+                ),
+                new ToolContext("task-1", markdown)
+        );
+
+        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
+        assertEquals("error", payload.get("status").asText());
+        assertTrue(payload.get("errorCode") == null);
+        assertEquals("Unknown blockId: missing-block", payload.get("errorMessage").asText());
+        assertEquals(chapter.getNodeId(), payload.get("nodeId").asText());
+        assertEquals("missing-block", payload.get("blockId").asText());
+        assertNull(result.getUpdatedContent());
     }
 
     @Test
