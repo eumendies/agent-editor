@@ -58,4 +58,15 @@ class DemoPageTemplateTest {
         assertFalse(template.contains("clearChatBtn"));
         assertFalse(template.contains("reactBtn"));
     }
+
+    @Test
+    void shouldLoadDocumentOptionsFromApi() throws IOException {
+        String template = Files.readString(Path.of("src/main/resources/templates/index.html"));
+
+        assertTrue(template.contains("async function loadDocumentOptions"));
+        assertTrue(template.contains("fetch(\"/api/v1/documents\")"));
+        assertTrue(template.contains("documentSelect.innerHTML = documents.map"));
+        assertTrue(template.contains("await loadDocumentOptions();"));
+        assertFalse(template.contains("<option value=\"doc-001\">Sample Document</option>"));
+    }
 }

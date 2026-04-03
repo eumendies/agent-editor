@@ -18,7 +18,8 @@ class DocumentServiceTest {
         DocumentService service = new DocumentService();
 
         assertNotNull(service.getDocument("doc-001"));
-        assertEquals(1, service.getAllDocuments().size());
+        assertNotNull(service.getDocument("doc-002"));
+        assertEquals(2, service.getAllDocuments().size());
 
         Set<String> publicMethods = Arrays.stream(DocumentService.class.getMethods())
                 .map(method -> method.getName())
@@ -38,11 +39,13 @@ class DocumentServiceTest {
         DocumentService service = new DocumentService();
 
         String content = service.getDocument("doc-001").getContent();
+        String shortDocumentContent = service.getDocument("doc-002").getContent();
 
-        assertTrue(content.startsWith("本文是一份用于验证结构化文档编辑能力的示例文档。"));
-        assertTrue(content.contains("# 项目概览"));
-        assertTrue(content.contains("## 编辑目标"));
-        assertTrue(content.contains("> 说明：默认文档应当足够结构化"));
-        assertTrue(content.contains("```json"));
+        assertTrue(content.startsWith("# LangChain 入门指南"));
+        assertTrue(content.contains("## 目录"));
+        assertTrue(content.contains("### 什么是 LangChain？"));
+        assertTrue(content.contains("## 快速开始"));
+        assertTrue(content.contains("```python"));
+        assertTrue(shortDocumentContent.startsWith("多年以后，面对行刑队"));
     }
 }

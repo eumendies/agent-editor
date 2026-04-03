@@ -588,7 +588,7 @@
                 <div>
                     <label class="field-label" for="documentSelect">Document</label>
                     <select id="documentSelect" aria-label="Document selector">
-                        <option value="doc-001">Sample Document</option>
+                        <option value="">Loading documents...</option>
                     </select>
                 </div>
                 <div class="toolbar-actions">
@@ -1172,8 +1172,56 @@
         }
     }
 
+    async function loadDocumentOptions() {
+        const documentSelect = document.getElementById("documentSelect");
+        const previousSelectedId = documentSelect.value;
+
+        try {
+            const response = await fetch("/api/v1/documents");
+            if (!response.ok) {
+                throw new Error("Document list request failed");
+            }
+
+            const documents = await response.json();
+            if (!Array.isArray(documents) || documents.length === 0) {
+                documentSelect.innerHTML = `<option value="">No documents available</option>`;
+                documentSelect.disabled = true;
+                document.getElementById("documentEditor").value = "";
+                renderDiffEmptyState("当前没有可用文档。", "当前没有待确认改动。");
+                renderSaveStatus("", "当前没有可编辑文档。");
+                return null;
+            }
+
+            documentSelect.disabled = false;
+            documentSelect.innerHTML = documents.map((doc) => `
+                <option value="${escapeHtml(doc.id || "")}">${escapeHtml(doc.title || doc.id || "Untitled Document")}</option>
+            `).join("");
+
+            // 优先保留当前选中项，避免刷新列表后把用户切回第一个文档。
+            const selectedId = documents.some((doc) => doc.id === previousSelectedId)
+                ? previousSelectedId
+                : (documents[0].id || "");
+            documentSelect.value = selectedId;
+            return selectedId;
+        } catch (error) {
+            console.error("Error loading document options:", error);
+            documentSelect.innerHTML = `<option value="">Failed to load documents</option>`;
+            documentSelect.disabled = true;
+            document.getElementById("documentEditor").value = "";
+            renderDiffEmptyState(`加载文档列表失败: ${escapeHtml(error.message)}`, "文档列表加载失败。");
+            renderSaveStatus("error", `加载文档列表失败: ${error.message}`);
+            return null;
+        }
+    }
+
     async function refreshDocument(documentIdOverride) {
         const documentId = documentIdOverride || document.getElementById("documentSelect").value;
+        if (!documentId) {
+            document.getElementById("documentEditor").value = "";
+            currentTaskDocumentId = null;
+            markDocumentDirty(false);
+            return;
+        }
         try {
             const response = await fetch(`/api/v1/documents/${documentId}`);
             if (!response.ok) {
@@ -1214,6 +1262,10 @@
     }
 
     async function loadPendingDiff(documentId) {
+        if (!documentId) {
+            renderDiffEmptyState("当前没有可用文档。", "当前没有待确认改动。");
+            return;
+        }
         try {
             const response = await fetch(`/api/v1/diff/document/${documentId}/pending`);
             if (response.status === 404) {
@@ -1377,7 +1429,7 @@
         }
     }
 
-    window.onload = function() {
+    window.onload = async function() {
         document.getElementById("knowledgeUploadForm")
             .addEventListener("submit", uploadKnowledgeDocument);
         document.getElementById("documentEditor")
@@ -1399,8 +1451,9 @@
 
         syncModeUI("REACT");
         initWebSocket();
-        refreshDocument();
-        loadPendingDiff(document.getElementById("documentSelect").value);
+        const documentId = await loadDocumentOptions();
+        await refreshDocument(documentId);
+        await loadPendingDiff(documentId);
         updateMessageCount();
     };
 </script>
