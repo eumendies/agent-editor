@@ -1,7 +1,7 @@
 package com.agent.editor.utils.rag;
 
 import com.agent.editor.model.ParsedKnowledgeDocument;
-import com.agent.editor.utils.rag.pdf.PdfKnowledgeExtractor;
+import com.agent.editor.utils.rag.pdf.OpenDataLoaderPdfKnowledgeExtractor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -11,14 +11,14 @@ import java.nio.charset.StandardCharsets;
 @Component
 public class KnowledgeDocumentParser {
 
-    // 入口解析器只负责按文件类型分发，PDF 的版面处理交给专门组件。
-    private final PdfKnowledgeExtractor pdfKnowledgeExtractor;
+    // 入口解析器只负责按文件类型分发，PDF 的提取交给专门组件。
+    private final OpenDataLoaderPdfKnowledgeExtractor pdfKnowledgeExtractor;
 
     public KnowledgeDocumentParser() {
-        this(new PdfKnowledgeExtractor());
+        this(new OpenDataLoaderPdfKnowledgeExtractor());
     }
 
-    KnowledgeDocumentParser(PdfKnowledgeExtractor pdfKnowledgeExtractor) {
+    KnowledgeDocumentParser(OpenDataLoaderPdfKnowledgeExtractor pdfKnowledgeExtractor) {
         this.pdfKnowledgeExtractor = pdfKnowledgeExtractor;
     }
 
@@ -33,7 +33,7 @@ public class KnowledgeDocumentParser {
                 return new ParsedKnowledgeDocument(content, "TEXT");
             }
             if (fileName.endsWith(".pdf")) {
-                // PDF 不能按 UTF-8 直接解码，必须走带坐标信息的抽取流程。
+                // PDF 不能按 UTF-8 直接解码，必须走专门的提取流程。
                 return new ParsedKnowledgeDocument(pdfKnowledgeExtractor.extract(file.getBytes()), "PDF");
             }
         } catch (IOException e) {

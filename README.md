@@ -167,3 +167,6 @@ mvn spring-boot:run
 - `EditorAgentTools`
 
 但它们不再是默认执行链，不应作为后续新功能开发的主扩展点。
+
+## OpenDataloader-pdf安装
+需要改阿里云镜像的配置，将vera-dev给排除
