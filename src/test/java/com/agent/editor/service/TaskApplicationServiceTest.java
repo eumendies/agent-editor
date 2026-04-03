@@ -53,19 +53,14 @@ class TaskApplicationServiceTest {
         request.setDocumentId("doc-001");
         request.setInstruction("rewrite");
         request.setMode(AgentMode.REACT);
+        String originalContent = documentService.getDocument("doc-001").getContent();
 
         AgentTaskResponse response = service.execute(request);
 
         assertNotNull(response.getTaskId());
         assertEquals("COMPLETED", response.getStatus());
         assertEquals("rewritten content", response.getFinalResult());
-        assertEquals("""
-                从前，有一只小狐狸住在森林边缘。它毛色火红，眼睛明亮，对这个世界充满了好奇。
-                
-                狐狸妈妈总是叮嘱它："孩子，不要在森林里走得太远，外面很危险。"
-                
-                小狐狸点点头，但心里却想着：森林外面到底是什么样子的呢？
-                """, documentService.getDocument("doc-001").getContent());
+        assertEquals(originalContent, documentService.getDocument("doc-001").getContent());
         assertEquals("rewritten content", pendingChangeService.getPendingChange("doc-001").getProposedContent());
         assertEquals("COMPLETED", service.getTaskStatus(response.getTaskId()).getStatus());
     }

@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DocumentServiceTest {
 
@@ -30,5 +31,18 @@ class DocumentServiceTest {
         assertFalse(publicMethods.contains("buildSnapshot"));
         assertFalse(publicMethods.contains("readNode"));
         assertFalse(publicMethods.contains("applyPatch"));
+    }
+
+    @Test
+    void shouldSeedDefaultDocumentWithStructuredMarkdownContent() {
+        DocumentService service = new DocumentService();
+
+        String content = service.getDocument("doc-001").getContent();
+
+        assertTrue(content.startsWith("本文是一份用于验证结构化文档编辑能力的示例文档。"));
+        assertTrue(content.contains("# 项目概览"));
+        assertTrue(content.contains("## 编辑目标"));
+        assertTrue(content.contains("> 说明：默认文档应当足够结构化"));
+        assertTrue(content.contains("```json"));
     }
 }
