@@ -9,14 +9,23 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * runtime 对外返回的统一结果对象，封装结构化产物、文本结果与最终上下文。
+ *
+ * @param <T> agent 输出的结构化结果类型
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ExecutionResult<T> {
 
-    private T result;   // Agent执行后返回的结构化结果
+    // Agent 执行后返回的结构化结果。
+    private T result;
+    // 面向调用方的最终消息。
     private String finalMessage;
+    // 最终生成或更新后的正文内容。
     private String finalContent;
+    // 执行结束时保留下来的运行态快照。
     private AgentRunContext finalState;
 
     public ExecutionResult(String finalMessage) {

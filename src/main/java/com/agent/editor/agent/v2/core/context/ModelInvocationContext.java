@@ -8,12 +8,18 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * 一次模型调用前整理出的输入上下文，统一承载消息、工具和响应格式。
+ */
 @Data
 @NoArgsConstructor
 public class ModelInvocationContext {
 
+    // 发送给模型的消息序列。
     private List<ChatMessage> messages = List.of();
+    // 本次调用允许使用的工具规格。
     private List<ToolSpecification> toolSpecifications = List.of();
+    // 结构化输出或约束输出格式。
     private ResponseFormat responseFormat;
 
     public ModelInvocationContext(List<ChatMessage> messages,

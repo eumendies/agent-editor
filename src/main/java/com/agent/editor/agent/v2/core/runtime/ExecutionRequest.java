@@ -7,17 +7,28 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * runtime 执行入口请求，描述一次 agent 运行所需的任务、文档和约束。
+ */
 @Data
 @NoArgsConstructor
 public class ExecutionRequest {
 
+    // 任务唯一标识。
     private String taskId;
+    // 会话标识，用于隔离跨轮记忆。
     private String sessionId;
+    // 本次请求指定的 agent 类型。
     private AgentType agentType;
+    // 当前要处理的文档快照。
     private DocumentSnapshot document;
+    // 用户或上游下发的执行指令。
     private String instruction;
+    // 最大允许迭代轮数。
     private int maxIterations;
+    // supervisor 为子 worker 指定的执行者 ID。
     private String workerId;
+    // 本次执行允许暴露给模型的工具白名单。
     private List<String> allowedTools = List.of();
 
     public ExecutionRequest(String taskId,
