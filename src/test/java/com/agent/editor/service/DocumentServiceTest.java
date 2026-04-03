@@ -1,8 +1,13 @@
 package com.agent.editor.service;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -47,5 +52,41 @@ class DocumentServiceTest {
         assertTrue(content.contains("## 快速开始"));
         assertTrue(content.contains("```python"));
         assertTrue(shortDocumentContent.startsWith("多年以后，面对行刑队"));
+    }
+
+    @Test
+    void shouldLoadSeededDocumentsFromConfiguredResourceLoader() {
+        ResourceLoader resourceLoader = new StubResourceLoader(Map.of(
+                "classpath:documents/doc-001.md", "# Stub Long Document\n\nfrom loader\n",
+                "classpath:documents/doc-002.md", "stub short document"
+        ));
+
+        DocumentService service = new DocumentService(resourceLoader);
+
+        assertEquals("# Stub Long Document\n\nfrom loader\n", service.getDocument("doc-001").getContent());
+        assertEquals("stub short document", service.getDocument("doc-002").getContent());
+    }
+
+    private static final class StubResourceLoader implements ResourceLoader {
+
+        private final Map<String, String> resources;
+
+        private StubResourceLoader(Map<String, String> resources) {
+            this.resources = resources;
+        }
+
+        @Override
+        public Resource getResource(String location) {
+            String content = resources.get(location);
+            if (content == null) {
+                throw new IllegalArgumentException("Missing stub resource: " + location);
+            }
+            return new ByteArrayResource(content.getBytes(StandardCharsets.UTF_8));
+        }
+
+        @Override
+        public ClassLoader getClassLoader() {
+            return getClass().getClassLoader();
+        }
     }
 }
