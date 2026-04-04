@@ -22,3 +22,4 @@ logs/
 AGENTS.md
 TODO.md
 .vscode
+.env

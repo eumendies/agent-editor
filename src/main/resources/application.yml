@@ -1,6 +1,8 @@
 spring:
   application:
     name: ai-editor
+  config:
+    import: optional:file:.env[.properties]
   servlet:
     multipart:
       max-file-size: 10MB
@@ -14,13 +16,13 @@ langchain4j:
   open-ai:
     chat-model:
       api-key: ${CHAT_API_KEY:}
-      model-name: qwen3.5-plus
-      base-url: https://coding.dashscope.aliyuncs.com/v1
+      model-name: ${CHAT_MODEL_NAME:qwen3.5-plus}
+      base-url: ${CHAT_BASE_URL:}
       temperature: 0.7
       max-tokens: 2000
     embedding-model:
-      model-name: text-embedding-v4
-      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      model-name: ${EMBEDDING_MODEL_NAME:text-embedding-v4}
+      base-url: ${EMBEDDING_BASE_URL:}
       api-key: ${EMBEDDING_API_KEY:}
 
 # Swagger/OpenAPI Configuration

@@ -117,6 +117,21 @@ PATH=/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home/bin:$PATH \
 mvn spring-boot:run
 ```
 
+模型配置：
+
+项目会在启动时自动读取仓库根目录的 `.env` 文件。先基于 [.env.example](/Users/eumendies/code/java/learn/agent-editor/.env.example) 创建本地 `.env`，再填入你自己的模型配置：
+
+```bash
+cp .env.example .env
+```
+
+```dotenv
+CHAT_API_KEY=your-chat-api-key
+CHAT_MODEL_NAME=qwen3.5-plus
+EMBEDDING_API_KEY=your-embedding-api-key
+EMBEDDING_MODEL_NAME=text-embedding-v4
+```
+
 页面入口：
 
 - `/`
