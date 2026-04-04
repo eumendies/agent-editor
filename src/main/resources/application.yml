@@ -51,10 +51,6 @@ agent:
     preserve-latest-message-count: 6
     fallback-max-message-count: 60
   long-term-memory:
-    extractor:
-      model-name:
-      temperature: 0.1
-      max-tokens: 1200
     milvus:
       collection-name: long_term_memory_v1
       embedding-dimension: 1024

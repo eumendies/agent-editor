@@ -1,8 +1,8 @@
 package com.agent.editor.dto;
 
 import com.agent.editor.model.AgentStep;
+
 import java.time.LocalDateTime;
-import java.util.List;
 
 public class AgentTaskResponse {
     private String taskId;
@@ -13,7 +13,6 @@ public class AgentTaskResponse {
     private int totalSteps;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-    private List<LongTermMemoryCandidateResponse> pendingMemoryCandidates = List.of();
 
     public String getTaskId() {
         return taskId;
@@ -79,11 +78,4 @@ public class AgentTaskResponse {
         this.endTime = endTime;
     }
 
-    public List<LongTermMemoryCandidateResponse> getPendingMemoryCandidates() {
-        return pendingMemoryCandidates;
-    }
-
-    public void setPendingMemoryCandidates(List<LongTermMemoryCandidateResponse> pendingMemoryCandidates) {
-        this.pendingMemoryCandidates = pendingMemoryCandidates == null ? List.of() : List.copyOf(pendingMemoryCandidates);
-    }
 }

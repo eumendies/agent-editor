@@ -1,10 +1,10 @@
 package com.agent.editor.service;
 
-import com.agent.editor.agent.v2.memory.LongTermMemoryExtractor;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.EventPublisher;
+import com.agent.editor.agent.v2.tool.memory.MemoryUpsertAction;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
@@ -12,8 +12,10 @@ import com.agent.editor.agent.v2.core.memory.LongTermMemoryItem;
 import com.agent.editor.agent.v2.core.memory.LongTermMemoryType;
 import com.agent.editor.dto.AgentTaskRequest;
 import com.agent.editor.dto.AgentTaskResponse;
-import com.agent.editor.dto.LongTermMemoryCandidateResponse;
 import com.agent.editor.dto.PendingDocumentChange;
+import com.agent.editor.dto.UserProfileMemoryRequest;
+import com.agent.editor.dto.UserProfileMemoryResponse;
+import com.agent.editor.repository.LongTermMemoryRepository;
 import com.agent.editor.model.AgentMode;
 import com.agent.editor.websocket.WebSocketService;
 import org.junit.jupiter.api.Test;
@@ -32,6 +34,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -107,18 +110,18 @@ class TaskApplicationServiceTest {
     }
 
     @Test
-    void shouldStoreExtractedLongTermMemoryCandidatesAfterExecution() {
+    void shouldManageUserProfilesThroughApplicationService() {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
         PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
-        PendingLongTermMemoryService pendingLongTermMemoryService = new PendingLongTermMemoryService();
-        LongTermMemoryExtractor extractor = mock(LongTermMemoryExtractor.class);
-        when(extractor.extractCandidates(any(), any(), any(), any()))
-                .thenReturn(List.of(new com.agent.editor.agent.v2.core.memory.PendingLongTermMemoryItem(
-                        "candidate-1",
-                        profile("Always answer in Chinese")
-                )));
+        LongTermMemoryWriteService writeService = mock(LongTermMemoryWriteService.class);
+        LongTermMemoryRepository repository = mock(LongTermMemoryRepository.class);
+        when(repository.listUserProfiles()).thenReturn(List.of(profile("Always answer in Chinese")));
+        when(writeService.upsert(MemoryUpsertAction.CREATE, LongTermMemoryType.USER_PROFILE, null, null, "Always answer in Chinese"))
+                .thenReturn(profile("Always answer in Chinese"));
+        when(writeService.upsert(MemoryUpsertAction.REPLACE, LongTermMemoryType.USER_PROFILE, "memory-profile", null, "Prefer concise summaries"))
+                .thenReturn(profile("Prefer concise summaries"));
         TaskApplicationService service = new TaskApplicationService(
                 documentService,
                 queryService,
@@ -127,25 +130,31 @@ class TaskApplicationServiceTest {
                 new StubTaskOrchestrator(),
                 mock(LongTermMemoryRetrievalService.class),
                 new UserProfilePromptAssembler(),
-                extractor,
-                pendingLongTermMemoryService,
-                mock(com.agent.editor.repository.LongTermMemoryRepository.class),
+                writeService,
+                repository,
                 mock(WebSocketService.class),
                 mock(EventPublisher.class),
                 directTaskExecutor()
         );
 
-        AgentTaskRequest request = new AgentTaskRequest();
-        request.setDocumentId("doc-001");
-        request.setInstruction("rewrite");
-        request.setMode(AgentMode.REACT);
+        UserProfileMemoryRequest createRequest = new UserProfileMemoryRequest();
+        createRequest.setSummary("Always answer in Chinese");
+        UserProfileMemoryRequest updateRequest = new UserProfileMemoryRequest();
+        updateRequest.setSummary("Prefer concise summaries");
 
-        AgentTaskResponse response = service.execute(request);
+        List<UserProfileMemoryResponse> listedProfiles = service.listUserProfiles();
+        UserProfileMemoryResponse created = service.createUserProfile(createRequest);
+        UserProfileMemoryResponse updated = service.updateUserProfile("memory-profile", updateRequest);
+        service.deleteUserProfile("memory-profile");
 
-        assertEquals(1, response.getPendingMemoryCandidates().size());
-        LongTermMemoryCandidateResponse candidate = response.getPendingMemoryCandidates().get(0);
-        assertEquals("candidate-1", candidate.getCandidateId());
-        assertEquals(1, service.getPendingLongTermMemoryCandidates(response.getTaskId()).getCandidates().size());
+        assertEquals(1, listedProfiles.size());
+        assertEquals("Always answer in Chinese", listedProfiles.get(0).getSummary());
+        assertEquals("Always answer in Chinese", created.getSummary());
+        assertEquals("Prefer concise summaries", updated.getSummary());
+        verify(writeService).upsert(MemoryUpsertAction.CREATE, LongTermMemoryType.USER_PROFILE, null, null, "Always answer in Chinese");
+        verify(writeService).upsert(MemoryUpsertAction.REPLACE, LongTermMemoryType.USER_PROFILE, "memory-profile", null, "Prefer concise summaries");
+        verify(writeService).upsert(MemoryUpsertAction.DELETE, LongTermMemoryType.USER_PROFILE, "memory-profile", null, null);
+        verify(repository, times(1)).listUserProfiles();
     }
 
     @Test

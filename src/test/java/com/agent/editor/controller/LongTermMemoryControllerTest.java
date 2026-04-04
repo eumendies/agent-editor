@@ -1,8 +1,7 @@
 package com.agent.editor.controller;
 
-import com.agent.editor.dto.ConfirmLongTermMemoryRequest;
-import com.agent.editor.dto.LongTermMemoryCandidateResponse;
-import com.agent.editor.dto.PendingLongTermMemoryResponse;
+import com.agent.editor.dto.UserProfileMemoryRequest;
+import com.agent.editor.dto.UserProfileMemoryResponse;
 import com.agent.editor.service.TaskApplicationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
@@ -19,75 +18,69 @@ import static org.mockito.Mockito.when;
 class LongTermMemoryControllerTest {
 
     @Test
-    void shouldListPendingCandidatesByTaskId() {
+    void shouldListUserProfiles() {
         TaskApplicationService taskApplicationService = mock(TaskApplicationService.class);
         LongTermMemoryController controller = new LongTermMemoryController(taskApplicationService);
-        PendingLongTermMemoryResponse response = response("task-1", "candidate-1");
+        List<UserProfileMemoryResponse> response = List.of(profile("memory-1", "Default to Chinese"));
 
-        when(taskApplicationService.getPendingLongTermMemoryCandidates("task-1")).thenReturn(response);
+        when(taskApplicationService.listUserProfiles()).thenReturn(response);
 
-        ResponseEntity<PendingLongTermMemoryResponse> result = controller.getPendingCandidates("task-1");
+        ResponseEntity<List<UserProfileMemoryResponse>> result = controller.listUserProfiles();
 
         assertEquals(200, result.getStatusCode().value());
         assertSame(response, result.getBody());
     }
 
     @Test
-    void shouldConfirmSelectedCandidates() {
+    void shouldCreateUserProfile() {
         TaskApplicationService taskApplicationService = mock(TaskApplicationService.class);
         LongTermMemoryController controller = new LongTermMemoryController(taskApplicationService);
-        PendingLongTermMemoryResponse response = response("task-1", "candidate-1");
-        ConfirmLongTermMemoryRequest request = new ConfirmLongTermMemoryRequest();
-        request.setCandidateIds(List.of("candidate-1"));
+        UserProfileMemoryRequest request = new UserProfileMemoryRequest();
+        request.setSummary("Default to Chinese");
+        UserProfileMemoryResponse response = profile("memory-1", "Default to Chinese");
 
-        when(taskApplicationService.confirmLongTermMemoryCandidates("task-1", List.of("candidate-1"))).thenReturn(response);
+        when(taskApplicationService.createUserProfile(request)).thenReturn(response);
 
-        ResponseEntity<PendingLongTermMemoryResponse> result = controller.confirmCandidates("task-1", request);
+        ResponseEntity<UserProfileMemoryResponse> result = controller.createUserProfile(request);
 
         assertEquals(200, result.getStatusCode().value());
         assertSame(response, result.getBody());
-        verify(taskApplicationService).confirmLongTermMemoryCandidates("task-1", List.of("candidate-1"));
     }
 
     @Test
-    void shouldDiscardSelectedCandidates() {
+    void shouldUpdateUserProfile() {
         TaskApplicationService taskApplicationService = mock(TaskApplicationService.class);
         LongTermMemoryController controller = new LongTermMemoryController(taskApplicationService);
-        PendingLongTermMemoryResponse response = response("task-1", "candidate-2");
-        ConfirmLongTermMemoryRequest request = new ConfirmLongTermMemoryRequest();
-        request.setCandidateIds(List.of("candidate-2"));
+        UserProfileMemoryRequest request = new UserProfileMemoryRequest();
+        request.setSummary("Prefer concise summaries");
+        UserProfileMemoryResponse response = profile("memory-1", "Prefer concise summaries");
 
-        when(taskApplicationService.discardLongTermMemoryCandidates("task-1", List.of("candidate-2"))).thenReturn(response);
+        when(taskApplicationService.updateUserProfile("memory-1", request)).thenReturn(response);
 
-        ResponseEntity<PendingLongTermMemoryResponse> result = controller.discardCandidates("task-1", request);
+        ResponseEntity<UserProfileMemoryResponse> result = controller.updateUserProfile("memory-1", request);
 
         assertEquals(200, result.getStatusCode().value());
         assertSame(response, result.getBody());
-        verify(taskApplicationService).discardLongTermMemoryCandidates("task-1", List.of("candidate-2"));
+        verify(taskApplicationService).updateUserProfile("memory-1", request);
     }
 
     @Test
-    void shouldReturnNotFoundWhenNoPendingCandidatesExist() {
+    void shouldDeleteUserProfile() {
         TaskApplicationService taskApplicationService = mock(TaskApplicationService.class);
         LongTermMemoryController controller = new LongTermMemoryController(taskApplicationService);
 
-        when(taskApplicationService.getPendingLongTermMemoryCandidates("task-1")).thenReturn(null);
+        ResponseEntity<Void> result = controller.deleteUserProfile("memory-1");
 
-        ResponseEntity<PendingLongTermMemoryResponse> result = controller.getPendingCandidates("task-1");
-
-        assertEquals(404, result.getStatusCode().value());
+        assertEquals(200, result.getStatusCode().value());
         assertNull(result.getBody());
+        verify(taskApplicationService).deleteUserProfile("memory-1");
     }
 
-    private PendingLongTermMemoryResponse response(String taskId, String candidateId) {
-        PendingLongTermMemoryResponse response = new PendingLongTermMemoryResponse();
-        response.setTaskId(taskId);
-        response.setCandidates(List.of(new LongTermMemoryCandidateResponse(
-                candidateId,
-                "DOCUMENT_DECISION",
-                "Keep section 3 unchanged",
-                "doc-1"
-        )));
+    private UserProfileMemoryResponse profile(String memoryId, String summary) {
+        UserProfileMemoryResponse response = new UserProfileMemoryResponse();
+        response.setMemoryId(memoryId);
+        response.setSummary(summary);
+        response.setMemoryType("USER_PROFILE");
         return response;
     }
 }

@@ -1,7 +1,7 @@
 package com.agent.editor.controller;
 
-import com.agent.editor.dto.ConfirmLongTermMemoryRequest;
-import com.agent.editor.dto.PendingLongTermMemoryResponse;
+import com.agent.editor.dto.UserProfileMemoryRequest;
+import com.agent.editor.dto.UserProfileMemoryResponse;
 import com.agent.editor.service.TaskApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -9,9 +9,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v2/memory")
-@Tag(name = "Long-Term Memory", description = "Pending and confirmed long-term memory review operations")
+@Tag(name = "Long-Term Memory", description = "Long-term memory management operations")
 public class LongTermMemoryController {
 
     private final TaskApplicationService taskApplicationService;
@@ -20,30 +22,31 @@ public class LongTermMemoryController {
         this.taskApplicationService = taskApplicationService;
     }
 
-    @GetMapping("/task/{taskId}/pending")
-    @Operation(summary = "Get pending long-term memory candidates for a task")
-    public ResponseEntity<PendingLongTermMemoryResponse> getPendingCandidates(
-            @Parameter(description = "Task ID") @PathVariable String taskId) {
-        PendingLongTermMemoryResponse response = taskApplicationService.getPendingLongTermMemoryCandidates(taskId);
-        if (response == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(response);
+    @GetMapping("/profiles")
+    @Operation(summary = "List persisted user profile memories")
+    public ResponseEntity<List<UserProfileMemoryResponse>> listUserProfiles() {
+        return ResponseEntity.ok(taskApplicationService.listUserProfiles());
     }
 
-    @PostMapping("/task/{taskId}/confirm")
-    @Operation(summary = "Confirm selected long-term memory candidates")
-    public ResponseEntity<PendingLongTermMemoryResponse> confirmCandidates(
-            @Parameter(description = "Task ID") @PathVariable String taskId,
-            @RequestBody ConfirmLongTermMemoryRequest request) {
-        return ResponseEntity.ok(taskApplicationService.confirmLongTermMemoryCandidates(taskId, request.getCandidateIds()));
+    @PostMapping("/profiles")
+    @Operation(summary = "Create a persisted user profile memory")
+    public ResponseEntity<UserProfileMemoryResponse> createUserProfile(@RequestBody UserProfileMemoryRequest request) {
+        return ResponseEntity.ok(taskApplicationService.createUserProfile(request));
     }
 
-    @PostMapping("/task/{taskId}/discard")
-    @Operation(summary = "Discard selected long-term memory candidates")
-    public ResponseEntity<PendingLongTermMemoryResponse> discardCandidates(
-            @Parameter(description = "Task ID") @PathVariable String taskId,
-            @RequestBody ConfirmLongTermMemoryRequest request) {
-        return ResponseEntity.ok(taskApplicationService.discardLongTermMemoryCandidates(taskId, request.getCandidateIds()));
+    @PutMapping("/profiles/{memoryId}")
+    @Operation(summary = "Replace a persisted user profile memory")
+    public ResponseEntity<UserProfileMemoryResponse> updateUserProfile(
+            @Parameter(description = "Memory ID") @PathVariable String memoryId,
+            @RequestBody UserProfileMemoryRequest request) {
+        return ResponseEntity.ok(taskApplicationService.updateUserProfile(memoryId, request));
+    }
+
+    @DeleteMapping("/profiles/{memoryId}")
+    @Operation(summary = "Delete a persisted user profile memory")
+    public ResponseEntity<Void> deleteUserProfile(
+            @Parameter(description = "Memory ID") @PathVariable String memoryId) {
+        taskApplicationService.deleteUserProfile(memoryId);
+        return ResponseEntity.ok().build();
     }
 }
