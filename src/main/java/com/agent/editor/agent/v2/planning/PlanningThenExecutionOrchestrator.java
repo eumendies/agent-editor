@@ -15,6 +15,7 @@ import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessRole;
 import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
+import com.agent.editor.agent.v2.tool.memory.MainAgentMemoryToolAccess;
 
 /**
  * 两阶段编排：先由 planner 拆任务，再把每个 plan step 交给执行 agent 串行落地。
@@ -83,7 +84,9 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
                     currentDocument,
                     step.getInstruction(),
                     request.getMaxIterations(),
-                    documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.WRITE)
+                    MainAgentMemoryToolAccess.append(
+                            documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.WRITE)
+                    )
             );
             executionRequest.setUserProfileGuidance(request.getUserProfileGuidance());
             executionRequest.setDocumentToolMode(documentToolMode);

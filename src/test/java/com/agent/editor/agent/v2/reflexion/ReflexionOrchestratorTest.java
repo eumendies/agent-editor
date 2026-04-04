@@ -26,6 +26,8 @@ import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
+import com.agent.editor.agent.v2.tool.memory.MemorySearchTool;
+import com.agent.editor.agent.v2.tool.memory.MemoryUpsertTool;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -81,7 +83,9 @@ class ReflexionOrchestratorTest {
                 DocumentToolNames.EDIT_DOCUMENT,
                 DocumentToolNames.APPEND_TO_DOCUMENT,
                 DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
-                DocumentToolNames.SEARCH_CONTENT
+                DocumentToolNames.SEARCH_CONTENT,
+                MemorySearchTool.NAME,
+                MemoryUpsertTool.NAME
         ), runtime.actorAllowedTools.get(0));
         assertEquals(List.of(
                 DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
@@ -286,7 +290,9 @@ class ReflexionOrchestratorTest {
         assertEquals(List.of(
                 DocumentToolNames.READ_DOCUMENT_NODE,
                 DocumentToolNames.PATCH_DOCUMENT_NODE,
-                DocumentToolNames.SEARCH_CONTENT
+                DocumentToolNames.SEARCH_CONTENT,
+                MemorySearchTool.NAME,
+                MemoryUpsertTool.NAME
         ), runtime.actorAllowedTools.get(0));
         assertEquals(DocumentToolMode.INCREMENTAL, runtime.actorRequests.get(0).getDocumentToolMode());
         assertEquals(List.of(

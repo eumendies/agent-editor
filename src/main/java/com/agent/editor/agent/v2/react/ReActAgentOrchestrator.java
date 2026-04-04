@@ -12,6 +12,7 @@ import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessRole;
 import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
+import com.agent.editor.agent.v2.tool.memory.MainAgentMemoryToolAccess;
 
 public class ReActAgentOrchestrator implements TaskOrchestrator {
 
@@ -47,7 +48,9 @@ public class ReActAgentOrchestrator implements TaskOrchestrator {
                 request.getDocument(),
                 request.getInstruction(),
                 request.getMaxIterations(),
-                documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.WRITE)
+                MainAgentMemoryToolAccess.append(
+                        documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.WRITE)
+                )
         );
         executionRequest.setUserProfileGuidance(request.getUserProfileGuidance());
         executionRequest.setDocumentToolMode(documentToolMode);

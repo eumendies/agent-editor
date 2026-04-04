@@ -14,6 +14,7 @@ import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessRole;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
+import com.agent.editor.agent.v2.tool.memory.MainAgentMemoryToolAccess;
 import java.util.List;
 
 public class ReflexionOrchestrator implements TaskOrchestrator {
@@ -91,7 +92,9 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
                 currentDocument,
                 request.getInstruction(),
                 request.getMaxIterations(),
-                documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.WRITE)
+                MainAgentMemoryToolAccess.append(
+                        documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.WRITE)
+                )
         );
         executionRequest.setUserProfileGuidance(request.getUserProfileGuidance());
         executionRequest.setDocumentToolMode(documentToolMode);
