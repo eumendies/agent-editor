@@ -24,7 +24,7 @@ class LongTermMemoryRetrievalServiceTest {
     void shouldLoadConfirmedProfilesByDefaultScope() {
         LongTermMemoryRepository repository = mock(LongTermMemoryRepository.class);
         KnowledgeEmbeddingService embeddingService = mock(KnowledgeEmbeddingService.class);
-        when(repository.findConfirmedProfiles("default"))
+        when(repository.listUserProfiles())
                 .thenReturn(List.of(memory(
                         "memory-1",
                         LongTermMemoryType.USER_PROFILE,
@@ -38,7 +38,7 @@ class LongTermMemoryRetrievalServiceTest {
 
         assertEquals(1, results.size());
         assertEquals("Always answer in Chinese", results.get(0).getSummary());
-        verify(repository).findConfirmedProfiles("default");
+        verify(repository).listUserProfiles();
         verify(embeddingService, never()).embed(any());
     }
 
@@ -64,6 +64,7 @@ class LongTermMemoryRetrievalServiceTest {
         );
 
         assertEquals(1, results.size());
+        assertEquals("memory-2", results.get(0).getMemoryId());
         assertEquals("Keep section 3 unchanged", results.get(0).getSummary());
         verify(embeddingService).embed("continue previous editing choices");
         verify(repository).searchConfirmedDocumentDecisions(eq("doc-1"), any(), eq(2));

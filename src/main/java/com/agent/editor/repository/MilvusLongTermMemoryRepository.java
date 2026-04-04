@@ -12,6 +12,7 @@ import io.milvus.v2.common.IndexParam;
 import io.milvus.v2.service.vector.request.QueryReq;
 import io.milvus.v2.service.vector.request.SearchReq;
 import io.milvus.v2.service.vector.request.UpsertReq;
+import io.milvus.v2.service.vector.request.DeleteReq;
 import io.milvus.v2.service.vector.request.data.FloatVec;
 import io.milvus.v2.service.vector.response.QueryResp;
 import io.milvus.v2.service.vector.response.SearchResp;
@@ -19,6 +20,7 @@ import io.milvus.v2.service.vector.response.SearchResp;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Milvus-backed repository for confirmed long-term memories.
@@ -59,22 +61,53 @@ public class MilvusLongTermMemoryRepository implements LongTermMemoryRepository 
     }
 
     @Override
-    public void saveAll(List<LongTermMemoryItem> memories) {
-        if (memories == null || memories.isEmpty()) {
-            return;
+    public LongTermMemoryItem createMemory(LongTermMemoryItem item) {
+        if (item == null) {
+            throw new IllegalArgumentException("Long-term memory item is required");
         }
-
         milvusClient.upsert(UpsertReq.builder()
                 .collectionName(properties.getCollectionName())
-                .data(memories.stream().map(this::toRow).toList())
+                .data(List.of(toRow(item)))
+                .build());
+        return item;
+    }
+
+    @Override
+    public Optional<LongTermMemoryItem> findById(String memoryId) {
+        if (memoryId == null || memoryId.isBlank()) {
+            return Optional.empty();
+        }
+        QueryResp response = milvusClient.query(QueryReq.builder()
+                .collectionName(properties.getCollectionName())
+                .filter(buildMemoryIdFilter(memoryId))
+                .outputFields(OUTPUT_FIELDS)
+                .limit(1)
+                .build());
+        if (response == null || response.getQueryResults() == null) {
+            return Optional.empty();
+        }
+        return response.getQueryResults().stream()
+                .map(QueryResp.QueryResult::getEntity)
+                .map(this::toMemoryItem)
+                .findFirst();
+    }
+
+    @Override
+    public void deleteMemory(String memoryId) {
+        if (memoryId == null || memoryId.isBlank()) {
+            return;
+        }
+        milvusClient.delete(DeleteReq.builder()
+                .collectionName(properties.getCollectionName())
+                .filter(buildMemoryIdFilter(memoryId))
                 .build());
     }
 
     @Override
-    public List<LongTermMemoryItem> findConfirmedProfiles(String scopeKey) {
+    public List<LongTermMemoryItem> listUserProfiles() {
         QueryResp response = milvusClient.query(QueryReq.builder()
                 .collectionName(properties.getCollectionName())
-                .filter(buildProfileFilter(scopeKey))
+                .filter(buildProfileFilter())
                 .outputFields(OUTPUT_FIELDS)
                 .limit(20)
                 .build());
@@ -151,9 +184,12 @@ public class MilvusLongTermMemoryRepository implements LongTermMemoryRepository 
         return item;
     }
 
-    private String buildProfileFilter(String scopeKey) {
-        return MEMORY_TYPE + " == " + quote(LongTermMemoryType.USER_PROFILE.name())
-                + " and " + SCOPE_KEY + " == " + quote(scopeKey);
+    private String buildProfileFilter() {
+        return MEMORY_TYPE + " == " + quote(LongTermMemoryType.USER_PROFILE.name());
+    }
+
+    private String buildMemoryIdFilter(String memoryId) {
+        return MEMORY_ID + " == " + quote(memoryId);
     }
 
     private String buildDocumentDecisionFilter(String documentId) {

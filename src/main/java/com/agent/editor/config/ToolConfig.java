@@ -10,8 +10,10 @@ import com.agent.editor.agent.v2.tool.document.ReadDocumentNodeTool;
 import com.agent.editor.agent.v2.tool.document.RetrieveKnowledgeTool;
 import com.agent.editor.agent.v2.tool.document.SearchContentTool;
 import com.agent.editor.agent.v2.tool.memory.MemorySearchTool;
+import com.agent.editor.agent.v2.tool.memory.MemoryUpsertTool;
 import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.service.LongTermMemoryRetrievalService;
+import com.agent.editor.service.LongTermMemoryWriteService;
 import com.agent.editor.service.KnowledgeRetrievalService;
 import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
 import org.springframework.context.annotation.Bean;
@@ -29,6 +31,7 @@ public class ToolConfig {
     @Bean
     public ToolRegistry toolRegistry(ObjectProvider<KnowledgeRetrievalService> retrievalServiceProvider,
                                      ObjectProvider<LongTermMemoryRetrievalService> longTermMemoryRetrievalServiceProvider,
+                                     ObjectProvider<LongTermMemoryWriteService> longTermMemoryWriteServiceProvider,
                                      StructuredDocumentService structuredDocumentService) {
         ToolRegistry toolRegistry = new ToolRegistry();
         toolRegistry.register(new EditDocumentTool());
@@ -40,6 +43,7 @@ public class ToolConfig {
         toolRegistry.register(new AnalyzeDocumentTool());
         retrievalServiceProvider.ifAvailable(service -> toolRegistry.register(new RetrieveKnowledgeTool(service)));
         longTermMemoryRetrievalServiceProvider.ifAvailable(service -> toolRegistry.register(new MemorySearchTool(service)));
+        longTermMemoryWriteServiceProvider.ifAvailable(service -> toolRegistry.register(new MemoryUpsertTool(service)));
         return toolRegistry;
     }
 }

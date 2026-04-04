@@ -11,9 +11,6 @@ import java.util.List;
 
 @Service
 public class LongTermMemoryRetrievalService {
-
-    private static final String DEFAULT_PROFILE_SCOPE = "default";
-
     private final LongTermMemoryRepository repository;
     private final KnowledgeEmbeddingService embeddingService;
 
@@ -33,7 +30,7 @@ public class LongTermMemoryRetrievalService {
         if (repository == null) {
             return List.of();
         }
-        return repository.findConfirmedProfiles(DEFAULT_PROFILE_SCOPE);
+        return repository.listUserProfiles();
     }
 
     public List<RetrievedLongTermMemory> searchConfirmedDocumentDecisions(String query,
