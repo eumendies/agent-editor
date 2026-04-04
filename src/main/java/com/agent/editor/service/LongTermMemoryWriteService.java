@@ -81,8 +81,7 @@ public class LongTermMemoryWriteService {
         }
 
         validateReplaceInput(memoryType, existing, documentId, summary);
-        // replace 采用 delete + insert，由应用层明确控制语义，避免把“覆盖旧记忆”的规则藏进底层存储实现里。
-        repository.deleteMemory(memoryId);
+        // replace 先构造新记忆再用同 ID 覆盖写，避免 embedding / 存储失败时把旧记忆提前删掉。
         return repository.createMemory(newMemory(memoryId, memoryType, resolveDocumentId(existing, documentId), summary));
     }
 
@@ -127,15 +126,22 @@ public class LongTermMemoryWriteService {
             throw new IllegalArgumentException("memoryType does not match existing memory");
         }
         if (memoryType == LongTermMemoryType.DOCUMENT_DECISION) {
-            String effectiveDocumentId = resolveDocumentId(existing, documentId);
-            if (effectiveDocumentId == null || effectiveDocumentId.isBlank()) {
+            String existingDocumentId = existing.getDocumentId();
+            if (existingDocumentId == null || existingDocumentId.isBlank()) {
                 throw new IllegalArgumentException("documentId is required for document decisions");
+            }
+            // 文档决策记忆只能在原文档内重写，不能借 replace 把记忆迁移到别的文档。
+            if (documentId != null && !documentId.isBlank() && !existingDocumentId.equals(documentId)) {
+                throw new IllegalArgumentException("documentId does not match existing document decision");
             }
         }
     }
 
     private String resolveDocumentId(LongTermMemoryItem existing, String documentId) {
-        return documentId == null || documentId.isBlank() ? existing == null ? null : existing.getDocumentId() : documentId;
+        if (existing != null) {
+            return existing.getDocumentId();
+        }
+        return documentId == null || documentId.isBlank() ? null : documentId;
     }
 
     private LongTermMemoryItem newMemory(String memoryId,

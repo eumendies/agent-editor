@@ -12,9 +12,10 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -68,7 +69,7 @@ class LongTermMemoryWriteServiceTest {
     }
 
     @Test
-    void shouldReplaceExistingMemoryWithDeleteThenInsert() {
+    void shouldReplaceExistingMemoryUsingSameIdUpsert() {
         LongTermMemoryRepository repository = mock(LongTermMemoryRepository.class);
         KnowledgeEmbeddingService embeddingService = mock(KnowledgeEmbeddingService.class);
         when(embeddingService.embed("Prefer concise summaries")).thenReturn(new float[]{0.3f, 0.4f});
@@ -90,9 +91,60 @@ class LongTermMemoryWriteServiceTest {
 
         assertEquals("memory-2", result.getMemoryId());
         assertEquals("Prefer concise summaries", result.getSummary());
-        inOrder(repository).verify(repository).findById("memory-2");
-        inOrder(repository).verify(repository).deleteMemory("memory-2");
-        inOrder(repository).verify(repository).createMemory(any());
+        verify(repository).findById("memory-2");
+        verify(repository).createMemory(any());
+        verify(repository, never()).deleteMemory("memory-2");
+    }
+
+    @Test
+    void shouldRejectReplacingDocumentDecisionAcrossDocuments() {
+        LongTermMemoryRepository repository = mock(LongTermMemoryRepository.class);
+        KnowledgeEmbeddingService embeddingService = mock(KnowledgeEmbeddingService.class);
+        when(repository.findById("memory-4")).thenReturn(Optional.of(existingDocumentDecision("memory-4", "doc-1")));
+        LongTermMemoryWriteService service = new LongTermMemoryWriteService(
+                repository,
+                embeddingService,
+                () -> "memory-unused"
+        );
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> service.upsert(
+                MemoryUpsertAction.REPLACE,
+                LongTermMemoryType.DOCUMENT_DECISION,
+                "memory-4",
+                "doc-2",
+                "Rewrite section 3"
+        ));
+
+        assertTrue(exception.getMessage().contains("documentId"));
+        verify(repository).findById("memory-4");
+        verify(repository, never()).createMemory(any());
+        verify(repository, never()).deleteMemory("memory-4");
+    }
+
+    @Test
+    void shouldKeepExistingMemoryWhenReplaceEmbeddingFails() {
+        LongTermMemoryRepository repository = mock(LongTermMemoryRepository.class);
+        KnowledgeEmbeddingService embeddingService = mock(KnowledgeEmbeddingService.class);
+        when(repository.findById("memory-5")).thenReturn(Optional.of(existingMemory("memory-5")));
+        when(embeddingService.embed("Prefer bullet summaries")).thenThrow(new IllegalStateException("embedding failed"));
+        LongTermMemoryWriteService service = new LongTermMemoryWriteService(
+                repository,
+                embeddingService,
+                () -> "memory-unused"
+        );
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> service.upsert(
+                MemoryUpsertAction.REPLACE,
+                LongTermMemoryType.USER_PROFILE,
+                "memory-5",
+                null,
+                "Prefer bullet summaries"
+        ));
+
+        assertEquals("embedding failed", exception.getMessage());
+        verify(repository).findById("memory-5");
+        verify(repository, never()).deleteMemory("memory-5");
+        verify(repository, never()).createMemory(any());
     }
 
     @Test
@@ -126,6 +178,23 @@ class LongTermMemoryWriteServiceTest {
                 null,
                 "Old summary",
                 "Old summary details",
+                "task-1",
+                "session-1",
+                List.of(),
+                LocalDateTime.of(2026, 4, 3, 10, 0),
+                LocalDateTime.of(2026, 4, 3, 10, 5),
+                new float[]{0.1f, 0.2f}
+        );
+    }
+
+    private LongTermMemoryItem existingDocumentDecision(String memoryId, String documentId) {
+        return new LongTermMemoryItem(
+                memoryId,
+                LongTermMemoryType.DOCUMENT_DECISION,
+                documentId,
+                documentId,
+                "Keep section 3 unchanged",
+                "Keep section 3 unchanged",
                 "task-1",
                 "session-1",
                 List.of(),
