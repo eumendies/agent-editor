@@ -1,5 +1,6 @@
 package com.agent.editor.service;
 
+import com.agent.editor.agent.v2.memory.LongTermMemoryExtractor;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.event.EventType;
@@ -113,7 +114,7 @@ class TaskApplicationServiceTest {
         PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         PendingLongTermMemoryService pendingLongTermMemoryService = new PendingLongTermMemoryService();
         LongTermMemoryExtractor extractor = mock(LongTermMemoryExtractor.class);
-        when(extractor.extractCandidates(any(), any(), any(), any(), any(), any()))
+        when(extractor.extractCandidates(any(), any(), any(), any()))
                 .thenReturn(List.of(new com.agent.editor.agent.v2.core.memory.PendingLongTermMemoryItem(
                         "candidate-1",
                         profile("Always answer in Chinese")

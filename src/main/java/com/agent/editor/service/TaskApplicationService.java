@@ -1,5 +1,6 @@
 package com.agent.editor.service;
 
+import com.agent.editor.agent.v2.memory.LongTermMemoryExtractor;
 import com.agent.editor.agent.v2.core.agent.AgentType;
 import com.agent.editor.agent.v2.core.state.DocumentSnapshot;
 import com.agent.editor.agent.v2.event.EventPublisher;
@@ -400,9 +401,7 @@ public class TaskApplicationService {
                 context.getTaskId(),
                 context.getSessionId(),
                 context.getDocumentId(),
-                request.getInstruction(),
-                result.getMemory(),
-                result.getFinalContent()
+                result.getMemory()
         );
         if (!candidates.isEmpty()) {
             pendingLongTermMemoryService.savePendingCandidates(context.getTaskId(), candidates);

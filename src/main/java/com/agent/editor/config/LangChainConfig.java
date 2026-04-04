@@ -11,6 +11,7 @@ import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 @Configuration
 public class LangChainConfig {
@@ -40,6 +41,7 @@ public class LangChainConfig {
     private String embeddingBaseUrl;
 
     @Bean
+    @Primary
     public ChatModel chatLanguageModel() {
         return OpenAiChatModel.builder()
                 .apiKey(apiKey)
