@@ -43,6 +43,9 @@ class DemoPageTemplateTest {
         assertTrue(template.contains("currentTaskDocumentId"));
         assertTrue(template.contains("pendingDiffActions"));
         assertTrue(template.contains("pendingDiffStatus"));
+        assertTrue(template.contains(".diff-view"));
+        assertTrue(template.contains("max-height:"));
+        assertTrue(template.contains("overflow: auto;"));
         assertTrue(template.contains("loadPendingDiff"));
         assertTrue(template.contains("applyPendingDiff"));
         assertTrue(template.contains("discardPendingDiff"));
