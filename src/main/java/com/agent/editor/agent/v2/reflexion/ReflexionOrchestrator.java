@@ -10,12 +10,11 @@ import com.agent.editor.agent.v2.core.state.*;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessPolicy;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessRole;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessRole;
-import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
-import com.agent.editor.agent.v2.tool.memory.MainAgentMemoryToolAccess;
-import java.util.List;
 
 public class ReflexionOrchestrator implements TaskOrchestrator {
 
@@ -24,6 +23,7 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
     private final ReflexionCritic criticDefinition;
     private final ReflexionActorContextFactory actorContextFactory;
     private final ReflexionCriticContextFactory criticContextFactory;
+    private final ExecutionToolAccessPolicy executionToolAccessPolicy;
     private final DocumentToolAccessPolicy documentToolAccessPolicy;
 
     public ReflexionOrchestrator(ExecutionRuntime runtime,
@@ -31,12 +31,14 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
                                  ReflexionCritic criticDefinition,
                                  ReflexionActorContextFactory actorContextFactory,
                                  ReflexionCriticContextFactory criticContextFactory,
+                                 ExecutionToolAccessPolicy executionToolAccessPolicy,
                                  DocumentToolAccessPolicy documentToolAccessPolicy) {
         this.runtime = runtime;
         this.actorDefinition = actorDefinition;
         this.criticDefinition = criticDefinition;
         this.actorContextFactory = actorContextFactory;
         this.criticContextFactory = criticContextFactory;
+        this.executionToolAccessPolicy = executionToolAccessPolicy;
         this.documentToolAccessPolicy = documentToolAccessPolicy;
     }
 
@@ -92,9 +94,7 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
                 currentDocument,
                 request.getInstruction(),
                 request.getMaxIterations(),
-                MainAgentMemoryToolAccess.append(
-                        documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.WRITE)
-                )
+                executionToolAccessPolicy.allowedTools(documentToolMode, ExecutionToolAccessRole.MAIN_WRITE)
         );
         executionRequest.setUserProfileGuidance(request.getUserProfileGuidance());
         executionRequest.setDocumentToolMode(documentToolMode);

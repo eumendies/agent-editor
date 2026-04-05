@@ -9,26 +9,25 @@ import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
-import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
-import com.agent.editor.agent.v2.tool.document.DocumentToolAccessRole;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessPolicy;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessRole;
 import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
-import com.agent.editor.agent.v2.tool.memory.MainAgentMemoryToolAccess;
 
 public class ReActAgentOrchestrator implements TaskOrchestrator {
 
     private final ExecutionRuntime runtime;
     private final Agent agent;
     private final ReactAgentContextFactory contextFactory;
-    private final DocumentToolAccessPolicy documentToolAccessPolicy;
+    private final ExecutionToolAccessPolicy executionToolAccessPolicy;
 
     public ReActAgentOrchestrator(ExecutionRuntime runtime,
                                   Agent agent,
                                   ReactAgentContextFactory contextFactory,
-                                  DocumentToolAccessPolicy documentToolAccessPolicy) {
+                                  ExecutionToolAccessPolicy executionToolAccessPolicy) {
         this.runtime = runtime;
         this.agent = agent;
         this.contextFactory = contextFactory;
-        this.documentToolAccessPolicy = documentToolAccessPolicy;
+        this.executionToolAccessPolicy = executionToolAccessPolicy;
     }
 
     /**
@@ -40,7 +39,7 @@ public class ReActAgentOrchestrator implements TaskOrchestrator {
     @Override
     public TaskResult execute(TaskRequest request) {
         AgentRunContext initialState = contextFactory.prepareInitialContext(request);
-        DocumentToolMode documentToolMode = documentToolAccessPolicy.resolveMode(request.getDocument());
+        DocumentToolMode documentToolMode = executionToolAccessPolicy.resolveMode(request.getDocument());
         ExecutionRequest executionRequest = new ExecutionRequest(
                 request.getTaskId(),
                 request.getSessionId(),
@@ -48,9 +47,7 @@ public class ReActAgentOrchestrator implements TaskOrchestrator {
                 request.getDocument(),
                 request.getInstruction(),
                 request.getMaxIterations(),
-                MainAgentMemoryToolAccess.append(
-                        documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.WRITE)
-                )
+                executionToolAccessPolicy.allowedTools(documentToolMode, ExecutionToolAccessRole.MAIN_WRITE)
         );
         executionRequest.setUserProfileGuidance(request.getUserProfileGuidance());
         executionRequest.setDocumentToolMode(documentToolMode);

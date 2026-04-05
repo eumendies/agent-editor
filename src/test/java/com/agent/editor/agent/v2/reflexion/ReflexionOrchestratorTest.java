@@ -16,6 +16,7 @@ import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.ToolContext;
 import com.agent.editor.agent.v2.tool.ToolHandler;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
@@ -26,6 +27,7 @@ import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
+import com.agent.editor.agent.v2.tool.memory.MemoryToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.memory.MemoryToolNames;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -57,6 +59,7 @@ class ReflexionOrchestratorTest {
                         """),
                 new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
                 new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                executionToolAccessPolicy(100),
                 documentToolAccessPolicy(100)
         );
 
@@ -114,6 +117,7 @@ class ReflexionOrchestratorTest {
                 ),
                 new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
                 new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                executionToolAccessPolicy(100),
                 documentToolAccessPolicy(100)
         );
 
@@ -162,6 +166,7 @@ class ReflexionOrchestratorTest {
                 ),
                 new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
                 new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                executionToolAccessPolicy(100),
                 documentToolAccessPolicy(100)
         );
 
@@ -196,6 +201,7 @@ class ReflexionOrchestratorTest {
                 ),
                 new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
                 new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                executionToolAccessPolicy(100),
                 documentToolAccessPolicy(100)
         );
 
@@ -240,6 +246,7 @@ class ReflexionOrchestratorTest {
                 ReflexionCritic.blocking(criticModel, new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())),
                 new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
                 new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                executionToolAccessPolicy(100),
                 documentToolAccessPolicy(100)
         );
 
@@ -274,6 +281,7 @@ class ReflexionOrchestratorTest {
                         """),
                 new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
                 new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                executionToolAccessPolicy(10),
                 documentToolAccessPolicy(10)
         );
 
@@ -306,6 +314,13 @@ class ReflexionOrchestratorTest {
         return new DocumentToolAccessPolicy(
                 new StructuredDocumentService(new com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder(), 4_000, 1_200),
                 new DocumentToolModeProperties(threshold)
+        );
+    }
+
+    private ExecutionToolAccessPolicy executionToolAccessPolicy(int threshold) {
+        return new ExecutionToolAccessPolicy(
+                documentToolAccessPolicy(threshold),
+                new MemoryToolAccessPolicy()
         );
     }
 

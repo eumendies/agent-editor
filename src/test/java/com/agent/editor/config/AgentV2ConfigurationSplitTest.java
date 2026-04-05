@@ -13,7 +13,9 @@ import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
 import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
 import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgent;
 import com.agent.editor.agent.v2.supervisor.worker.*;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
+import com.agent.editor.agent.v2.tool.memory.MemoryToolAccessPolicy;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.supervisor.worker.EvidenceReviewerAgent;
 import com.agent.editor.agent.v2.trace.TraceCollector;
@@ -70,6 +72,8 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(MemoryCompressionProperties.class);
             assertThat(context).hasSingleBean(DocumentToolModeProperties.class);
             assertThat(context).hasSingleBean(com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy.class);
+            assertThat(context).hasSingleBean(MemoryToolAccessPolicy.class);
+            assertThat(context).hasSingleBean(ExecutionToolAccessPolicy.class);
             assertThat(context.containsBean("agentV2Config")).isFalse();
             assertThat(context.containsBean("legacyEventAdapter")).isFalse();
         });

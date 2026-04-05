@@ -15,8 +15,10 @@ import com.agent.editor.agent.v2.core.runtime.ExecutionRuntime;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
+import com.agent.editor.agent.v2.tool.memory.MemoryToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.memory.MemoryToolNames;
 import com.agent.editor.config.DocumentToolModeProperties;
 import com.agent.editor.service.StructuredDocumentService;
@@ -45,7 +47,7 @@ class PlanningThenExecutionOrchestratorTest {
                 executionRuntime,
                 new CompletingExecutionAgent(),
                 new PlanningAgentContextFactory(NoOpMemoryCompressors.noop()),
-                documentToolAccessPolicy(100)
+                executionToolAccessPolicy(100)
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -77,7 +79,7 @@ class PlanningThenExecutionOrchestratorTest {
                 runtime,
                 new CompletingExecutionAgent(),
                 new PlanningAgentContextFactory(NoOpMemoryCompressors.noop()),
-                documentToolAccessPolicy(100)
+                executionToolAccessPolicy(100)
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -130,7 +132,7 @@ class PlanningThenExecutionOrchestratorTest {
                 executionRuntime,
                 new CompletingExecutionAgent(),
                 new PlanningAgentContextFactory(NoOpMemoryCompressors.noop()),
-                documentToolAccessPolicy(10)
+                executionToolAccessPolicy(10)
         );
 
         orchestrator.execute(new TaskRequest(
@@ -155,6 +157,13 @@ class PlanningThenExecutionOrchestratorTest {
         return new DocumentToolAccessPolicy(
                 new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200),
                 new DocumentToolModeProperties(threshold)
+        );
+    }
+
+    private ExecutionToolAccessPolicy executionToolAccessPolicy(int threshold) {
+        return new ExecutionToolAccessPolicy(
+                documentToolAccessPolicy(threshold),
+                new MemoryToolAccessPolicy()
         );
     }
 

@@ -12,10 +12,9 @@ import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
-import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
-import com.agent.editor.agent.v2.tool.document.DocumentToolAccessRole;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessPolicy;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessRole;
 import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
-import com.agent.editor.agent.v2.tool.memory.MainAgentMemoryToolAccess;
 
 /**
  * 两阶段编排：先由 planner 拆任务，再把每个 plan step 交给执行 agent 串行落地。
@@ -27,20 +26,20 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
     private final ExecutionRuntime toolLoopExecutionRuntime;
     private final Agent executionAgent;
     private final PlanningAgentContextFactory planningContextFactory;
-    private final DocumentToolAccessPolicy documentToolAccessPolicy;
+    private final ExecutionToolAccessPolicy executionToolAccessPolicy;
 
     public PlanningThenExecutionOrchestrator(ExecutionRuntime planningRuntime,
                                              PlanningAgentImpl planningAgentImpl,
                                              ExecutionRuntime toolLoopExecutionRuntime,
                                              Agent executionAgent,
                                              PlanningAgentContextFactory planningContextFactory,
-                                             DocumentToolAccessPolicy documentToolAccessPolicy) {
+                                             ExecutionToolAccessPolicy executionToolAccessPolicy) {
         this.planningRuntime = planningRuntime;
         this.planningAgentImpl = planningAgentImpl;
         this.toolLoopExecutionRuntime = toolLoopExecutionRuntime;
         this.executionAgent = executionAgent;
         this.planningContextFactory = planningContextFactory;
-        this.documentToolAccessPolicy = documentToolAccessPolicy;
+        this.executionToolAccessPolicy = executionToolAccessPolicy;
     }
 
     /**
@@ -76,7 +75,7 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
                     request.getDocument().getTitle(),
                     currentContent
             );
-            DocumentToolMode documentToolMode = documentToolAccessPolicy.resolveMode(currentDocument);
+            DocumentToolMode documentToolMode = executionToolAccessPolicy.resolveMode(currentDocument);
             ExecutionRequest executionRequest = new ExecutionRequest(
                     request.getTaskId(),
                     request.getSessionId(),
@@ -84,9 +83,7 @@ public class PlanningThenExecutionOrchestrator implements TaskOrchestrator {
                     currentDocument,
                     step.getInstruction(),
                     request.getMaxIterations(),
-                    MainAgentMemoryToolAccess.append(
-                            documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.WRITE)
-                    )
+                    executionToolAccessPolicy.allowedTools(documentToolMode, ExecutionToolAccessRole.MAIN_WRITE)
             );
             executionRequest.setUserProfileGuidance(request.getUserProfileGuidance());
             executionRequest.setDocumentToolMode(documentToolMode);

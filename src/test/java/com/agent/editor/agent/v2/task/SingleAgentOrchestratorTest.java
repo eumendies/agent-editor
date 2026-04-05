@@ -16,9 +16,11 @@ import com.agent.editor.agent.v2.react.ReActAgentOrchestrator;
 import com.agent.editor.agent.v2.react.ReactAgentContextFactory;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
+import com.agent.editor.agent.v2.tool.memory.MemoryToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.memory.MemoryToolNames;
 import com.agent.editor.config.DocumentToolModeProperties;
 import com.agent.editor.service.StructuredDocumentService;
@@ -45,7 +47,7 @@ class SingleAgentOrchestratorTest {
                 runtime,
                 agent,
                 new ReactAgentContextFactory(NoOpMemoryCompressors.noop()),
-                documentToolAccessPolicy(100)
+                executionToolAccessPolicy(100)
         );
 
         TaskRequest request = new TaskRequest(
@@ -77,7 +79,7 @@ class SingleAgentOrchestratorTest {
                 runtime,
                 new StubAgent(),
                 new ReactAgentContextFactory(NoOpMemoryCompressors.noop()),
-                documentToolAccessPolicy(10)
+                executionToolAccessPolicy(10)
         );
 
         orchestrator.execute(new TaskRequest(
@@ -103,6 +105,13 @@ class SingleAgentOrchestratorTest {
         return new DocumentToolAccessPolicy(
                 new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200),
                 new DocumentToolModeProperties(threshold)
+        );
+    }
+
+    private ExecutionToolAccessPolicy executionToolAccessPolicy(int threshold) {
+        return new ExecutionToolAccessPolicy(
+                documentToolAccessPolicy(threshold),
+                new MemoryToolAccessPolicy()
         );
     }
 

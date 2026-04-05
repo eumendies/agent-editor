@@ -30,7 +30,9 @@ import com.agent.editor.agent.v2.react.ReActAgentOrchestrator;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.SessionMemoryTaskOrchestrator;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
+import com.agent.editor.agent.v2.tool.memory.MemoryToolAccessPolicy;
 import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.service.TaskQueryService;
 import com.agent.editor.websocket.WebSocketService;
@@ -109,6 +111,17 @@ public class TaskOrchestratorConfig {
     }
 
     @Bean
+    public MemoryToolAccessPolicy memoryToolAccessPolicy() {
+        return new MemoryToolAccessPolicy();
+    }
+
+    @Bean
+    public ExecutionToolAccessPolicy executionToolAccessPolicy(DocumentToolAccessPolicy documentToolAccessPolicy,
+                                                               MemoryToolAccessPolicy memoryToolAccessPolicy) {
+        return new ExecutionToolAccessPolicy(documentToolAccessPolicy, memoryToolAccessPolicy);
+    }
+
+    @Bean
     public TaskOrchestrator taskOrchestrator(ToolLoopExecutionRuntime executionRuntime,
                                              PlanningExecutionRuntime planningExecutionRuntime,
                                              SupervisorExecutionRuntime supervisorExecutionRuntime,
@@ -126,12 +139,13 @@ public class TaskOrchestratorConfig {
                                              ReflexionActorContextFactory reflexionActorContextFactory,
                                              ReflexionCriticContextFactory reflexionCriticContextFactory,
                                              SupervisorContextFactory supervisorContextFactory,
+                                             ExecutionToolAccessPolicy executionToolAccessPolicy,
                                              DocumentToolAccessPolicy documentToolAccessPolicy) {
         TaskOrchestrator reactOrchestrator = new ReActAgentOrchestrator(
                 executionRuntime,
                 reactAgentDefinition,
                 reactAgentContextFactory,
-                documentToolAccessPolicy
+                executionToolAccessPolicy
         );
         TaskOrchestrator planningOrchestrator = new PlanningThenExecutionOrchestrator(
                 planningExecutionRuntime,
@@ -139,7 +153,7 @@ public class TaskOrchestratorConfig {
                 executionRuntime,
                 reactAgentDefinition,
                 planningAgentContextFactory,
-                documentToolAccessPolicy
+                executionToolAccessPolicy
         );
         TaskOrchestrator supervisorOrchestrator = new SupervisorOrchestrator(
                 supervisorAgentDefinition,
@@ -156,6 +170,7 @@ public class TaskOrchestratorConfig {
                 reflexionCriticDefinition,
                 reflexionActorContextFactory,
                 reflexionCriticContextFactory,
+                executionToolAccessPolicy,
                 documentToolAccessPolicy
         );
 
