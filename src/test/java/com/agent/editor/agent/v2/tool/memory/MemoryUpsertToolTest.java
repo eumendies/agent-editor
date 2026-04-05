@@ -31,12 +31,13 @@ class MemoryUpsertToolTest {
         MemoryUpsertTool tool = new MemoryUpsertTool(writeService);
 
         ToolResult result = tool.execute(
-                new ToolInvocation("memory_upsert", """
+                new ToolInvocation(MemoryToolNames.UPSERT_MEMORY, """
                         {"action":"REPLACE","memoryType":"USER_PROFILE","memoryId":"memory-2","summary":"Prefer concise summaries"}
                         """),
                 new ToolContext("task-1", "doc-1")
         );
 
+        assertTrue(tool.specification().name().equals(MemoryToolNames.UPSERT_MEMORY));
         assertTrue(result.getMessage().contains("\"action\":\"REPLACE\""));
         assertTrue(result.getMessage().contains("\"memoryId\":\"memory-2\""));
         assertTrue(result.getMessage().contains("\"memoryType\":\"USER_PROFILE\""));

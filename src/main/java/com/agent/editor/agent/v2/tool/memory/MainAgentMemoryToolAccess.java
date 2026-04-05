@@ -14,8 +14,8 @@ public final class MainAgentMemoryToolAccess {
 
     public static List<String> append(List<String> baseTools) {
         List<String> tools = new ArrayList<>(baseTools == null ? List.of() : baseTools);
-        addIfAbsent(tools, MemorySearchTool.NAME);
-        addIfAbsent(tools, MemoryUpsertTool.NAME);
+        addIfAbsent(tools, MemoryToolNames.SEARCH_MEMORY);
+        addIfAbsent(tools, MemoryToolNames.UPSERT_MEMORY);
         return List.copyOf(tools);
     }
 

@@ -12,7 +12,6 @@ import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 public class MemoryUpsertTool implements ToolHandler {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    public static final String NAME = "memory_upsert";
 
     private final LongTermMemoryWriteService writeService;
 
@@ -22,7 +21,7 @@ public class MemoryUpsertTool implements ToolHandler {
 
     @Override
     public String name() {
-        return NAME;
+        return MemoryToolNames.UPSERT_MEMORY;
     }
 
     @Override

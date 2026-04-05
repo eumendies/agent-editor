@@ -19,8 +19,7 @@ import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
-import com.agent.editor.agent.v2.tool.memory.MemorySearchTool;
-import com.agent.editor.agent.v2.tool.memory.MemoryUpsertTool;
+import com.agent.editor.agent.v2.tool.memory.MemoryToolNames;
 import com.agent.editor.config.DocumentToolModeProperties;
 import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
@@ -94,8 +93,8 @@ class SingleAgentOrchestratorTest {
                 DocumentToolNames.READ_DOCUMENT_NODE,
                 DocumentToolNames.PATCH_DOCUMENT_NODE,
                 DocumentToolNames.SEARCH_CONTENT,
-                MemorySearchTool.NAME,
-                MemoryUpsertTool.NAME
+                MemoryToolNames.SEARCH_MEMORY,
+                MemoryToolNames.UPSERT_MEMORY
         ), runtime.requests().get(0).getAllowedTools());
         assertEquals(DocumentToolMode.INCREMENTAL, runtime.requests().get(0).getDocumentToolMode());
     }

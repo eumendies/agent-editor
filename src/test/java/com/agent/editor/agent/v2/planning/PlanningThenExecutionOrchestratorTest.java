@@ -17,8 +17,7 @@ import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
-import com.agent.editor.agent.v2.tool.memory.MemorySearchTool;
-import com.agent.editor.agent.v2.tool.memory.MemoryUpsertTool;
+import com.agent.editor.agent.v2.tool.memory.MemoryToolNames;
 import com.agent.editor.config.DocumentToolModeProperties;
 import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
@@ -147,8 +146,8 @@ class PlanningThenExecutionOrchestratorTest {
                 DocumentToolNames.READ_DOCUMENT_NODE,
                 DocumentToolNames.PATCH_DOCUMENT_NODE,
                 DocumentToolNames.SEARCH_CONTENT,
-                MemorySearchTool.NAME,
-                MemoryUpsertTool.NAME
+                MemoryToolNames.SEARCH_MEMORY,
+                MemoryToolNames.UPSERT_MEMORY
         ), executionRuntime.requests().get(0).getAllowedTools());
     }
 

@@ -31,10 +31,11 @@ class MemorySearchToolTest {
         MemorySearchTool tool = new MemorySearchTool(retrievalService);
 
         ToolResult result = tool.execute(
-                new ToolInvocation("memory_search", "{\"query\":\"previous choices\",\"documentId\":\"doc-1\",\"topK\":2}"),
+                new ToolInvocation(MemoryToolNames.SEARCH_MEMORY, "{\"query\":\"previous choices\",\"documentId\":\"doc-1\",\"topK\":2}"),
                 new ToolContext("task-1", null)
         );
 
+        assertTrue(tool.specification().name().equals(MemoryToolNames.SEARCH_MEMORY));
         assertTrue(result.getMessage().contains("\"memoryId\":\"memory-2\""));
         assertTrue(result.getMessage().contains("\"summary\":\"Keep section 3 unchanged\""));
         assertTrue(result.getMessage().contains("\"relevanceReason\":\"Matched the current editing direction for doc-1\""));

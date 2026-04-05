@@ -15,7 +15,6 @@ import java.util.List;
 public class MemorySearchTool implements ToolHandler {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    public static final String NAME = "memory_search";
 
     private final LongTermMemoryRetrievalService retrievalService;
 
@@ -25,7 +24,7 @@ public class MemorySearchTool implements ToolHandler {
 
     @Override
     public String name() {
-        return NAME;
+        return MemoryToolNames.SEARCH_MEMORY;
     }
 
     @Override
