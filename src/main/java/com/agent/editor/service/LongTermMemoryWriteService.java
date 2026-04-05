@@ -21,8 +21,6 @@ import java.util.function.Supplier;
 @Service
 public class LongTermMemoryWriteService {
 
-    private static final String DEFAULT_PROFILE_SCOPE = "default";
-
     private final LongTermMemoryRepository repository;
     private final KnowledgeEmbeddingService embeddingService;
     private final Supplier<String> memoryIdSupplier;
@@ -153,7 +151,6 @@ public class LongTermMemoryWriteService {
         return new LongTermMemoryItem(
                 memoryId,
                 memoryType,
-                memoryType == LongTermMemoryType.USER_PROFILE ? DEFAULT_PROFILE_SCOPE : normalizedDocumentId,
                 normalizedDocumentId,
                 summary,
                 summary,

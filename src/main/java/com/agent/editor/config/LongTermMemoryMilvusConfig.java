@@ -26,7 +26,6 @@ public class LongTermMemoryMilvusConfig {
 
     private static final String MEMORY_ID = "memoryId";
     private static final String MEMORY_TYPE = "memoryType";
-    private static final String SCOPE_KEY = "scopeKey";
     private static final String DOCUMENT_ID = "documentId";
     private static final String SUMMARY = "summary";
     private static final String DETAILS = "details";
@@ -78,7 +77,6 @@ public class LongTermMemoryMilvusConfig {
                 .build();
         schema.addField(varcharField(MEMORY_ID, 128, true));
         schema.addField(varcharField(MEMORY_TYPE, 64, false));
-        schema.addField(varcharField(SCOPE_KEY, 256, false));
         schema.addField(varcharField(DOCUMENT_ID, 128, false));
         schema.addField(varcharField(SUMMARY, 4096, false));
         schema.addField(varcharField(DETAILS, 8192, false));

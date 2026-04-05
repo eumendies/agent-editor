@@ -174,7 +174,6 @@ class LongTermMemoryWriteServiceTest {
         return new LongTermMemoryItem(
                 memoryId,
                 LongTermMemoryType.USER_PROFILE,
-                "default",
                 null,
                 "Old summary",
                 "Old summary details",
@@ -191,7 +190,6 @@ class LongTermMemoryWriteServiceTest {
         return new LongTermMemoryItem(
                 memoryId,
                 LongTermMemoryType.DOCUMENT_DECISION,
-                documentId,
                 documentId,
                 "Keep section 3 unchanged",
                 "Keep section 3 unchanged",

@@ -28,7 +28,6 @@ class LongTermMemoryRetrievalServiceTest {
                 .thenReturn(List.of(memory(
                         "memory-1",
                         LongTermMemoryType.USER_PROFILE,
-                        "default",
                         null,
                         "Always answer in Chinese"
                 )));
@@ -51,7 +50,6 @@ class LongTermMemoryRetrievalServiceTest {
                 .thenReturn(List.of(memory(
                         "memory-2",
                         LongTermMemoryType.DOCUMENT_DECISION,
-                        "doc-1",
                         "doc-1",
                         "Keep section 3 unchanged"
                 )));
@@ -95,13 +93,11 @@ class LongTermMemoryRetrievalServiceTest {
 
     private LongTermMemoryItem memory(String memoryId,
                                       LongTermMemoryType memoryType,
-                                      String scopeKey,
                                       String documentId,
                                       String summary) {
         return new LongTermMemoryItem(
                 memoryId,
                 memoryType,
-                scopeKey,
                 documentId,
                 summary,
                 summary + " details",

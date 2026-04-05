@@ -18,7 +18,6 @@ class LongTermMemoryItemTest {
         LongTermMemoryItem item = new LongTermMemoryItem(
                 "memory-1",
                 LongTermMemoryType.USER_PROFILE,
-                "default",
                 null,
                 "Prefer concise Chinese answers",
                 "User explicitly asked for concise Chinese answers",
@@ -37,14 +36,12 @@ class LongTermMemoryItemTest {
     }
 
     @Test
-    void shouldSupportDefaultProfileScopeForUserProfileMemory() {
+    void shouldCarryTypeAndSummaryForUserProfileMemory() {
         LongTermMemoryItem item = new LongTermMemoryItem();
         item.setMemoryType(LongTermMemoryType.USER_PROFILE);
-        item.setScopeKey("default");
         item.setSummary("Always answer in Chinese unless asked otherwise");
 
         assertEquals(LongTermMemoryType.USER_PROFILE, item.getMemoryType());
-        assertEquals("default", item.getScopeKey());
         assertEquals("Always answer in Chinese unless asked otherwise", item.getSummary());
     }
 
@@ -52,7 +49,6 @@ class LongTermMemoryItemTest {
     void shouldCarryDocumentAndSourceMetadataForDocumentDecisionMemory() {
         LongTermMemoryItem item = new LongTermMemoryItem();
         item.setMemoryType(LongTermMemoryType.DOCUMENT_DECISION);
-        item.setScopeKey("doc-123");
         item.setDocumentId("doc-123");
         item.setSourceTaskId("task-9");
         item.setSourceSessionId("session-4");

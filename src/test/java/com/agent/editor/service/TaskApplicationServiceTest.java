@@ -553,7 +553,6 @@ class TaskApplicationServiceTest {
         return new LongTermMemoryItem(
                 "memory-" + summary.hashCode(),
                 LongTermMemoryType.USER_PROFILE,
-                "default",
                 null,
                 summary,
                 summary,

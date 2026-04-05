@@ -38,7 +38,6 @@ class MilvusLongTermMemoryRepositoryTest {
         LongTermMemoryItem created = repository.createMemory(memory(
                 "memory-1",
                 LongTermMemoryType.USER_PROFILE,
-                "default",
                 null,
                 "Always answer in Chinese",
                 "User explicitly prefers Chinese answers"
@@ -52,7 +51,6 @@ class MilvusLongTermMemoryRepositoryTest {
         assertEquals("long_term_memory_v1", request.getCollectionName());
         assertEquals("memory-1", request.getData().get(0).get("memoryId").getAsString());
         assertEquals("USER_PROFILE", request.getData().get(0).get("memoryType").getAsString());
-        assertEquals("default", request.getData().get(0).get("scopeKey").getAsString());
         assertEquals("Always answer in Chinese", request.getData().get(0).get("summary").getAsString());
         assertTrue(request.getData().get(0).get("documentId").isJsonNull());
     }
@@ -69,7 +67,6 @@ class MilvusLongTermMemoryRepositoryTest {
                 "memory-2",
                 LongTermMemoryType.DOCUMENT_DECISION,
                 "doc-1",
-                "doc-1",
                 "Keep section 3 unchanged",
                 "User accepted keeping section 3 structure unchanged"
         ));
@@ -79,7 +76,6 @@ class MilvusLongTermMemoryRepositoryTest {
         UpsertReq request = requestCaptor.getValue();
 
         assertEquals("DOCUMENT_DECISION", request.getData().get(0).get("memoryType").getAsString());
-        assertEquals("doc-1", request.getData().get(0).get("scopeKey").getAsString());
         assertEquals("doc-1", request.getData().get(0).get("documentId").getAsString());
         assertEquals("Keep section 3 unchanged", request.getData().get(0).get("summary").getAsString());
         assertEquals("task-1", request.getData().get(0).get("sourceTaskId").getAsString());
@@ -93,7 +89,6 @@ class MilvusLongTermMemoryRepositoryTest {
                         .entity(Map.ofEntries(
                                 Map.entry("memoryId", "memory-2"),
                                 Map.entry("memoryType", "DOCUMENT_DECISION"),
-                                Map.entry("scopeKey", "doc-1"),
                                 Map.entry("documentId", "doc-1"),
                                 Map.entry("summary", "Keep section 3 unchanged"),
                                 Map.entry("details", "User accepted keeping section 3 structure unchanged"),
@@ -132,7 +127,6 @@ class MilvusLongTermMemoryRepositoryTest {
                         .entity(Map.ofEntries(
                                 Map.entry("memoryId", "memory-1"),
                                 Map.entry("memoryType", "USER_PROFILE"),
-                                Map.entry("scopeKey", "default"),
                                 Map.entry("summary", "Always answer in Chinese"),
                                 Map.entry("details", "User explicitly prefers Chinese answers"),
                                 Map.entry("sourceTaskId", "task-1"),
@@ -173,14 +167,12 @@ class MilvusLongTermMemoryRepositoryTest {
 
     private LongTermMemoryItem memory(String memoryId,
                                       LongTermMemoryType memoryType,
-                                      String scopeKey,
                                       String documentId,
                                       String summary,
                                       String details) {
         return new LongTermMemoryItem(
                 memoryId,
                 memoryType,
-                scopeKey,
                 documentId,
                 summary,
                 details,
