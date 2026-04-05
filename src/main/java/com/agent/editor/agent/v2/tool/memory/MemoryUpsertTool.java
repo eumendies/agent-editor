@@ -4,10 +4,14 @@ import com.agent.editor.agent.v2.tool.ToolContext;
 import com.agent.editor.agent.v2.tool.ToolHandler;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
 import com.agent.editor.agent.v2.tool.ToolResult;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.agent.editor.service.LongTermMemoryWriteService;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 public class MemoryUpsertTool implements ToolHandler {
 
@@ -51,9 +55,17 @@ public class MemoryUpsertTool implements ToolHandler {
                     arguments.getDocumentId(),
                     arguments.getSummary()
             );
-            return new ToolResult(OBJECT_MAPPER.writeValueAsString(result));
-        } catch (Exception exception) {
-            throw new IllegalArgumentException("Failed to execute tool " + name(), exception);
+            return new ToolResult(serialize(result));
+        } catch (IllegalArgumentException exception) {
+            // memory 写入参数经常来自模型推断，校验失败时要把错误回传给模型做自修正，而不是打断运行时。
+            return new ToolResult(serialize(new ErrorToolResponse(
+                    "error",
+                    exception.getMessage(),
+                    arguments.getAction(),
+                    arguments.getMemoryType(),
+                    arguments.getMemoryId(),
+                    arguments.getDocumentId()
+            )));
         }
     }
 
@@ -63,5 +75,26 @@ public class MemoryUpsertTool implements ToolHandler {
         } catch (Exception exception) {
             throw new IllegalArgumentException("Failed to parse tool arguments for " + name(), exception);
         }
+    }
+
+    private String serialize(Object value) {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(value);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Failed to serialize result for " + name(), exception);
+        }
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    private static class ErrorToolResponse {
+
+        private String status;
+        private String errorMessage;
+        private String action;
+        private String memoryType;
+        private String memoryId;
+        private String documentId;
     }
 }
