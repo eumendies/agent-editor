@@ -10,6 +10,9 @@ import java.util.List;
 public class MemoryToolAccessPolicy {
 
     private static final List<String> MAIN_WRITE_TOOLS = List.of(
+            MemoryToolNames.SEARCH_MEMORY
+    );
+    private static final List<String> MEMORY_WORKER_TOOLS = List.of(
             MemoryToolNames.SEARCH_MEMORY,
             MemoryToolNames.UPSERT_MEMORY
     );
@@ -23,6 +26,9 @@ public class MemoryToolAccessPolicy {
     public List<String> allowedTools(ExecutionToolAccessRole role) {
         if (role == ExecutionToolAccessRole.MAIN_WRITE) {
             return MAIN_WRITE_TOOLS;
+        }
+        if (role == ExecutionToolAccessRole.MEMORY) {
+            return MEMORY_WORKER_TOOLS;
         }
         return List.of();
     }

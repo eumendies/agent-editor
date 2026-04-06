@@ -48,8 +48,10 @@ public class MemoryUpsertTool implements ToolHandler {
     public ToolResult execute(ToolInvocation invocation, ToolContext context) {
         MemoryUpsertArguments arguments = decodeArguments(invocation.getArguments());
         try {
+            MemoryUpsertAction action = MemoryUpsertAction.valueOf(arguments.getAction());
+            validateAutonomousWrite(arguments, context);
             MemoryUpsertResult result = writeService.upsertResult(
-                    MemoryUpsertAction.valueOf(arguments.getAction()),
+                    action,
                     arguments.getMemoryType(),
                     arguments.getMemoryId(),
                     arguments.getDocumentId(),
@@ -66,6 +68,15 @@ public class MemoryUpsertTool implements ToolHandler {
                     arguments.getMemoryId(),
                     arguments.getDocumentId()
             )));
+        }
+    }
+
+    private void validateAutonomousWrite(MemoryUpsertArguments arguments, ToolContext context) {
+        if (context == null || context.getWorkerId() == null || !"memory".equals(context.getWorkerId())) {
+            throw new IllegalArgumentException("Only the memory worker may upsert long-term memory");
+        }
+        if (!"DOCUMENT_DECISION".equals(arguments.getMemoryType())) {
+            throw new IllegalArgumentException("Autonomous memory writes may only target DOCUMENT_DECISION");
         }
     }
 

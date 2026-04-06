@@ -32,12 +32,30 @@ class ExecutionToolAccessPolicyTest {
                         DocumentToolNames.APPEND_TO_DOCUMENT,
                         DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
                         DocumentToolNames.SEARCH_CONTENT,
-                        MemoryToolNames.SEARCH_MEMORY,
-                        MemoryToolNames.UPSERT_MEMORY
+                        MemoryToolNames.SEARCH_MEMORY
                 ),
                 policy.allowedTools(
                         new DocumentSnapshot("doc-1", "Title", "small body"),
                         ExecutionToolAccessRole.MAIN_WRITE
+                )
+        );
+    }
+
+    @Test
+    void shouldExposeMemoryToolsOnlyForMemoryRole() {
+        ExecutionToolAccessPolicy policy = new ExecutionToolAccessPolicy(
+                new DocumentToolAccessPolicy(structuredDocumentService, new DocumentToolModeProperties(50)),
+                new MemoryToolAccessPolicy()
+        );
+
+        assertEquals(
+                List.of(
+                        MemoryToolNames.SEARCH_MEMORY,
+                        MemoryToolNames.UPSERT_MEMORY
+                ),
+                policy.allowedTools(
+                        new DocumentSnapshot("doc-memory", "Title", "small body"),
+                        Enum.valueOf(ExecutionToolAccessRole.class, "MEMORY")
                 )
         );
     }

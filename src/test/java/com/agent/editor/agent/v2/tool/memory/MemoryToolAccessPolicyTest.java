@@ -10,12 +10,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class MemoryToolAccessPolicyTest {
 
     @Test
-    void shouldExposeMemoryToolsForMainWriteRole() {
+    void shouldExposeSearchOnlyForMainWriteRole() {
+        MemoryToolAccessPolicy policy = new MemoryToolAccessPolicy();
+
+        assertEquals(
+                List.of(MemoryToolNames.SEARCH_MEMORY),
+                policy.allowedTools(ExecutionToolAccessRole.MAIN_WRITE)
+        );
+    }
+
+    @Test
+    void shouldExposeReadWriteMemoryToolsForMemoryRole() {
         MemoryToolAccessPolicy policy = new MemoryToolAccessPolicy();
 
         assertEquals(
                 List.of(MemoryToolNames.SEARCH_MEMORY, MemoryToolNames.UPSERT_MEMORY),
-                policy.allowedTools(ExecutionToolAccessRole.MAIN_WRITE)
+                policy.allowedTools(Enum.valueOf(ExecutionToolAccessRole.class, "MEMORY"))
         );
     }
 

@@ -69,6 +69,7 @@ public class ExecutionToolAccessPolicy {
         }
         return switch (role) {
             case MAIN_WRITE -> DocumentToolAccessRole.WRITE;
+            case MEMORY -> null;
             case REVIEW -> DocumentToolAccessRole.REVIEW;
             case RESEARCH -> DocumentToolAccessRole.RESEARCH;
         };

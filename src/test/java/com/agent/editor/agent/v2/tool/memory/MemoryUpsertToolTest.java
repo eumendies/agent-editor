@@ -23,31 +23,31 @@ class MemoryUpsertToolTest {
         LongTermMemoryWriteService writeService = mock(LongTermMemoryWriteService.class);
         when(writeService.upsertResult(
                 MemoryUpsertAction.REPLACE,
-                "USER_PROFILE",
+                "DOCUMENT_DECISION",
                 "memory-2",
-                null,
-                "Prefer concise summaries"
+                "doc-1",
+                "Keep the current outline"
         )).thenReturn(new MemoryUpsertResult(
                 "REPLACE",
                 "memory-2",
-                "USER_PROFILE",
-                null,
-                "Prefer concise summaries"
+                "DOCUMENT_DECISION",
+                "doc-1",
+                "Keep the current outline"
         ));
         MemoryUpsertTool tool = new MemoryUpsertTool(writeService);
 
         ToolResult result = tool.execute(
                 new ToolInvocation(MemoryToolNames.UPSERT_MEMORY, """
-                        {"action":"REPLACE","memoryType":"USER_PROFILE","memoryId":"memory-2","summary":"Prefer concise summaries"}
+                        {"action":"REPLACE","memoryType":"DOCUMENT_DECISION","memoryId":"memory-2","documentId":"doc-1","summary":"Keep the current outline"}
                         """),
-                new ToolContext("task-1", "doc-1")
+                new ToolContext("task-1", "doc-1", "title", "body", "memory")
         );
 
         assertTrue(tool.specification().name().equals(MemoryToolNames.UPSERT_MEMORY));
         assertTrue(result.getMessage().contains("\"action\":\"REPLACE\""));
         assertTrue(result.getMessage().contains("\"memoryId\":\"memory-2\""));
-        assertTrue(result.getMessage().contains("\"memoryType\":\"USER_PROFILE\""));
-        assertTrue(result.getMessage().contains("\"summary\":\"Prefer concise summaries\""));
+        assertTrue(result.getMessage().contains("\"memoryType\":\"DOCUMENT_DECISION\""));
+        assertTrue(result.getMessage().contains("\"summary\":\"Keep the current outline\""));
     }
 
     @Test
@@ -55,27 +55,27 @@ class MemoryUpsertToolTest {
         LongTermMemoryWriteService writeService = mock(LongTermMemoryWriteService.class);
         when(writeService.upsertResult(
                 MemoryUpsertAction.REPLACE,
-                "USER_PROFILE",
+                "DOCUMENT_DECISION",
                 null,
-                null,
-                "Prefer concise summaries"
+                "doc-1",
+                "Keep the current outline"
         )).thenThrow(new IllegalArgumentException("memoryId is required for replace/delete"));
         MemoryUpsertTool tool = new MemoryUpsertTool(writeService);
 
         ToolResult result = tool.execute(
                 new ToolInvocation(MemoryToolNames.UPSERT_MEMORY, """
-                        {"action":"REPLACE","memoryType":"USER_PROFILE","summary":"Prefer concise summaries"}
+                        {"action":"REPLACE","memoryType":"DOCUMENT_DECISION","documentId":"doc-1","summary":"Keep the current outline"}
                         """),
-                new ToolContext("task-1", "doc-1")
+                new ToolContext("task-1", "doc-1", "title", "body", "memory")
         );
 
         JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
         assertEquals("error", payload.get("status").asText());
         assertEquals("memoryId is required for replace/delete", payload.get("errorMessage").asText());
         assertEquals("REPLACE", payload.get("action").asText());
-        assertEquals("USER_PROFILE", payload.get("memoryType").asText());
+        assertEquals("DOCUMENT_DECISION", payload.get("memoryType").asText());
         assertTrue(payload.get("memoryId").isNull());
-        assertTrue(payload.get("documentId").isNull());
+        assertEquals("doc-1", payload.get("documentId").asText());
         assertNull(result.getUpdatedContent());
     }
 
@@ -88,7 +88,7 @@ class MemoryUpsertToolTest {
                 new ToolInvocation(MemoryToolNames.UPSERT_MEMORY, """
                         {"action":"UPSERT","memoryType":"USER_PROFILE","summary":"Prefer concise summaries"}
                         """),
-                new ToolContext("task-1", "doc-1")
+                new ToolContext("task-1", "doc-1", "title", "body", "memory")
         );
 
         JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
@@ -97,5 +97,39 @@ class MemoryUpsertToolTest {
         assertEquals("UPSERT", payload.get("action").asText());
         assertEquals("USER_PROFILE", payload.get("memoryType").asText());
         assertNull(result.getUpdatedContent());
+    }
+
+    @Test
+    void shouldRejectNonMemoryWorkerWrites() throws Exception {
+        LongTermMemoryWriteService writeService = mock(LongTermMemoryWriteService.class);
+        MemoryUpsertTool tool = new MemoryUpsertTool(writeService);
+
+        ToolResult result = tool.execute(
+                new ToolInvocation(MemoryToolNames.UPSERT_MEMORY, """
+                        {"action":"CREATE","memoryType":"DOCUMENT_DECISION","documentId":"doc-1","summary":"Keep the current outline"}
+                        """),
+                new ToolContext("task-1", "doc-1", "title", "body", "writer")
+        );
+
+        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
+        assertEquals("error", payload.get("status").asText());
+        assertEquals("Only the memory worker may upsert long-term memory", payload.get("errorMessage").asText());
+    }
+
+    @Test
+    void shouldRejectUserProfileWritesFromMemoryWorker() throws Exception {
+        LongTermMemoryWriteService writeService = mock(LongTermMemoryWriteService.class);
+        MemoryUpsertTool tool = new MemoryUpsertTool(writeService);
+
+        ToolResult result = tool.execute(
+                new ToolInvocation(MemoryToolNames.UPSERT_MEMORY, """
+                        {"action":"CREATE","memoryType":"USER_PROFILE","summary":"Prefer concise summaries"}
+                        """),
+                new ToolContext("task-1", "doc-1", "title", "body", "memory")
+        );
+
+        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
+        assertEquals("error", payload.get("status").asText());
+        assertEquals("Autonomous memory writes may only target DOCUMENT_DECISION", payload.get("errorMessage").asText());
     }
 }
