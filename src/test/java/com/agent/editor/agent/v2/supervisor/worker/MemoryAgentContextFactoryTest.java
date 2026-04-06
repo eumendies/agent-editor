@@ -48,6 +48,9 @@ class MemoryAgentContextFactoryTest {
         assertTrue(systemMessage.text().contains(MemoryToolNames.SEARCH_MEMORY));
         assertTrue(systemMessage.text().contains(MemoryToolNames.UPSERT_MEMORY));
         assertTrue(systemMessage.text().contains("MemoryWorkerSummary"));
+        assertTrue(systemMessage.text().contains("doc-1"));
+        assertTrue(systemMessage.text().contains("title"));
+        assertTrue(systemMessage.text().contains("body"));
         UserMessage historyMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
         assertEquals("older memory turn", historyMessage.singleText());
         UserMessage currentTurnMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));

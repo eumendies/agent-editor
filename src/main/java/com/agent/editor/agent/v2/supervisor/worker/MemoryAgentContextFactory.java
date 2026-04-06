@@ -68,7 +68,7 @@ public class MemoryAgentContextFactory implements AgentContextFactory, MemoryCom
     @Override
     public ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {
         List<dev.langchain4j.data.message.ChatMessage> messages = new ArrayList<>();
-        messages.add(SystemMessage.from(systemPrompt()));
+        messages.add(SystemMessage.from(systemPrompt(context)));
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.getMemory()));
         return new ModelInvocationContext(messages, context.getToolSpecifications(), null);
     }
@@ -87,12 +87,18 @@ public class MemoryAgentContextFactory implements AgentContextFactory, MemoryCom
         return memoryCompressor;
     }
 
-    private String systemPrompt() {
+    private String systemPrompt(AgentRunContext context) {
         // 这里把“何时检索、何时写入、最终如何产出结构化摘要”一次性讲清楚，避免 memory worker 退化成泛化 writer。
         return """
                 ## Role
                 You are a memory worker in a hybrid supervisor workflow.
                 Your job is to retrieve and maintain durable document constraints for the current document.
+
+                ## Current Document
+                documentId: %s
+                title: %s
+                currentContent:
+                %s
 
                 ## Allowed Memory Scope
                 Manage only DOCUMENT_DECISION memory.
@@ -117,6 +123,32 @@ public class MemoryAgentContextFactory implements AgentContextFactory, MemoryCom
                   "guidanceForDownstreamWorkers": "string"
                 }
                 Return only raw JSON with no prose before or after it.
-                """.formatted(MemoryToolNames.SEARCH_MEMORY, MemoryToolNames.UPSERT_MEMORY);
+                """.formatted(
+                documentId(context),
+                documentTitle(context),
+                currentDocumentContent(context),
+                MemoryToolNames.SEARCH_MEMORY,
+                MemoryToolNames.UPSERT_MEMORY
+        );
+    }
+
+    private String documentId(AgentRunContext context) {
+        if (context.getRequest() == null || context.getRequest().getDocument() == null
+                || context.getRequest().getDocument().getDocumentId() == null) {
+            return "";
+        }
+        return context.getRequest().getDocument().getDocumentId();
+    }
+
+    private String documentTitle(AgentRunContext context) {
+        if (context.getRequest() == null || context.getRequest().getDocument() == null
+                || context.getRequest().getDocument().getTitle() == null) {
+            return "";
+        }
+        return context.getRequest().getDocument().getTitle();
+    }
+
+    private String currentDocumentContent(AgentRunContext context) {
+        return context.getCurrentContent() == null ? "" : context.getCurrentContent();
     }
 }
