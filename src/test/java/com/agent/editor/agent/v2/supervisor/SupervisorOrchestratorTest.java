@@ -24,8 +24,11 @@ import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
 import com.agent.editor.agent.v2.trace.TraceStore;
 import com.agent.editor.agent.v2.supervisor.worker.WorkerRegistry;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
+import com.agent.editor.agent.v2.tool.memory.MemoryToolAccessPolicy;
+import com.agent.editor.agent.v2.tool.memory.MemoryToolNames;
 import com.agent.editor.config.DocumentToolModeProperties;
 import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
@@ -421,10 +424,70 @@ class SupervisorOrchestratorTest {
         ), runtime.allowedTools().get(1));
     }
 
+    @Test
+    void shouldAssignMemoryToolsToMemoryWorker() {
+        WorkerRegistry workerRegistry = new WorkerRegistry();
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
+                SupervisorWorkerIds.MEMORY,
+                "Memory",
+                "Retrieve and maintain durable document constraints",
+                new StubWorkerAgent("memory summary"),
+                List.of(),
+                List.of("memory")
+        ));
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
+                SupervisorWorkerIds.WRITER,
+                "Writer",
+                "Apply document edits",
+                new StubWorkerAgent("edited content"),
+                List.of(DocumentToolNames.EDIT_DOCUMENT),
+                List.of("write", "edit")
+        ));
+
+        RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
+        SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(
+                new MemoryThenWriterSupervisorAgent(),
+                new RecordingSupervisorExecutionRuntime(),
+                workerRegistry,
+                runtime,
+                event -> {},
+                new SupervisorContextFactory(NoOpMemoryCompressors.noop()),
+                documentToolAccessPolicy(100),
+                executionToolAccessPolicy(100)
+        );
+
+        orchestrator.execute(new TaskRequest(
+                "task-9",
+                "session-9",
+                AgentType.SUPERVISOR,
+                new DocumentSnapshot("doc-9", "Title", "body"),
+                "Retrieve prior constraints before editing",
+                5
+        ));
+
+        assertEquals(List.of(
+                MemoryToolNames.SEARCH_MEMORY,
+                MemoryToolNames.UPSERT_MEMORY
+        ), runtime.allowedTools().get(0));
+        assertEquals(List.of(
+                DocumentToolNames.EDIT_DOCUMENT,
+                DocumentToolNames.APPEND_TO_DOCUMENT,
+                DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
+                DocumentToolNames.SEARCH_CONTENT
+        ), runtime.allowedTools().get(1));
+    }
+
     private DocumentToolAccessPolicy documentToolAccessPolicy(int threshold) {
         return new DocumentToolAccessPolicy(
                 new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200),
                 new DocumentToolModeProperties(threshold)
+        );
+    }
+
+    private ExecutionToolAccessPolicy executionToolAccessPolicy(int threshold) {
+        return new ExecutionToolAccessPolicy(
+                documentToolAccessPolicy(threshold),
+                new MemoryToolAccessPolicy()
         );
     }
 
@@ -503,6 +566,25 @@ class SupervisorOrchestratorTest {
             }
             if (context.getWorkerResults().size() == 1) {
                 return new SupervisorDecision.AssignWorker(SupervisorWorkerIds.REVIEWER, "Review the updated content", "move to review");
+            }
+            return new SupervisorDecision.Complete(context.getCurrentContent(), "workers done", "finalized by supervisor");
+        }
+    }
+
+    private static final class MemoryThenWriterSupervisorAgent implements SupervisorAgent {
+
+        @Override
+        public AgentType type() {
+            return AgentType.SUPERVISOR;
+        }
+
+        @Override
+        public SupervisorDecision decide(SupervisorContext context) {
+            if (context.getWorkerResults().isEmpty()) {
+                return new SupervisorDecision.AssignWorker(SupervisorWorkerIds.MEMORY, "Retrieve durable document constraints", "consult memory");
+            }
+            if (context.getWorkerResults().size() == 1) {
+                return new SupervisorDecision.AssignWorker(SupervisorWorkerIds.WRITER, "Apply the recommended edits", "move to editing");
             }
             return new SupervisorDecision.Complete(context.getCurrentContent(), "workers done", "finalized by supervisor");
         }

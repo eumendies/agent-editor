@@ -15,6 +15,7 @@ import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgent;
 import com.agent.editor.agent.v2.supervisor.worker.*;
 import com.agent.editor.agent.v2.tool.ExecutionToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
+import com.agent.editor.agent.v2.tool.memory.MemoryToolNames;
 import com.agent.editor.agent.v2.tool.memory.MemoryToolAccessPolicy;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.supervisor.worker.EvidenceReviewerAgent;
@@ -69,6 +70,7 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(ResearcherAgentContextFactory.class);
             assertThat(context).hasSingleBean(GroundedWriterAgentContextFactory.class);
             assertThat(context).hasSingleBean(EvidenceReviewerAgentContextFactory.class);
+            assertThat(context).hasSingleBean(MemoryAgentContextFactory.class);
             assertThat(context).hasSingleBean(MemoryCompressionProperties.class);
             assertThat(context).hasSingleBean(DocumentToolModeProperties.class);
             assertThat(context).hasSingleBean(com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy.class);
@@ -115,7 +117,8 @@ class AgentV2ConfigurationSplitTest {
                     .containsExactly(
                             SupervisorWorkerIds.RESEARCHER,
                             SupervisorWorkerIds.WRITER,
-                            SupervisorWorkerIds.REVIEWER
+                            SupervisorWorkerIds.REVIEWER,
+                            SupervisorWorkerIds.MEMORY
                     );
             assertThat(workerRegistry.all())
                     .extracting(SupervisorContext.WorkerDefinition::getCapabilities)
@@ -124,15 +127,21 @@ class AgentV2ConfigurationSplitTest {
             assertThat(workerRegistry.get(SupervisorWorkerIds.WRITER).getCapabilities()).containsExactly("write", "edit");
             assertThat(workerRegistry.get(SupervisorWorkerIds.WRITER).getDescription()).contains("grounded");
             assertThat(workerRegistry.get(SupervisorWorkerIds.REVIEWER).getCapabilities()).containsExactly("review");
+            assertThat(workerRegistry.get(SupervisorWorkerIds.MEMORY).getCapabilities()).containsExactly("memory");
             assertThat(workerRegistry.get(SupervisorWorkerIds.RESEARCHER).getAgent()).isInstanceOf(ResearcherAgent.class);
             assertThat(workerRegistry.get(SupervisorWorkerIds.WRITER).getAgent()).isInstanceOf(GroundedWriterAgent.class);
             assertThat(workerRegistry.get(SupervisorWorkerIds.REVIEWER).getAgent()).isInstanceOf(EvidenceReviewerAgent.class);
+            assertThat(workerRegistry.get(SupervisorWorkerIds.MEMORY).getAgent()).isInstanceOf(MemoryAgent.class);
             assertThat(ReflectionTestUtils.getField(workerRegistry.get(SupervisorWorkerIds.RESEARCHER).getAgent(), "contextFactory"))
                     .isSameAs(context.getBean(ResearcherAgentContextFactory.class));
             assertThat(ReflectionTestUtils.getField(workerRegistry.get(SupervisorWorkerIds.WRITER).getAgent(), "contextFactory"))
                     .isSameAs(context.getBean(GroundedWriterAgentContextFactory.class));
             assertThat(ReflectionTestUtils.getField(workerRegistry.get(SupervisorWorkerIds.REVIEWER).getAgent(), "contextFactory"))
                     .isSameAs(context.getBean(EvidenceReviewerAgentContextFactory.class));
+            assertThat(ReflectionTestUtils.getField(workerRegistry.get(SupervisorWorkerIds.MEMORY).getAgent(), "contextFactory"))
+                    .isSameAs(context.getBean(MemoryAgentContextFactory.class));
+            assertThat(workerRegistry.get(SupervisorWorkerIds.MEMORY).getAllowedTools())
+                    .containsExactly(MemoryToolNames.SEARCH_MEMORY, MemoryToolNames.UPSERT_MEMORY);
         });
     }
 

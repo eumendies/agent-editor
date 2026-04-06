@@ -162,7 +162,8 @@ public class TaskOrchestratorConfig {
                 executionRuntime,
                 eventPublisher,
                 supervisorContextFactory,
-                documentToolAccessPolicy
+                documentToolAccessPolicy,
+                executionToolAccessPolicy
         );
         TaskOrchestrator reflexionOrchestrator = new ReflexionOrchestrator(
                 executionRuntime,

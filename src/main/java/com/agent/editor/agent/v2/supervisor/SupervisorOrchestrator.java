@@ -18,6 +18,8 @@ import com.agent.editor.agent.v2.supervisor.worker.WorkerRegistry;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessPolicy;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessRole;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessRole;
 import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
@@ -40,6 +42,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
     private final EventPublisher eventPublisher;
     private final SupervisorContextFactory supervisorContextFactory;
     private final DocumentToolAccessPolicy documentToolAccessPolicy;
+    private final ExecutionToolAccessPolicy executionToolAccessPolicy;
 
     public SupervisorOrchestrator(SupervisorAgent supervisorAgent,
                                   SupervisorExecutionRuntime supervisorExecutionRuntime,
@@ -48,6 +51,26 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                                   EventPublisher eventPublisher,
                                   SupervisorContextFactory supervisorContextFactory,
                                   DocumentToolAccessPolicy documentToolAccessPolicy) {
+        this(
+                supervisorAgent,
+                supervisorExecutionRuntime,
+                workerRegistry,
+                executionRuntime,
+                eventPublisher,
+                supervisorContextFactory,
+                documentToolAccessPolicy,
+                null
+        );
+    }
+
+    public SupervisorOrchestrator(SupervisorAgent supervisorAgent,
+                                  SupervisorExecutionRuntime supervisorExecutionRuntime,
+                                  WorkerRegistry workerRegistry,
+                                  ExecutionRuntime executionRuntime,
+                                  EventPublisher eventPublisher,
+                                  SupervisorContextFactory supervisorContextFactory,
+                                  DocumentToolAccessPolicy documentToolAccessPolicy,
+                                  ExecutionToolAccessPolicy executionToolAccessPolicy) {
         this.supervisorAgent = supervisorAgent;
         this.supervisorExecutionRuntime = supervisorExecutionRuntime;
         this.workerRegistry = workerRegistry;
@@ -55,6 +78,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
         this.eventPublisher = eventPublisher;
         this.supervisorContextFactory = supervisorContextFactory;
         this.documentToolAccessPolicy = documentToolAccessPolicy;
+        this.executionToolAccessPolicy = executionToolAccessPolicy;
     }
 
     /**
@@ -210,6 +234,9 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
 
     private List<String> resolveWorkerAllowedTools(SupervisorContext.WorkerDefinition worker,
                                                    DocumentToolMode documentToolMode) {
+        if (isMemoryWorker(worker) && executionToolAccessPolicy != null) {
+            return executionToolAccessPolicy.allowedTools(documentToolMode, ExecutionToolAccessRole.MEMORY);
+        }
         DocumentToolAccessRole role = workerAccessRole(worker);
         if (role == null) {
             return worker.getAllowedTools();
@@ -239,5 +266,9 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
             return DocumentToolAccessRole.WRITE;
         }
         return null;
+    }
+
+    private boolean isMemoryWorker(SupervisorContext.WorkerDefinition worker) {
+        return worker.getCapabilities().contains("memory");
     }
 }

@@ -10,6 +10,7 @@ import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgent;
 import com.agent.editor.agent.v2.supervisor.worker.*;
 import com.agent.editor.agent.v2.supervisor.worker.ResearcherAgent;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
+import com.agent.editor.agent.v2.tool.memory.MemoryToolNames;
 import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,6 +42,11 @@ public class SupervisorAgentConfig {
     }
 
     @Bean
+    public MemoryAgentContextFactory memoryAgentContextFactory(MemoryCompressor memoryCompressor) {
+        return new MemoryAgentContextFactory(memoryCompressor);
+    }
+
+    @Bean
     public ResearcherAgent researcherAgentDefinition(StreamingLLMInvoker streamingLLMInvoker,
                                                      ResearcherAgentContextFactory researcherAgentContextFactory) {
         return ResearcherAgent.streaming(streamingLLMInvoker, researcherAgentContextFactory);
@@ -59,9 +65,16 @@ public class SupervisorAgentConfig {
     }
 
     @Bean
+    public MemoryAgent memoryAgentDefinition(StreamingLLMInvoker streamingLLMInvoker,
+                                             MemoryAgentContextFactory memoryAgentContextFactory) {
+        return MemoryAgent.streaming(streamingLLMInvoker, memoryAgentContextFactory);
+    }
+
+    @Bean
     public WorkerRegistry workerRegistry(ResearcherAgent researcherAgentDefinition,
                                          GroundedWriterAgent groundedWriterAgentDefinition,
-                                         EvidenceReviewerAgent evidenceReviewerAgentDefinition) {
+                                         EvidenceReviewerAgent evidenceReviewerAgentDefinition,
+                                         MemoryAgent memoryAgentDefinition) {
         WorkerRegistry workerRegistry = new WorkerRegistry();
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 SupervisorWorkerIds.RESEARCHER,
@@ -98,6 +111,17 @@ public class SupervisorAgentConfig {
                         DocumentToolNames.GET_DOCUMENT_SNAPSHOT
                 ),
                 List.of("review")
+        ));
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
+                SupervisorWorkerIds.MEMORY,
+                "Memory",
+                "Retrieve and maintain durable document constraints for the current document.",
+                memoryAgentDefinition,
+                List.of(
+                        MemoryToolNames.SEARCH_MEMORY,
+                        MemoryToolNames.UPSERT_MEMORY
+                ),
+                List.of("memory")
         ));
         return workerRegistry;
     }
