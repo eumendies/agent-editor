@@ -148,8 +148,7 @@ class PlanningThenExecutionOrchestratorTest {
                 DocumentToolNames.READ_DOCUMENT_NODE,
                 DocumentToolNames.PATCH_DOCUMENT_NODE,
                 DocumentToolNames.SEARCH_CONTENT,
-                MemoryToolNames.SEARCH_MEMORY,
-                MemoryToolNames.UPSERT_MEMORY
+                MemoryToolNames.SEARCH_MEMORY
         ), executionRuntime.requests().get(0).getAllowedTools());
     }
 

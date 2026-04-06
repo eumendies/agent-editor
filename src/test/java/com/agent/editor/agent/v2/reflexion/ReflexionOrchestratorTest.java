@@ -86,8 +86,7 @@ class ReflexionOrchestratorTest {
                 DocumentToolNames.APPEND_TO_DOCUMENT,
                 DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
                 DocumentToolNames.SEARCH_CONTENT,
-                MemoryToolNames.SEARCH_MEMORY,
-                MemoryToolNames.UPSERT_MEMORY
+                MemoryToolNames.SEARCH_MEMORY
         ), runtime.actorAllowedTools.get(0));
         assertEquals(List.of(
                 DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
@@ -298,8 +297,7 @@ class ReflexionOrchestratorTest {
                 DocumentToolNames.READ_DOCUMENT_NODE,
                 DocumentToolNames.PATCH_DOCUMENT_NODE,
                 DocumentToolNames.SEARCH_CONTENT,
-                MemoryToolNames.SEARCH_MEMORY,
-                MemoryToolNames.UPSERT_MEMORY
+                MemoryToolNames.SEARCH_MEMORY
         ), runtime.actorAllowedTools.get(0));
         assertEquals(DocumentToolMode.INCREMENTAL, runtime.actorRequests.get(0).getDocumentToolMode());
         assertEquals(List.of(
