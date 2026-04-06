@@ -142,6 +142,38 @@ class SupervisorContextFactoryTest {
     }
 
     @Test
+    void shouldKeepMemoryWorkerStructuredSummaryVisibleToLaterWorkers() {
+        SupervisorContextFactory factory = new SupervisorContextFactory(NoOpMemoryCompressors.noop());
+        AgentRunContext conversationState = new AgentRunContext(
+                null,
+                1,
+                "draft",
+                new ChatTranscriptMemory(List.of()),
+                ExecutionStage.RUNNING,
+                null,
+                List.of()
+        );
+
+        AgentRunContext nextState = factory.summarizeWorkerResult(
+                conversationState,
+                SupervisorWorkerIds.MEMORY,
+                new ExecutionResult<>(
+                        "memory summary",
+                        """
+                        {"confirmedConstraints":["keep title hierarchy"],"deprecatedConstraints":[],"activeRisks":[],"guidanceForDownstreamWorkers":"Preserve the current outline."}
+                        """,
+                        "draft"
+                )
+        );
+
+        ChatTranscriptMemory memory = (ChatTranscriptMemory) nextState.getMemory();
+        assertEquals(1, memory.getMessages().size());
+        assertTrue(memory.getMessages().get(0).getText().contains("workerId: " + SupervisorWorkerIds.MEMORY));
+        assertTrue(memory.getMessages().get(0).getText().contains("confirmedConstraints"));
+        assertTrue(memory.getMessages().get(0).getText().contains("guidanceForDownstreamWorkers"));
+    }
+
+    @Test
     void shouldBuildRoutingInvocationContextWithCandidateAndWorkerSummaries() {
         SupervisorContextFactory factory = new SupervisorContextFactory(NoOpMemoryCompressors.noop());
         SupervisorContext context = factory.buildSupervisorContext(

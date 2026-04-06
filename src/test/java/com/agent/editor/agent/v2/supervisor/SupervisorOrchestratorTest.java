@@ -477,6 +477,57 @@ class SupervisorOrchestratorTest {
         ), runtime.allowedTools().get(1));
     }
 
+    @Test
+    void shouldPassMemoryWorkerSummaryIntoLaterWriterContext() {
+        WorkerRegistry workerRegistry = new WorkerRegistry();
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
+                SupervisorWorkerIds.MEMORY,
+                "Memory",
+                "Retrieve and maintain durable document constraints",
+                new StubWorkerAgent("memory summary"),
+                List.of(MemoryToolNames.SEARCH_MEMORY, MemoryToolNames.UPSERT_MEMORY),
+                List.of("memory")
+        ));
+        workerRegistry.register(new SupervisorContext.WorkerDefinition(
+                SupervisorWorkerIds.WRITER,
+                "Writer",
+                "Apply document edits",
+                new StubWorkerAgent("edited content"),
+                List.of(DocumentToolNames.EDIT_DOCUMENT),
+                List.of("write", "edit")
+        ));
+
+        MemorySummaryExecutionRuntime runtime = new MemorySummaryExecutionRuntime();
+        SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(
+                new MemoryThenWriterSupervisorAgent(),
+                new RecordingSupervisorExecutionRuntime(),
+                workerRegistry,
+                runtime,
+                event -> {},
+                new SupervisorContextFactory(NoOpMemoryCompressors.noop()),
+                documentToolAccessPolicy(100),
+                executionToolAccessPolicy(100)
+        );
+
+        orchestrator.execute(new TaskRequest(
+                "task-10",
+                "session-10",
+                AgentType.SUPERVISOR,
+                new DocumentSnapshot("doc-10", "Title", "body"),
+                "Retrieve prior constraints before editing",
+                5
+        ));
+
+        ChatTranscriptMemory writerMemory = (ChatTranscriptMemory) runtime.states().get(1).getMemory();
+        assertTrue(writerMemory.getMessages().stream().anyMatch(message ->
+                message.getText().contains("confirmedConstraints")
+        ));
+        assertTrue(writerMemory.getMessages().stream().anyMatch(message ->
+                message.getText().contains("guidanceForDownstreamWorkers")
+        ));
+        assertTrue(writerMemory.getMessages().stream().noneMatch(ChatMessage.ToolExecutionResultChatMessage.class::isInstance));
+    }
+
     private DocumentToolAccessPolicy documentToolAccessPolicy(int threshold) {
         return new DocumentToolAccessPolicy(
                 new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200),
@@ -636,10 +687,10 @@ class SupervisorOrchestratorTest {
         }
     }
 
-    private static final class RecordingExecutionRuntime implements ExecutionRuntime {
+    private static class RecordingExecutionRuntime implements ExecutionRuntime {
 
-        private final List<ExecutionRequest> requests = new ArrayList<>();
-        private final List<AgentRunContext> states = new ArrayList<>();
+        protected final List<ExecutionRequest> requests = new ArrayList<>();
+        protected final List<AgentRunContext> states = new ArrayList<>();
 
         @Override
         public ExecutionResult run(Agent agent, ExecutionRequest request) {
@@ -701,8 +752,43 @@ class SupervisorOrchestratorTest {
             return requests.stream().map(ExecutionRequest::getMaxIterations).toList();
         }
 
-        private List<AgentRunContext> states() {
+        protected List<AgentRunContext> states() {
             return states;
+        }
+    }
+
+    private static final class MemorySummaryExecutionRuntime extends RecordingExecutionRuntime {
+
+        @Override
+        public ExecutionResult run(Agent definition, ExecutionRequest request, AgentRunContext initialState) {
+            if (SupervisorWorkerIds.MEMORY.equals(request.getWorkerId())) {
+                requests.add(request);
+                states.add(initialState);
+                return new ExecutionResult(
+                        "memory summary",
+                        """
+                        {"confirmedConstraints":["keep title hierarchy"],"deprecatedConstraints":[],"activeRisks":[],"guidanceForDownstreamWorkers":"Preserve the current outline."}
+                        """,
+                        initialState.getCurrentContent(),
+                        new AgentRunContext(
+                                request,
+                                initialState.getIteration() + 1,
+                                initialState.getCurrentContent(),
+                                new ChatTranscriptMemory(List.of(
+                                        new ChatMessage.ToolExecutionResultChatMessage(
+                                                "memory-tool-call",
+                                                MemoryToolNames.SEARCH_MEMORY,
+                                                null,
+                                                "memory search finished"
+                                        )
+                                )),
+                                ExecutionStage.COMPLETED,
+                                null,
+                                List.of()
+                        )
+                );
+            }
+            return super.run(definition, request, initialState);
         }
     }
 
