@@ -235,6 +235,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
     private List<String> resolveWorkerAllowedTools(SupervisorContext.WorkerDefinition worker,
                                                    DocumentToolMode documentToolMode) {
         if (isMemoryWorker(worker) && executionToolAccessPolicy != null) {
+            // memory worker 需要走 execution 级别的组合策略，才能拿到 memory tool，同时继续复用统一白名单裁剪。
             return executionToolAccessPolicy.allowedTools(documentToolMode, ExecutionToolAccessRole.MEMORY);
         }
         DocumentToolAccessRole role = workerAccessRole(worker);

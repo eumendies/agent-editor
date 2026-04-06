@@ -40,7 +40,7 @@ class MemoryUpsertToolTest {
                 new ToolInvocation(MemoryToolNames.UPSERT_MEMORY, """
                         {"action":"REPLACE","memoryType":"DOCUMENT_DECISION","memoryId":"memory-2","documentId":"doc-1","summary":"Keep the current outline"}
                         """),
-                new ToolContext("task-1", "doc-1", "title", "body", "memory")
+                new ToolContext("task-1", "doc-1", "title", "body")
         );
 
         assertTrue(tool.specification().name().equals(MemoryToolNames.UPSERT_MEMORY));
@@ -66,7 +66,7 @@ class MemoryUpsertToolTest {
                 new ToolInvocation(MemoryToolNames.UPSERT_MEMORY, """
                         {"action":"REPLACE","memoryType":"DOCUMENT_DECISION","documentId":"doc-1","summary":"Keep the current outline"}
                         """),
-                new ToolContext("task-1", "doc-1", "title", "body", "memory")
+                new ToolContext("task-1", "doc-1", "title", "body")
         );
 
         JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
@@ -88,7 +88,7 @@ class MemoryUpsertToolTest {
                 new ToolInvocation(MemoryToolNames.UPSERT_MEMORY, """
                         {"action":"UPSERT","memoryType":"USER_PROFILE","summary":"Prefer concise summaries"}
                         """),
-                new ToolContext("task-1", "doc-1", "title", "body", "memory")
+                new ToolContext("task-1", "doc-1", "title", "body")
         );
 
         JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
@@ -100,23 +100,6 @@ class MemoryUpsertToolTest {
     }
 
     @Test
-    void shouldRejectNonMemoryWorkerWrites() throws Exception {
-        LongTermMemoryWriteService writeService = mock(LongTermMemoryWriteService.class);
-        MemoryUpsertTool tool = new MemoryUpsertTool(writeService);
-
-        ToolResult result = tool.execute(
-                new ToolInvocation(MemoryToolNames.UPSERT_MEMORY, """
-                        {"action":"CREATE","memoryType":"DOCUMENT_DECISION","documentId":"doc-1","summary":"Keep the current outline"}
-                        """),
-                new ToolContext("task-1", "doc-1", "title", "body", "writer")
-        );
-
-        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
-        assertEquals("error", payload.get("status").asText());
-        assertEquals("Only the memory worker may upsert long-term memory", payload.get("errorMessage").asText());
-    }
-
-    @Test
     void shouldRejectUserProfileWritesFromMemoryWorker() throws Exception {
         LongTermMemoryWriteService writeService = mock(LongTermMemoryWriteService.class);
         MemoryUpsertTool tool = new MemoryUpsertTool(writeService);
@@ -125,7 +108,7 @@ class MemoryUpsertToolTest {
                 new ToolInvocation(MemoryToolNames.UPSERT_MEMORY, """
                         {"action":"CREATE","memoryType":"USER_PROFILE","summary":"Prefer concise summaries"}
                         """),
-                new ToolContext("task-1", "doc-1", "title", "body", "memory")
+                new ToolContext("task-1", "doc-1", "title", "body")
         );
 
         JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());

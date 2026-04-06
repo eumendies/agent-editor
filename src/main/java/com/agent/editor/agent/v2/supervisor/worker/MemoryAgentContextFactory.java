@@ -18,6 +18,10 @@ import dev.langchain4j.data.message.SystemMessage;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 为 memory worker 构建初始上下文与模型调用消息。
+ * 它负责把现有会话记忆压成可检索、可维护 DOCUMENT_DECISION 的专用提示词视图。
+ */
 public class MemoryAgentContextFactory implements AgentContextFactory, MemoryCompressionCapableContextFactory {
 
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
@@ -33,6 +37,13 @@ public class MemoryAgentContextFactory implements AgentContextFactory, MemoryCom
         this.memoryCompressor = memoryCompressor;
     }
 
+    /**
+     * 创建 memory worker 首轮执行上下文。
+     * 这里沿用已有会话记忆，并把当前任务指令追加为最新 user message，保证 memory worker 能同时看到历史摘要和本轮目标。
+     *
+     * @param request 当前任务请求
+     * @return memory worker 的初始运行上下文
+     */
     @Override
     @CompressContextMemory
     public AgentRunContext prepareInitialContext(TaskRequest request) {
@@ -47,6 +58,13 @@ public class MemoryAgentContextFactory implements AgentContextFactory, MemoryCom
         );
     }
 
+    /**
+     * 构建 memory worker 的模型输入。
+     * system prompt 负责限定“只管理 DOCUMENT_DECISION”，history 则提供本轮需要参考的上下文证据。
+     *
+     * @param context 当前运行上下文
+     * @return 供模型调用的消息与工具规格
+     */
     @Override
     public ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {
         List<dev.langchain4j.data.message.ChatMessage> messages = new ArrayList<>();
@@ -70,6 +88,7 @@ public class MemoryAgentContextFactory implements AgentContextFactory, MemoryCom
     }
 
     private String systemPrompt() {
+        // 这里把“何时检索、何时写入、最终如何产出结构化摘要”一次性讲清楚，避免 memory worker 退化成泛化 writer。
         return """
                 ## Role
                 You are a memory worker in a hybrid supervisor workflow.

@@ -154,8 +154,7 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
                             request.getTaskId(),
                             request.getDocument() == null ? null : request.getDocument().getDocumentId(),
                             request.getDocument() == null ? null : request.getDocument().getTitle(),
-                            updatedContent,
-                            request.getWorkerId()
+                            updatedContent
                     )
             );
             executions.add(new ToolExecutionRecord(call, result));

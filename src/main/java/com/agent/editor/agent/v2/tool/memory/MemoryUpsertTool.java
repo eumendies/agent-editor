@@ -13,6 +13,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * 长期记忆写入工具。
+ * 运行时是否允许模型看到这个工具，由外层的 tool access policy 决定；这里仅兜底约束可写入的 memory 类型。
+ */
 public class MemoryUpsertTool implements ToolHandler {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -49,7 +53,7 @@ public class MemoryUpsertTool implements ToolHandler {
         MemoryUpsertArguments arguments = decodeArguments(invocation.getArguments());
         try {
             MemoryUpsertAction action = MemoryUpsertAction.valueOf(arguments.getAction());
-            validateAutonomousWrite(arguments, context);
+            validateAutonomousWrite(arguments);
             MemoryUpsertResult result = writeService.upsertResult(
                     action,
                     arguments.getMemoryType(),
@@ -71,10 +75,10 @@ public class MemoryUpsertTool implements ToolHandler {
         }
     }
 
-    private void validateAutonomousWrite(MemoryUpsertArguments arguments, ToolContext context) {
-        if (context == null || context.getWorkerId() == null || !"memory".equals(context.getWorkerId())) {
-            throw new IllegalArgumentException("Only the memory worker may upsert long-term memory");
-        }
+    /**
+     * AI 自动维护长期记忆时，只允许写文档决策类约束，避免污染用户画像。
+     */
+    private void validateAutonomousWrite(MemoryUpsertArguments arguments) {
         if (!"DOCUMENT_DECISION".equals(arguments.getMemoryType())) {
             throw new IllegalArgumentException("Autonomous memory writes may only target DOCUMENT_DECISION");
         }

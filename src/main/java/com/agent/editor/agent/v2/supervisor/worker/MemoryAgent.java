@@ -14,6 +14,10 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
+/**
+ * supervisor 下游的 memory worker 定义。
+ * 它沿用 tool-loop 模式执行 memorySearch / memoryUpsert，并在完成时尽量返回结构化的 MemoryWorkerSummary。
+ */
 public class MemoryAgent extends AbstractStreamingToolLoopAgent {
 
     private final MemoryAgentContextFactory contextFactory;
@@ -40,6 +44,13 @@ public class MemoryAgent extends AbstractStreamingToolLoopAgent {
         return AgentType.REACT;
     }
 
+    /**
+     * 驱动 memory worker 单轮决策。
+     * 如果模型先请求工具，就返回 tool calls；如果直接完成，则优先把结果解析成结构化摘要，便于 supervisor 后续折叠进会话记忆。
+     *
+     * @param context 当前运行上下文
+     * @return tool 调用决策或最终完成结果
+     */
     @Override
     public ToolLoopDecision decide(AgentRunContext context) {
         ModelInvocationContext invocationContext = contextFactory.buildModelInvocationContext(context);
@@ -56,6 +67,7 @@ public class MemoryAgent extends AbstractStreamingToolLoopAgent {
             );
         }
 
+        // memory worker 的完成结果会进入 supervisor memory，因此优先收敛成稳定结构，避免下游继续解析自由文本。
         MemoryWorkerSummary summary = StructuredOutputParsers.parseJsonWithMarkdownCleanup(aiMessage.text(), MemoryWorkerSummary.class);
         if (summary != null) {
             return new ToolLoopDecision.Complete<>(summary, aiMessage.text());
