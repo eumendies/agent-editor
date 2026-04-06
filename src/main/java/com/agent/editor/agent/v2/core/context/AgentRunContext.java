@@ -138,6 +138,28 @@ public class AgentRunContext {
     }
 
     /**
+     * 在 request 或 document 缺失时安全地返回空文档 ID。
+     *
+     * @return 当前文档 ID，若未绑定 document 则返回空字符串
+     */
+    public String getDocumentIdOrEmpty() {
+        return request == null || request.getDocument() == null || request.getDocument().getDocumentId() == null
+                ? ""
+                : request.getDocument().getDocumentId();
+    }
+
+    /**
+     * 在 request 或 document 缺失时安全地返回空文档标题。
+     *
+     * @return 当前文档标题，若未绑定 document 则返回空字符串
+     */
+    public String getDocumentTitleOrEmpty() {
+        return request == null || request.getDocument() == null || request.getDocument().getTitle() == null
+                ? ""
+                : request.getDocument().getTitle();
+    }
+
+    /**
      * 推进到下一轮迭代，并沿用当前记忆。
      *
      * @param nextContent 下一轮开始时看到的文档内容

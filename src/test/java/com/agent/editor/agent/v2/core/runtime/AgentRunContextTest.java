@@ -185,4 +185,37 @@ class AgentRunContextTest {
         assertEquals("task-42", withRequest.getTaskIdOrEmpty());
         assertEquals("", withoutRequest.getTaskIdOrEmpty());
     }
+
+    @Test
+    void shouldExposeDocumentMetadataFromRequest() {
+        ExecutionRequest request = new ExecutionRequest(
+                "task-7",
+                "session-7",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-7", "Doc Title", "body"),
+                "rewrite",
+                3
+        );
+
+        AgentRunContext context = new AgentRunContext(
+                request,
+                0,
+                "body",
+                new ChatTranscriptMemory(List.of()),
+                ExecutionStage.RUNNING,
+                null,
+                List.of()
+        );
+
+        assertEquals("doc-7", context.getDocumentIdOrEmpty());
+        assertEquals("Doc Title", context.getDocumentTitleOrEmpty());
+    }
+
+    @Test
+    void shouldReturnEmptyDocumentMetadataWhenRequestIsMissing() {
+        AgentRunContext context = new AgentRunContext(0, "body");
+
+        assertEquals("", context.getDocumentIdOrEmpty());
+        assertEquals("", context.getDocumentTitleOrEmpty());
+    }
 }

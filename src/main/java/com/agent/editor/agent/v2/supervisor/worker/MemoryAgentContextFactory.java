@@ -124,28 +124,12 @@ public class MemoryAgentContextFactory implements AgentContextFactory, MemoryCom
                 }
                 Return only raw JSON with no prose before or after it.
                 """.formatted(
-                documentId(context),
-                documentTitle(context),
+                context.getDocumentIdOrEmpty(),
+                context.getDocumentTitleOrEmpty(),
                 currentDocumentContent(context),
                 MemoryToolNames.SEARCH_MEMORY,
                 MemoryToolNames.UPSERT_MEMORY
         );
-    }
-
-    private String documentId(AgentRunContext context) {
-        if (context.getRequest() == null || context.getRequest().getDocument() == null
-                || context.getRequest().getDocument().getDocumentId() == null) {
-            return "";
-        }
-        return context.getRequest().getDocument().getDocumentId();
-    }
-
-    private String documentTitle(AgentRunContext context) {
-        if (context.getRequest() == null || context.getRequest().getDocument() == null
-                || context.getRequest().getDocument().getTitle() == null) {
-            return "";
-        }
-        return context.getRequest().getDocument().getTitle();
     }
 
     private String currentDocumentContent(AgentRunContext context) {
