@@ -122,20 +122,13 @@ class AgentV2ConfigurationSplitTest {
                             SupervisorWorkerIds.REVIEWER,
                             SupervisorWorkerIds.MEMORY
                     );
-            assertThat(workerRegistry.all())
-                    .extracting(SupervisorContext.WorkerDefinition::getCapabilities)
-                    .allSatisfy(capabilities -> assertThat(capabilities).isNotEmpty());
-            assertThat(workerRegistry.get(SupervisorWorkerIds.RESEARCHER).getCapabilities()).containsExactly("research");
             assertThat(workerRegistry.get(SupervisorWorkerIds.RESEARCHER).getExecutionToolAccessRole())
                     .isEqualTo(ExecutionToolAccessRole.RESEARCH);
-            assertThat(workerRegistry.get(SupervisorWorkerIds.WRITER).getCapabilities()).containsExactly("write", "edit");
             assertThat(workerRegistry.get(SupervisorWorkerIds.WRITER).getExecutionToolAccessRole())
                     .isEqualTo(ExecutionToolAccessRole.MAIN_WRITE);
             assertThat(workerRegistry.get(SupervisorWorkerIds.WRITER).getDescription()).contains("grounded");
-            assertThat(workerRegistry.get(SupervisorWorkerIds.REVIEWER).getCapabilities()).containsExactly("review");
             assertThat(workerRegistry.get(SupervisorWorkerIds.REVIEWER).getExecutionToolAccessRole())
                     .isEqualTo(ExecutionToolAccessRole.REVIEW);
-            assertThat(workerRegistry.get(SupervisorWorkerIds.MEMORY).getCapabilities()).containsExactly("memory");
             assertThat(workerRegistry.get(SupervisorWorkerIds.MEMORY).getExecutionToolAccessRole())
                     .isEqualTo(ExecutionToolAccessRole.MEMORY);
             assertThat(workerRegistry.get(SupervisorWorkerIds.RESEARCHER).getAgent()).isInstanceOf(ResearcherAgent.class);

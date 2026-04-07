@@ -40,8 +40,6 @@ public class SupervisorContext extends AgentRunContext {
         private String description;
         // 实际绑定的 agent 实例。
         private Agent agent;
-        // 供 supervisor 做筛选和匹配的能力标签。
-        private List<String> capabilities = List.of();
         // worker 在 execution/tool policy 里的显式访问角色。
         private ExecutionToolAccessRole executionToolAccessRole;
 
@@ -49,27 +47,12 @@ public class SupervisorContext extends AgentRunContext {
                                 String role,
                                 String description,
                                 Agent agent,
-                                List<String> capabilities) {
-            this(workerId, role, description, agent, capabilities, null);
-        }
-
-        public WorkerDefinition(String workerId,
-                                String role,
-                                String description,
-                                Agent agent,
-                                List<String> capabilities,
                                 ExecutionToolAccessRole executionToolAccessRole) {
             this.workerId = workerId;
             this.role = role;
             this.description = description;
             this.agent = agent;
-            setCapabilities(capabilities);
             this.executionToolAccessRole = executionToolAccessRole;
-        }
-
-        public void setCapabilities(List<String> capabilities) {
-            // capability 标签会被 supervisor 用来做候选筛选，因此这里固定成不可变快照。
-            this.capabilities = capabilities == null ? List.of() : List.copyOf(capabilities);
         }
     }
 

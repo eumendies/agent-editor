@@ -125,17 +125,18 @@ public class HybridSupervisorAgent implements SupervisorAgent {
         SupervisorContext.WorkerResult latest = context.getWorkerResults().get(context.getWorkerResults().size() - 1);
         if (SupervisorWorkerIds.WRITER.equals(latest.getWorkerId())) {
             // writer 产出后的下一跳默认先进入 reviewer 复查，避免未审查内容直接被判断完成或再次写作。
-            addByCapability(ordered, allowedWorkers, "review");
+            addByWorkerId(ordered, allowedWorkers, SupervisorWorkerIds.REVIEWER);
         } else if (SupervisorWorkerIds.REVIEWER.equals(latest.getWorkerId())) {
             ReviewerFeedback reviewerFeedback = parseReviewerFeedback(latest.getSummary());
             if (reviewerFeedback != null) {
-                // reviewer 只报告问题类型，不直接命令下一跳；是否重新 research 仍由 supervisor 控制。
+                // reviewer 只报告问题类型，不直接命令下一跳；这里按固定 worker 身份重排优先级，
+                // 避免再依赖 capability 字符串这类容易漂移的展示字段。
                 if (!reviewerFeedback.isEvidenceGrounded()) {
-                    addByCapability(ordered, allowedWorkers, "research");
-                    addByCapability(ordered, allowedWorkers, "write");
+                    addByWorkerId(ordered, allowedWorkers, SupervisorWorkerIds.RESEARCHER);
+                    addByWorkerId(ordered, allowedWorkers, SupervisorWorkerIds.WRITER);
                 } else if (!reviewerFeedback.isInstructionSatisfied()
                         || !reviewerFeedback.getMissingRequirements().isEmpty()) {
-                    addByCapability(ordered, allowedWorkers, "write");
+                    addByWorkerId(ordered, allowedWorkers, SupervisorWorkerIds.WRITER);
                 }
             }
         }
@@ -234,11 +235,11 @@ public class HybridSupervisorAgent implements SupervisorAgent {
         return StructuredOutputParsers.parseJsonWithMarkdownCleanup(summary, ReviewerFeedback.class);
     }
 
-    private void addByCapability(List<SupervisorContext.WorkerDefinition> ordered,
-                                 List<SupervisorContext.WorkerDefinition> allowedWorkers,
-                                 String capability) {
+    private void addByWorkerId(List<SupervisorContext.WorkerDefinition> ordered,
+                               List<SupervisorContext.WorkerDefinition> allowedWorkers,
+                               String workerId) {
         allowedWorkers.stream()
-                .filter(worker -> worker.getCapabilities().contains(capability))
+                .filter(worker -> worker.getWorkerId().equals(workerId))
                 .forEach(worker -> addIfAbsent(ordered, worker));
     }
 

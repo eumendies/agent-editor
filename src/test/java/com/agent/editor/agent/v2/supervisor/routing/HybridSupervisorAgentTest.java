@@ -309,7 +309,7 @@ class HybridSupervisorAgentTest {
                 "session-1",
                 "Revise the draft and make sure it is checked before completion",
                 "Updated draft",
-                ragWorkers(),
+                ragWorkersWithoutCapabilities(),
                 List.of(
                         new SupervisorContext.WorkerResult(SupervisorWorkerIds.RESEARCHER, TaskStatus.COMPLETED, evidenceSummary(), "Draft body"),
                         new SupervisorContext.WorkerResult(SupervisorWorkerIds.WRITER, TaskStatus.COMPLETED, "updated answer", "Updated draft")
@@ -429,7 +429,7 @@ class HybridSupervisorAgentTest {
                 "session-1",
                 "Write an answer grounded in my project materials",
                 "Draft answer",
-                ragWorkers(),
+                ragWorkersWithoutCapabilities(),
                 List.of(
                         new SupervisorContext.WorkerResult(SupervisorWorkerIds.RESEARCHER, TaskStatus.COMPLETED, evidenceSummary(), "Draft body"),
                         new SupervisorContext.WorkerResult(SupervisorWorkerIds.WRITER, TaskStatus.COMPLETED, "updated answer", "Draft answer"),
@@ -450,7 +450,7 @@ class HybridSupervisorAgentTest {
                 "session-1",
                 "Write an answer grounded in my project materials",
                 "Draft answer",
-                ragWorkers(),
+                ragWorkersWithoutCapabilities(),
                 List.of(
                         new SupervisorContext.WorkerResult(SupervisorWorkerIds.RESEARCHER, TaskStatus.COMPLETED, evidenceSummary(), "Draft body"),
                         new SupervisorContext.WorkerResult(SupervisorWorkerIds.WRITER, TaskStatus.COMPLETED, "updated answer", "Draft answer"),
@@ -497,7 +497,6 @@ class HybridSupervisorAgentTest {
                         "Analyzer",
                         "Inspect the document",
                         workerAgent,
-                        List.of("analyze"),
                         ExecutionToolAccessRole.REVIEW
                 ),
                 new SupervisorContext.WorkerDefinition(
@@ -505,7 +504,6 @@ class HybridSupervisorAgentTest {
                         "Editor",
                         "Apply document edits",
                         workerAgent,
-                        List.of("edit"),
                         ExecutionToolAccessRole.MAIN_WRITE
                 ),
                 new SupervisorContext.WorkerDefinition(
@@ -513,7 +511,6 @@ class HybridSupervisorAgentTest {
                         "Reviewer",
                         "Review the updated draft",
                         workerAgent,
-                        List.of("review"),
                         ExecutionToolAccessRole.REVIEW
                 )
         );
@@ -527,7 +524,6 @@ class HybridSupervisorAgentTest {
                         "Researcher",
                         "Collect evidence from the knowledge base.",
                         workerAgent,
-                        List.of("research"),
                         ExecutionToolAccessRole.RESEARCH
                 ),
                 new SupervisorContext.WorkerDefinition(
@@ -535,7 +531,6 @@ class HybridSupervisorAgentTest {
                         "Writer",
                         "Write or revise the document.",
                         workerAgent,
-                        List.of("write"),
                         ExecutionToolAccessRole.MAIN_WRITE
                 ),
                 new SupervisorContext.WorkerDefinition(
@@ -543,7 +538,33 @@ class HybridSupervisorAgentTest {
                         "Reviewer",
                         "Check instruction completion and evidence grounding.",
                         workerAgent,
-                        List.of("review"),
+                        ExecutionToolAccessRole.REVIEW
+                )
+        );
+    }
+
+    private static List<SupervisorContext.WorkerDefinition> ragWorkersWithoutCapabilities() {
+        Agent workerAgent = new NoOpWorkerAgent();
+        return List.of(
+                new SupervisorContext.WorkerDefinition(
+                        SupervisorWorkerIds.RESEARCHER,
+                        "Researcher",
+                        "Collect evidence from the knowledge base.",
+                        workerAgent,
+                        ExecutionToolAccessRole.RESEARCH
+                ),
+                new SupervisorContext.WorkerDefinition(
+                        SupervisorWorkerIds.WRITER,
+                        "Writer",
+                        "Write or revise the document.",
+                        workerAgent,
+                        ExecutionToolAccessRole.MAIN_WRITE
+                ),
+                new SupervisorContext.WorkerDefinition(
+                        SupervisorWorkerIds.REVIEWER,
+                        "Reviewer",
+                        "Check instruction completion and evidence grounding.",
+                        workerAgent,
                         ExecutionToolAccessRole.REVIEW
                 )
         );

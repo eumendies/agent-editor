@@ -14,8 +14,6 @@ import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.List;
-
 @Configuration
 public class SupervisorAgentConfig {
 
@@ -80,7 +78,6 @@ public class SupervisorAgentConfig {
                 "Researcher",
                 "Collect grounded evidence from the knowledge base before downstream writing or review.",
                 researcherAgentDefinition,
-                List.of("research"),
                 ExecutionToolAccessRole.RESEARCH
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
@@ -88,7 +85,6 @@ public class SupervisorAgentConfig {
                 "Writer",
                 "Produce grounded document updates and revisions without introducing unsupported claims.",
                 groundedWriterAgentDefinition,
-                List.of("write", "edit"),
                 ExecutionToolAccessRole.MAIN_WRITE
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
@@ -96,7 +92,6 @@ public class SupervisorAgentConfig {
                 "Reviewer",
                 "Review whether the response follows the user instruction and remains grounded in available evidence.",
                 evidenceReviewerAgentDefinition,
-                List.of("review"),
                 ExecutionToolAccessRole.REVIEW
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
@@ -104,7 +99,6 @@ public class SupervisorAgentConfig {
                 "Memory",
                 "Retrieve and maintain durable document constraints for the current document.",
                 memoryAgentDefinition,
-                List.of("memory"),
                 ExecutionToolAccessRole.MEMORY
         ));
         return workerRegistry;

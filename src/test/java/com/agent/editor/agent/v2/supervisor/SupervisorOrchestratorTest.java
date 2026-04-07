@@ -52,7 +52,6 @@ class SupervisorOrchestratorTest {
                 "Analyzer",
                 "Inspect the document",
                 new StubWorkerAgent("analysis complete"),
-                List.of("review"),
                 ExecutionToolAccessRole.REVIEW
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
@@ -60,7 +59,6 @@ class SupervisorOrchestratorTest {
                 "Editor",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("write", "edit"),
                 ExecutionToolAccessRole.MAIN_WRITE
         ));
 
@@ -118,7 +116,6 @@ class SupervisorOrchestratorTest {
                 "Analyzer",
                 "Inspect the document",
                 new StubWorkerAgent("analysis complete"),
-                List.of("review"),
                 ExecutionToolAccessRole.REVIEW
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
@@ -126,7 +123,6 @@ class SupervisorOrchestratorTest {
                 "Editor",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("write", "edit"),
                 ExecutionToolAccessRole.MAIN_WRITE
         ));
 
@@ -162,7 +158,6 @@ class SupervisorOrchestratorTest {
                 "Analyzer",
                 "Inspect the document",
                 new StubWorkerAgent("analysis complete"),
-                List.of("review"),
                 ExecutionToolAccessRole.REVIEW
         ));
 
@@ -211,7 +206,6 @@ class SupervisorOrchestratorTest {
                 "Analyzer",
                 "Inspect the document",
                 new StubWorkerAgent("analysis complete"),
-                List.of("review"),
                 ExecutionToolAccessRole.REVIEW
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
@@ -219,7 +213,6 @@ class SupervisorOrchestratorTest {
                 "Editor",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("write", "edit"),
                 ExecutionToolAccessRole.MAIN_WRITE
         ));
 
@@ -269,7 +262,6 @@ class SupervisorOrchestratorTest {
                 "Analyzer",
                 "Inspect the document",
                 new StubWorkerAgent("analysis complete"),
-                List.of("review"),
                 ExecutionToolAccessRole.REVIEW
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
@@ -277,7 +269,6 @@ class SupervisorOrchestratorTest {
                 "Editor",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("write", "edit"),
                 ExecutionToolAccessRole.MAIN_WRITE
         ));
 
@@ -317,7 +308,6 @@ class SupervisorOrchestratorTest {
                 "Analyzer",
                 "Inspect the document",
                 new StubWorkerAgent("analysis complete"),
-                List.of("review"),
                 ExecutionToolAccessRole.REVIEW
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
@@ -325,7 +315,6 @@ class SupervisorOrchestratorTest {
                 "Editor",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("write", "edit"),
                 ExecutionToolAccessRole.MAIN_WRITE
         ));
 
@@ -360,7 +349,6 @@ class SupervisorOrchestratorTest {
                 "Researcher",
                 "Gather evidence",
                 new StubWorkerAgent("research complete"),
-                List.of("research"),
                 ExecutionToolAccessRole.RESEARCH
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
@@ -368,7 +356,6 @@ class SupervisorOrchestratorTest {
                 "Editor",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("write", "edit"),
                 ExecutionToolAccessRole.MAIN_WRITE
         ));
 
@@ -405,7 +392,6 @@ class SupervisorOrchestratorTest {
                 "Writer",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("write", "edit"),
                 ExecutionToolAccessRole.MAIN_WRITE
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
@@ -413,7 +399,6 @@ class SupervisorOrchestratorTest {
                 "Reviewer",
                 "Review the document",
                 new StubWorkerAgent("review complete"),
-                List.of("review"),
                 ExecutionToolAccessRole.REVIEW
         ));
 
@@ -458,7 +443,6 @@ class SupervisorOrchestratorTest {
                 "Memory",
                 "Retrieve and maintain durable document constraints",
                 new StubWorkerAgent("memory summary"),
-                List.of("memory"),
                 ExecutionToolAccessRole.MEMORY
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
@@ -466,7 +450,6 @@ class SupervisorOrchestratorTest {
                 "Writer",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("write", "edit"),
                 ExecutionToolAccessRole.MAIN_WRITE
         ));
 
@@ -512,7 +495,6 @@ class SupervisorOrchestratorTest {
                 "Memory",
                 "Retrieve and maintain durable document constraints",
                 new StubWorkerAgent("memory summary"),
-                List.of("memory"),
                 ExecutionToolAccessRole.MEMORY
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
@@ -520,7 +502,6 @@ class SupervisorOrchestratorTest {
                 "Writer",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("write", "edit"),
                 ExecutionToolAccessRole.MAIN_WRITE
         ));
 
@@ -563,7 +544,6 @@ class SupervisorOrchestratorTest {
         invalidWorker.setRole("Writer");
         invalidWorker.setDescription("Apply document edits");
         invalidWorker.setAgent(new StubWorkerAgent("edited content"));
-        invalidWorker.setCapabilities(List.of("write", "edit"));
         workerRegistry.register(invalidWorker);
 
         SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(

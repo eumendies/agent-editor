@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -233,7 +234,6 @@ class SupervisorContextFactoryTest {
                                 "Memory",
                                 "Retrieve and maintain durable document constraints",
                                 new NoOpAgent(),
-                                List.of("memory"),
                                 ExecutionToolAccessRole.MEMORY
                         )
                 )
@@ -245,7 +245,7 @@ class SupervisorContextFactoryTest {
         assertTrue(message.singleText().contains("writer | role=Writer"));
         assertTrue(message.singleText().contains("memory | role=Memory"));
         assertTrue(message.singleText().contains("description=Retrieve and maintain durable document constraints"));
-        assertTrue(message.singleText().contains("capabilities=memory"));
+        assertFalse(message.singleText().contains("capabilities="));
     }
 
     @Test
@@ -302,7 +302,6 @@ class SupervisorContextFactoryTest {
                 workerId.equals(SupervisorWorkerIds.WRITER) ? "Writer" : "Reviewer",
                 workerId.equals(SupervisorWorkerIds.WRITER) ? "Update the document" : "Review the document",
                 new NoOpAgent(),
-                List.of(workerId.equals(SupervisorWorkerIds.WRITER) ? "write" : "review"),
                 workerId.equals(SupervisorWorkerIds.WRITER)
                         ? ExecutionToolAccessRole.MAIN_WRITE
                         : ExecutionToolAccessRole.REVIEW

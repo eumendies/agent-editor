@@ -281,8 +281,7 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
         return candidates.stream()
                 .map(worker -> worker.getWorkerId()
                         + " | role=" + worker.getRole()
-                        + " | description=" + worker.getDescription()
-                        + " | capabilities=" + String.join(", ", worker.getCapabilities()))
+                        + " | description=" + worker.getDescription())
                 .reduce((left, right) -> left + "\n" + right)
                 .orElse("No candidate workers");
     }
