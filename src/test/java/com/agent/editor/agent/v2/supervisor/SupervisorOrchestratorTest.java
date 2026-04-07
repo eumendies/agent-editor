@@ -415,7 +415,8 @@ class SupervisorOrchestratorTest {
         assertEquals(List.of(
                 DocumentToolNames.READ_DOCUMENT_NODE,
                 DocumentToolNames.PATCH_DOCUMENT_NODE,
-                DocumentToolNames.SEARCH_CONTENT
+                DocumentToolNames.SEARCH_CONTENT,
+                MemoryToolNames.SEARCH_MEMORY
         ), runtime.allowedTools().get(0));
         assertEquals(List.of(
                 DocumentToolNames.READ_DOCUMENT_NODE,
@@ -473,7 +474,8 @@ class SupervisorOrchestratorTest {
                 DocumentToolNames.EDIT_DOCUMENT,
                 DocumentToolNames.APPEND_TO_DOCUMENT,
                 DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
-                DocumentToolNames.SEARCH_CONTENT
+                DocumentToolNames.SEARCH_CONTENT,
+                MemoryToolNames.SEARCH_MEMORY
         ), runtime.allowedTools().get(1));
     }
 

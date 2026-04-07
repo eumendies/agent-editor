@@ -13,7 +13,9 @@ import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
 import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
 import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgent;
 import com.agent.editor.agent.v2.supervisor.worker.*;
+import com.agent.editor.agent.v2.supervisor.worker.SupervisorWorkerToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.ExecutionToolAccessPolicy;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessRole;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import com.agent.editor.agent.v2.tool.memory.MemoryToolNames;
 import com.agent.editor.agent.v2.tool.memory.MemoryToolAccessPolicy;
@@ -76,6 +78,7 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy.class);
             assertThat(context).hasSingleBean(MemoryToolAccessPolicy.class);
             assertThat(context).hasSingleBean(ExecutionToolAccessPolicy.class);
+            assertThat(context).hasSingleBean(SupervisorWorkerToolAccessPolicy.class);
             assertThat(context.containsBean("agentV2Config")).isFalse();
             assertThat(context.containsBean("legacyEventAdapter")).isFalse();
         });
@@ -124,10 +127,18 @@ class AgentV2ConfigurationSplitTest {
                     .extracting(SupervisorContext.WorkerDefinition::getCapabilities)
                     .allSatisfy(capabilities -> assertThat(capabilities).isNotEmpty());
             assertThat(workerRegistry.get(SupervisorWorkerIds.RESEARCHER).getCapabilities()).containsExactly("research");
+            assertThat(workerRegistry.get(SupervisorWorkerIds.RESEARCHER).getExecutionToolAccessRole())
+                    .isEqualTo(ExecutionToolAccessRole.RESEARCH);
             assertThat(workerRegistry.get(SupervisorWorkerIds.WRITER).getCapabilities()).containsExactly("write", "edit");
+            assertThat(workerRegistry.get(SupervisorWorkerIds.WRITER).getExecutionToolAccessRole())
+                    .isEqualTo(ExecutionToolAccessRole.MAIN_WRITE);
             assertThat(workerRegistry.get(SupervisorWorkerIds.WRITER).getDescription()).contains("grounded");
             assertThat(workerRegistry.get(SupervisorWorkerIds.REVIEWER).getCapabilities()).containsExactly("review");
+            assertThat(workerRegistry.get(SupervisorWorkerIds.REVIEWER).getExecutionToolAccessRole())
+                    .isEqualTo(ExecutionToolAccessRole.REVIEW);
             assertThat(workerRegistry.get(SupervisorWorkerIds.MEMORY).getCapabilities()).containsExactly("memory");
+            assertThat(workerRegistry.get(SupervisorWorkerIds.MEMORY).getExecutionToolAccessRole())
+                    .isEqualTo(ExecutionToolAccessRole.MEMORY);
             assertThat(workerRegistry.get(SupervisorWorkerIds.RESEARCHER).getAgent()).isInstanceOf(ResearcherAgent.class);
             assertThat(workerRegistry.get(SupervisorWorkerIds.WRITER).getAgent()).isInstanceOf(GroundedWriterAgent.class);
             assertThat(workerRegistry.get(SupervisorWorkerIds.REVIEWER).getAgent()).isInstanceOf(EvidenceReviewerAgent.class);

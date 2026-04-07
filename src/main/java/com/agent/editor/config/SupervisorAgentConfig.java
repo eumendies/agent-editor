@@ -9,6 +9,7 @@ import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
 import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgent;
 import com.agent.editor.agent.v2.supervisor.worker.*;
 import com.agent.editor.agent.v2.supervisor.worker.ResearcherAgent;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessRole;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import com.agent.editor.agent.v2.tool.memory.MemoryToolNames;
 import dev.langchain4j.model.chat.ChatModel;
@@ -82,7 +83,8 @@ public class SupervisorAgentConfig {
                 "Collect grounded evidence from the knowledge base before downstream writing or review.",
                 researcherAgentDefinition,
                 List.of(DocumentToolNames.RETRIEVE_KNOWLEDGE),
-                List.of("research")
+                List.of("research"),
+                ExecutionToolAccessRole.RESEARCH
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 SupervisorWorkerIds.WRITER,
@@ -97,7 +99,8 @@ public class SupervisorAgentConfig {
                         DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
                         DocumentToolNames.SEARCH_CONTENT
                 ),
-                List.of("write", "edit")
+                List.of("write", "edit"),
+                ExecutionToolAccessRole.MAIN_WRITE
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 SupervisorWorkerIds.REVIEWER,
@@ -110,7 +113,8 @@ public class SupervisorAgentConfig {
                         DocumentToolNames.ANALYZE_DOCUMENT,
                         DocumentToolNames.GET_DOCUMENT_SNAPSHOT
                 ),
-                List.of("review")
+                List.of("review"),
+                ExecutionToolAccessRole.REVIEW
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 SupervisorWorkerIds.MEMORY,
@@ -121,7 +125,8 @@ public class SupervisorAgentConfig {
                         MemoryToolNames.SEARCH_MEMORY,
                         MemoryToolNames.UPSERT_MEMORY
                 ),
-                List.of("memory")
+                List.of("memory"),
+                ExecutionToolAccessRole.MEMORY
         ));
         return workerRegistry;
     }

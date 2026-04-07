@@ -32,7 +32,7 @@ public class ExecutionToolAccessPolicy {
      * @return 最终工具白名单
      */
     public List<String> allowedTools(DocumentSnapshot document, ExecutionToolAccessRole role) {
-        return allowedTools(documentToolAccessPolicy.resolveMode(document), role);
+        return allowedTools(resolveMode(document), role);
     }
 
     /**

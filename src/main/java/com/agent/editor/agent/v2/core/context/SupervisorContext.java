@@ -2,6 +2,7 @@ package com.agent.editor.agent.v2.core.context;
 
 import com.agent.editor.agent.v2.core.agent.Agent;
 import com.agent.editor.agent.v2.core.state.TaskStatus;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessRole;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -45,6 +46,8 @@ public class SupervisorContext extends AgentRunContext {
         private List<String> allowedTools = List.of();
         // 供 supervisor 做筛选和匹配的能力标签。
         private List<String> capabilities = List.of();
+        // worker 在 execution/tool policy 里的显式访问角色；为空时可退回 capability 推断。
+        private ExecutionToolAccessRole executionToolAccessRole;
 
         public WorkerDefinition(String workerId,
                                 String role,
@@ -52,6 +55,15 @@ public class SupervisorContext extends AgentRunContext {
                                 Agent agent,
                                 List<String> allowedTools) {
             this(workerId, role, description, agent, allowedTools, List.of());
+        }
+
+        public WorkerDefinition(String workerId,
+                                String role,
+                                String description,
+                                Agent agent,
+                                List<String> allowedTools,
+                                List<String> capabilities) {
+            this(workerId, role, description, agent, allowedTools, capabilities, null);
         }
 
         public void setAllowedTools(List<String> allowedTools) {
