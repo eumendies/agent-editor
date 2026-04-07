@@ -840,6 +840,10 @@
     let isDocumentDirty = false;
     let activeInstruction = "";
     let isTaskRunning = false;
+    let userProfiles = [];
+    let userProfilesLoading = false;
+    let userProfileStatusType = "";
+    let userProfileStatusMessage = "正在等待加载 user profile。";
 
     function syncModeUI(mode) {
         currentMode = mode;
@@ -861,6 +865,64 @@
         saveStatus.className = "save-status" + (type ? " " + type : "");
         saveStatus.textContent = message;
         document.getElementById("documentDirtyState").textContent = isDocumentDirty ? "Unsaved changes" : "Saved";
+    }
+
+    function renderUserProfileStatus(type, message) {
+        userProfileStatusType = type || "";
+        userProfileStatusMessage = message || "";
+
+        const status = document.getElementById("userProfileStatus");
+        status.className = "user-profile-status" + (userProfileStatusType ? " " + userProfileStatusType : "");
+        status.textContent = userProfileStatusMessage;
+    }
+
+    function renderUserProfiles() {
+        const list = document.getElementById("userProfileList");
+
+        if (userProfilesLoading) {
+            list.innerHTML = `<div class="empty-state">正在加载 user profile...</div>`;
+            return;
+        }
+
+        if (!Array.isArray(userProfiles) || userProfiles.length === 0) {
+            list.innerHTML = `<div class="empty-state">当前还没有 user profile。新增后，这些偏好会在后续任务里持续生效。</div>`;
+            return;
+        }
+
+        list.innerHTML = userProfiles.map((profile, index) => `
+            <article class="user-profile-card">
+                <div class="user-profile-card-topline">
+                    <div class="user-profile-card-title">Profile ${index + 1}</div>
+                </div>
+                <div class="user-profile-card-body">${escapeHtml(profile.summary || "").replace(/\n/g, "<br>")}</div>
+            </article>
+        `).join("");
+    }
+
+    async function loadUserProfiles() {
+        userProfilesLoading = true;
+        renderUserProfileStatus("", "正在加载 user profile...");
+        renderUserProfiles();
+
+        try {
+            const response = await fetch("/api/v2/memory/profiles");
+            if (!response.ok) {
+                throw new Error("User profile request failed");
+            }
+
+            const result = await response.json();
+            userProfiles = Array.isArray(result) ? result : [];
+            renderUserProfileStatus("success", userProfiles.length > 0
+                ? `已加载 ${userProfiles.length} 条 user profile。`
+                : "当前还没有 user profile。");
+        } catch (error) {
+            console.error("Error loading user profiles:", error);
+            userProfiles = [];
+            renderUserProfileStatus("error", `加载 user profile 失败: ${error.message}`);
+        } finally {
+            userProfilesLoading = false;
+            renderUserProfiles();
+        }
     }
 
     function markDocumentDirty(dirty) {
@@ -1570,6 +1632,7 @@
         const documentId = await loadDocumentOptions();
         await refreshDocument(documentId);
         await loadPendingDiff(documentId);
+        await loadUserProfiles();
         updateMessageCount();
     };
 </script>
