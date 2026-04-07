@@ -307,7 +307,7 @@
 
         .chat-panel {
             display: grid;
-            grid-template-rows: auto auto minmax(0, 1fr) auto;
+            grid-template-rows: auto auto minmax(0, 1fr) auto auto;
             gap: 16px;
             height: min(860px, calc(100vh - 56px));
             overflow: hidden;
@@ -457,6 +457,96 @@
             grid-template-columns: minmax(0, 1fr) auto;
             gap: 12px;
             align-items: end;
+        }
+
+        .user-profile-panel {
+            display: grid;
+            gap: 14px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .user-profile-intro {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        #newUserProfileInput,
+        .user-profile-edit-input {
+            min-height: 92px;
+            padding: 16px;
+            resize: vertical;
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        .user-profile-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .user-profile-status {
+            min-height: 20px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .user-profile-status.success {
+            color: var(--success);
+        }
+
+        .user-profile-status.error {
+            color: var(--danger);
+        }
+
+        .user-profile-list {
+            display: grid;
+            gap: 12px;
+            max-height: min(260px, 30vh);
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .user-profile-card {
+            display: grid;
+            gap: 12px;
+            padding: 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(5, 10, 20, 0.7);
+        }
+
+        .user-profile-card-topline {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-profile-card-title {
+            color: var(--muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .user-profile-card-body {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .user-profile-card-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         .knowledge-section {
@@ -668,6 +758,31 @@
                     <button id="sendButton" class="primary-btn" onclick="sendCurrentMessage()">Send</button>
                 </div>
             </div>
+
+            <!-- user profile 是长期生效的用户偏好，需要在主工作台中显式展示，避免用户只能被动依赖后端注入却无法查看或维护。 -->
+            <section id="userProfilePanel" class="user-profile-panel">
+                <div>
+                    <div class="panel-subtitle">Long-Term Memory</div>
+                    <div class="panel-title" style="font-size: 20px;">User Profile Memory</div>
+                    <div class="user-profile-intro">
+                        这些条目会作为长期用户偏好注入后续任务。这里的内容应由你手工维护，AI 只会读取，不会自动替你写入。
+                    </div>
+                </div>
+
+                <div>
+                    <label class="field-label" for="newUserProfileInput">Add Profile</label>
+                    <textarea id="newUserProfileInput" placeholder="例如：默认使用中文回答；偏好简洁总结；避免营销化措辞。"></textarea>
+                </div>
+
+                <div class="user-profile-actions">
+                    <button id="addUserProfileBtn" class="secondary-btn" type="button">Add Profile</button>
+                    <div id="userProfileStatus" class="user-profile-status">正在等待加载 user profile。</div>
+                </div>
+
+                <div id="userProfileList" class="user-profile-list">
+                    <div class="empty-state">当前还没有 user profile。新增后，这些偏好会在后续任务里持续生效。</div>
+                </div>
+            </section>
         </aside>
     </section>
 
