@@ -307,10 +307,7 @@
 
         .chat-panel {
             display: grid;
-            grid-template-rows: auto auto minmax(180px, 1fr) auto auto;
             gap: 16px;
-            max-height: calc(100vh - 56px);
-            overflow-y: auto;
         }
 
         .chat-meta {
@@ -327,14 +324,12 @@
         }
 
         .chat-scroll-shell {
-            min-height: 0;
             overflow: hidden;
-            display: grid;
         }
 
         .message-list {
-            height: 100%;
-            min-height: 0;
+            min-height: 180px;
+            max-height: min(420px, 42vh);
             overflow-y: auto;
             display: grid;
             gap: 12px;
@@ -439,7 +434,7 @@
         }
 
         #instructionInput {
-            min-height: 120px;
+            min-height: 84px;
             padding: 18px;
             resize: vertical;
             line-height: 1.7;
