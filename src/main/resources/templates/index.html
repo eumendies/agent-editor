@@ -775,7 +775,7 @@
                 </div>
 
                 <div class="user-profile-actions">
-                    <button id="addUserProfileBtn" class="secondary-btn" type="button">Add Profile</button>
+                    <button id="addUserProfileBtn" class="secondary-btn" type="button" onclick="createUserProfile()">Add Profile</button>
                     <div id="userProfileStatus" class="user-profile-status">正在等待加载 user profile。</div>
                 </div>
 
@@ -844,6 +844,9 @@
     let userProfilesLoading = false;
     let userProfileStatusType = "";
     let userProfileStatusMessage = "正在等待加载 user profile。";
+    let userProfilesMutating = false;
+    let editingProfileId = null;
+    let editingProfileDraft = "";
 
     function syncModeUI(mode) {
         currentMode = mode;
@@ -894,7 +897,22 @@
                 <div class="user-profile-card-topline">
                     <div class="user-profile-card-title">Profile ${index + 1}</div>
                 </div>
-                <div class="user-profile-card-body">${escapeHtml(profile.summary || "").replace(/\n/g, "<br>")}</div>
+                ${editingProfileId === profile.memoryId ? `
+                    <textarea
+                        class="user-profile-edit-input"
+                        oninput="syncEditingUserProfileDraft(this.value)"
+                    >${escapeHtml(editingProfileDraft)}</textarea>
+                    <div class="user-profile-card-actions">
+                        <button class="primary-btn" type="button" onclick='saveUserProfile(${JSON.stringify(profile.memoryId || "")})' ${userProfilesMutating ? "disabled" : ""}>Save</button>
+                        <button class="secondary-btn" type="button" onclick="cancelEditingUserProfile()" ${userProfilesMutating ? "disabled" : ""}>Cancel</button>
+                    </div>
+                ` : `
+                    <div class="user-profile-card-body">${escapeHtml(profile.summary || "").replace(/\n/g, "<br>")}</div>
+                    <div class="user-profile-card-actions">
+                        <button class="secondary-btn" type="button" onclick='startEditingUserProfile(${JSON.stringify(profile.memoryId || "")})' ${userProfilesMutating ? "disabled" : ""}>Edit</button>
+                        <button class="secondary-btn" type="button" onclick='deleteUserProfile(${JSON.stringify(profile.memoryId || "")})' ${userProfilesMutating ? "disabled" : ""}>Delete</button>
+                    </div>
+                `}
             </article>
         `).join("");
     }
@@ -922,6 +940,127 @@
         } finally {
             userProfilesLoading = false;
             renderUserProfiles();
+        }
+    }
+
+    function syncEditingUserProfileDraft(value) {
+        editingProfileDraft = value || "";
+    }
+
+    function setUserProfileMutationState(mutating, message) {
+        userProfilesMutating = mutating;
+        document.getElementById("addUserProfileBtn").disabled = mutating;
+        document.getElementById("newUserProfileInput").disabled = mutating;
+        if (message) {
+            renderUserProfileStatus("", message);
+        }
+        renderUserProfiles();
+    }
+
+    async function createUserProfile() {
+        const input = document.getElementById("newUserProfileInput");
+        const summary = input.value.trim();
+        if (!summary) {
+            renderUserProfileStatus("error", "请输入要长期保留的 user profile。");
+            return;
+        }
+
+        setUserProfileMutationState(true, "正在新增 user profile...");
+        try {
+            const response = await fetch("/api/v2/memory/profiles", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({summary})
+            });
+            if (!response.ok) {
+                throw new Error(await extractErrorMessage(response, "Create user profile failed"));
+            }
+
+            input.value = "";
+            renderUserProfileStatus("success", "已新增 user profile。");
+            await loadUserProfiles();
+        } catch (error) {
+            renderUserProfileStatus("error", `新增 user profile 失败: ${error.message}`);
+        } finally {
+            setUserProfileMutationState(false);
+        }
+    }
+
+    function startEditingUserProfile(memoryId) {
+        const profile = userProfiles.find(item => item.memoryId === memoryId);
+        if (!profile) {
+            renderUserProfileStatus("error", "找不到要编辑的 user profile。");
+            return;
+        }
+
+        editingProfileId = memoryId;
+        editingProfileDraft = profile.summary || "";
+        renderUserProfileStatus("", "正在编辑 user profile。");
+        renderUserProfiles();
+    }
+
+    function cancelEditingUserProfile() {
+        editingProfileId = null;
+        editingProfileDraft = "";
+        renderUserProfileStatus("", "已取消编辑。");
+        renderUserProfiles();
+    }
+
+    async function saveUserProfile(memoryId) {
+        const summary = editingProfileDraft.trim();
+        if (!summary) {
+            renderUserProfileStatus("error", "user profile 不能为空。");
+            return;
+        }
+
+        // 编辑态始终以当前选中的 memoryId 为准，保存成功后重新从服务端拉取，避免前端本地列表和后端状态漂移。
+        setUserProfileMutationState(true, "正在保存 user profile...");
+        try {
+            const response = await fetch(`/api/v2/memory/profiles/${encodeURIComponent(memoryId)}`, {
+                method: "PUT",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({summary})
+            });
+            if (!response.ok) {
+                throw new Error(await extractErrorMessage(response, "Update user profile failed"));
+            }
+
+            editingProfileId = null;
+            editingProfileDraft = "";
+            renderUserProfileStatus("success", "已更新 user profile。");
+            await loadUserProfiles();
+        } catch (error) {
+            renderUserProfileStatus("error", `更新 user profile 失败: ${error.message}`);
+        } finally {
+            setUserProfileMutationState(false);
+        }
+    }
+
+    async function deleteUserProfile(memoryId) {
+        if (!window.confirm("确认删除这条 user profile 吗？")) {
+            return;
+        }
+
+        // 删除成功后统一重新加载列表，保证当前编辑态、空状态和服务端真实数据一起收敛。
+        setUserProfileMutationState(true, "正在删除 user profile...");
+        try {
+            const response = await fetch(`/api/v2/memory/profiles/${encodeURIComponent(memoryId)}`, {
+                method: "DELETE"
+            });
+            if (!response.ok) {
+                throw new Error(await extractErrorMessage(response, "Delete user profile failed"));
+            }
+
+            if (editingProfileId === memoryId) {
+                editingProfileId = null;
+                editingProfileDraft = "";
+            }
+            renderUserProfileStatus("success", "已删除 user profile。");
+            await loadUserProfiles();
+        } catch (error) {
+            renderUserProfileStatus("error", `删除 user profile 失败: ${error.message}`);
+        } finally {
+            setUserProfileMutationState(false);
         }
     }
 
