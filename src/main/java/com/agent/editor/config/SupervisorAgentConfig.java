@@ -10,8 +10,6 @@ import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgent;
 import com.agent.editor.agent.v2.supervisor.worker.*;
 import com.agent.editor.agent.v2.supervisor.worker.ResearcherAgent;
 import com.agent.editor.agent.v2.tool.ExecutionToolAccessRole;
-import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
-import com.agent.editor.agent.v2.tool.memory.MemoryToolNames;
 import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -82,7 +80,6 @@ public class SupervisorAgentConfig {
                 "Researcher",
                 "Collect grounded evidence from the knowledge base before downstream writing or review.",
                 researcherAgentDefinition,
-                List.of(DocumentToolNames.RETRIEVE_KNOWLEDGE),
                 List.of("research"),
                 ExecutionToolAccessRole.RESEARCH
         ));
@@ -91,14 +88,6 @@ public class SupervisorAgentConfig {
                 "Writer",
                 "Produce grounded document updates and revisions without introducing unsupported claims.",
                 groundedWriterAgentDefinition,
-                List.of(
-                        DocumentToolNames.READ_DOCUMENT_NODE,
-                        DocumentToolNames.PATCH_DOCUMENT_NODE,
-                        DocumentToolNames.EDIT_DOCUMENT,
-                        DocumentToolNames.APPEND_TO_DOCUMENT,
-                        DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
-                        DocumentToolNames.SEARCH_CONTENT
-                ),
                 List.of("write", "edit"),
                 ExecutionToolAccessRole.MAIN_WRITE
         ));
@@ -107,12 +96,6 @@ public class SupervisorAgentConfig {
                 "Reviewer",
                 "Review whether the response follows the user instruction and remains grounded in available evidence.",
                 evidenceReviewerAgentDefinition,
-                List.of(
-                        DocumentToolNames.READ_DOCUMENT_NODE,
-                        DocumentToolNames.SEARCH_CONTENT,
-                        DocumentToolNames.ANALYZE_DOCUMENT,
-                        DocumentToolNames.GET_DOCUMENT_SNAPSHOT
-                ),
                 List.of("review"),
                 ExecutionToolAccessRole.REVIEW
         ));
@@ -121,10 +104,6 @@ public class SupervisorAgentConfig {
                 "Memory",
                 "Retrieve and maintain durable document constraints for the current document.",
                 memoryAgentDefinition,
-                List.of(
-                        MemoryToolNames.SEARCH_MEMORY,
-                        MemoryToolNames.UPSERT_MEMORY
-                ),
                 List.of("memory"),
                 ExecutionToolAccessRole.MEMORY
         ));

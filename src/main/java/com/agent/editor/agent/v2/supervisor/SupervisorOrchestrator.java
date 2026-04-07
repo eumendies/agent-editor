@@ -258,10 +258,10 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
     private List<String> resolveWorkerAllowedTools(SupervisorContext.WorkerDefinition worker,
                                                    DocumentToolMode documentToolMode) {
         ExecutionToolAccessRole executionToolAccessRole = worker.getExecutionToolAccessRole();
-        if (executionToolAccessRole != null) {
-            return executionToolAccessPolicy.allowedTools(documentToolMode, executionToolAccessRole);
+        if (executionToolAccessRole == null) {
+            // worker 工具权限完全由 execution role 推导；缺失 role 说明配置不完整，不能退回旧式静态工具名单。
+            throw new IllegalStateException("Worker missing executionToolAccessRole: " + worker.getWorkerId());
         }
-        // 真实配置的 supervisor worker 都应声明 execution role；这里只兼容测试里手写的临时 worker。
-        return worker.getAllowedTools();
+        return executionToolAccessPolicy.allowedTools(documentToolMode, executionToolAccessRole);
     }
 }

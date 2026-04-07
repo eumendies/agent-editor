@@ -16,6 +16,7 @@ import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessRole;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -232,8 +233,8 @@ class SupervisorContextFactoryTest {
                                 "Memory",
                                 "Retrieve and maintain durable document constraints",
                                 new NoOpAgent(),
-                                List.of("searchMemory", "upsertMemory"),
-                                List.of("memory")
+                                List.of("memory"),
+                                ExecutionToolAccessRole.MEMORY
                         )
                 )
         );
@@ -301,8 +302,10 @@ class SupervisorContextFactoryTest {
                 workerId.equals(SupervisorWorkerIds.WRITER) ? "Writer" : "Reviewer",
                 workerId.equals(SupervisorWorkerIds.WRITER) ? "Update the document" : "Review the document",
                 new NoOpAgent(),
-                List.of("editDocument"),
-                List.of(workerId.equals(SupervisorWorkerIds.WRITER) ? "write" : "review")
+                List.of(workerId.equals(SupervisorWorkerIds.WRITER) ? "write" : "review"),
+                workerId.equals(SupervisorWorkerIds.WRITER)
+                        ? ExecutionToolAccessRole.MAIN_WRITE
+                        : ExecutionToolAccessRole.REVIEW
         );
     }
 

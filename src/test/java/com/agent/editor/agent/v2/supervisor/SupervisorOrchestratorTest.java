@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SupervisorOrchestratorTest {
@@ -51,14 +52,16 @@ class SupervisorOrchestratorTest {
                 "Analyzer",
                 "Inspect the document",
                 new StubWorkerAgent("analysis complete"),
-                List.of("searchContent", "analyzeDocument")
+                List.of("review"),
+                ExecutionToolAccessRole.REVIEW
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "editor",
                 "Editor",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("editDocument", "appendToDocument", "getDocumentSnapshot")
+                List.of("write", "edit"),
+                ExecutionToolAccessRole.MAIN_WRITE
         ));
 
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
@@ -89,8 +92,18 @@ class SupervisorOrchestratorTest {
         assertEquals(List.of("analyzer", "editor"), runtime.workerIds());
         assertEquals(3, supervisorRuntime.runCount);
         assertEquals(List.of(
-                List.of("searchContent", "analyzeDocument"),
-                List.of("editDocument", "appendToDocument", "getDocumentSnapshot")
+                List.of(
+                        DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
+                        DocumentToolNames.SEARCH_CONTENT,
+                        DocumentToolNames.ANALYZE_DOCUMENT
+                ),
+                List.of(
+                        DocumentToolNames.EDIT_DOCUMENT,
+                        DocumentToolNames.APPEND_TO_DOCUMENT,
+                        DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
+                        DocumentToolNames.SEARCH_CONTENT,
+                        MemoryToolNames.SEARCH_MEMORY
+                )
         ), runtime.allowedTools());
         assertEquals(EventType.WORKER_SELECTED, eventPublisher.events().get(0).getType());
         assertEquals(EventType.SUPERVISOR_COMPLETED, eventPublisher.events().get(eventPublisher.events().size() - 1).getType());
@@ -105,14 +118,16 @@ class SupervisorOrchestratorTest {
                 "Analyzer",
                 "Inspect the document",
                 new StubWorkerAgent("analysis complete"),
-                List.of("searchContent")
+                List.of("review"),
+                ExecutionToolAccessRole.REVIEW
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "editor",
                 "Editor",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("editDocument", "appendToDocument", "getDocumentSnapshot")
+                List.of("write", "edit"),
+                ExecutionToolAccessRole.MAIN_WRITE
         ));
 
         RecordingSupervisorExecutionRuntime supervisorRuntime = new RecordingSupervisorExecutionRuntime();
@@ -147,7 +162,8 @@ class SupervisorOrchestratorTest {
                 "Analyzer",
                 "Inspect the document",
                 new StubWorkerAgent("analysis complete"),
-                List.of("searchContent")
+                List.of("review"),
+                ExecutionToolAccessRole.REVIEW
         ));
 
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
@@ -195,14 +211,16 @@ class SupervisorOrchestratorTest {
                 "Analyzer",
                 "Inspect the document",
                 new StubWorkerAgent("analysis complete"),
-                List.of("searchContent")
+                List.of("review"),
+                ExecutionToolAccessRole.REVIEW
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "editor",
                 "Editor",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("editDocument", "appendToDocument", "getDocumentSnapshot")
+                List.of("write", "edit"),
+                ExecutionToolAccessRole.MAIN_WRITE
         ));
 
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
@@ -251,14 +269,16 @@ class SupervisorOrchestratorTest {
                 "Analyzer",
                 "Inspect the document",
                 new StubWorkerAgent("analysis complete"),
-                List.of("searchContent")
+                List.of("review"),
+                ExecutionToolAccessRole.REVIEW
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "editor",
                 "Editor",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("editDocument", "appendToDocument", "getDocumentSnapshot")
+                List.of("write", "edit"),
+                ExecutionToolAccessRole.MAIN_WRITE
         ));
 
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
@@ -297,14 +317,16 @@ class SupervisorOrchestratorTest {
                 "Analyzer",
                 "Inspect the document",
                 new StubWorkerAgent("analysis complete"),
-                List.of("searchContent")
+                List.of("review"),
+                ExecutionToolAccessRole.REVIEW
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "editor",
                 "Editor",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("editDocument")
+                List.of("write", "edit"),
+                ExecutionToolAccessRole.MAIN_WRITE
         ));
 
         SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(
@@ -338,7 +360,6 @@ class SupervisorOrchestratorTest {
                 "Researcher",
                 "Gather evidence",
                 new StubWorkerAgent("research complete"),
-                List.of("retrieveKnowledge"),
                 List.of("research"),
                 ExecutionToolAccessRole.RESEARCH
         ));
@@ -347,7 +368,8 @@ class SupervisorOrchestratorTest {
                 "Editor",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of("editDocument")
+                List.of("write", "edit"),
+                ExecutionToolAccessRole.MAIN_WRITE
         ));
 
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
@@ -383,7 +405,6 @@ class SupervisorOrchestratorTest {
                 "Writer",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of(DocumentToolNames.EDIT_DOCUMENT),
                 List.of("write", "edit"),
                 ExecutionToolAccessRole.MAIN_WRITE
         ));
@@ -392,7 +413,6 @@ class SupervisorOrchestratorTest {
                 "Reviewer",
                 "Review the document",
                 new StubWorkerAgent("review complete"),
-                List.of(DocumentToolNames.GET_DOCUMENT_SNAPSHOT),
                 List.of("review"),
                 ExecutionToolAccessRole.REVIEW
         ));
@@ -438,7 +458,6 @@ class SupervisorOrchestratorTest {
                 "Memory",
                 "Retrieve and maintain durable document constraints",
                 new StubWorkerAgent("memory summary"),
-                List.of(),
                 List.of("memory"),
                 ExecutionToolAccessRole.MEMORY
         ));
@@ -447,7 +466,6 @@ class SupervisorOrchestratorTest {
                 "Writer",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of(DocumentToolNames.EDIT_DOCUMENT),
                 List.of("write", "edit"),
                 ExecutionToolAccessRole.MAIN_WRITE
         ));
@@ -494,7 +512,6 @@ class SupervisorOrchestratorTest {
                 "Memory",
                 "Retrieve and maintain durable document constraints",
                 new StubWorkerAgent("memory summary"),
-                List.of(MemoryToolNames.SEARCH_MEMORY, MemoryToolNames.UPSERT_MEMORY),
                 List.of("memory"),
                 ExecutionToolAccessRole.MEMORY
         ));
@@ -503,7 +520,6 @@ class SupervisorOrchestratorTest {
                 "Writer",
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
-                List.of(DocumentToolNames.EDIT_DOCUMENT),
                 List.of("write", "edit"),
                 ExecutionToolAccessRole.MAIN_WRITE
         ));
@@ -537,6 +553,40 @@ class SupervisorOrchestratorTest {
                 message.getText().contains("guidanceForDownstreamWorkers")
         ));
         assertTrue(writerMemory.getMessages().stream().noneMatch(ChatMessage.ToolExecutionResultChatMessage.class::isInstance));
+    }
+
+    @Test
+    void shouldRejectWorkerWithoutExecutionToolAccessRole() {
+        WorkerRegistry workerRegistry = new WorkerRegistry();
+        SupervisorContext.WorkerDefinition invalidWorker = new SupervisorContext.WorkerDefinition();
+        invalidWorker.setWorkerId("writer");
+        invalidWorker.setRole("Writer");
+        invalidWorker.setDescription("Apply document edits");
+        invalidWorker.setAgent(new StubWorkerAgent("edited content"));
+        invalidWorker.setCapabilities(List.of("write", "edit"));
+        workerRegistry.register(invalidWorker);
+
+        SupervisorOrchestrator orchestrator = new SupervisorOrchestrator(
+                new SingleWorkerSupervisorAgent("writer"),
+                new RecordingSupervisorExecutionRuntime(),
+                workerRegistry,
+                new RecordingExecutionRuntime(),
+                event -> {},
+                new SupervisorContextFactory(NoOpMemoryCompressors.noop()),
+                documentToolAccessPolicy(100)
+        );
+
+        IllegalStateException error = assertThrows(IllegalStateException.class, () -> orchestrator.execute(new TaskRequest(
+                "task-11",
+                "session-11",
+                AgentType.SUPERVISOR,
+                new DocumentSnapshot("doc-11", "Title", "body"),
+                "Improve this document",
+                5
+        )));
+
+        assertTrue(error.getMessage().contains("executionToolAccessRole"));
+        assertTrue(error.getMessage().contains("writer"));
     }
 
     private DocumentToolAccessPolicy documentToolAccessPolicy(int threshold) {
@@ -649,6 +699,28 @@ class SupervisorOrchestratorTest {
                 return new SupervisorDecision.AssignWorker(SupervisorWorkerIds.WRITER, "Apply the recommended edits", "move to editing");
             }
             return new SupervisorDecision.Complete(context.getCurrentContent(), "workers done", "finalized by supervisor");
+        }
+    }
+
+    private static final class SingleWorkerSupervisorAgent implements SupervisorAgent {
+
+        private final String workerId;
+
+        private SingleWorkerSupervisorAgent(String workerId) {
+            this.workerId = workerId;
+        }
+
+        @Override
+        public AgentType type() {
+            return AgentType.SUPERVISOR;
+        }
+
+        @Override
+        public SupervisorDecision decide(SupervisorContext context) {
+            if (context.getWorkerResults().isEmpty()) {
+                return new SupervisorDecision.AssignWorker(workerId, "Apply the recommended edits", "single worker step");
+            }
+            return new SupervisorDecision.Complete(context.getCurrentContent(), "worker done", "finalized by supervisor");
         }
     }
 

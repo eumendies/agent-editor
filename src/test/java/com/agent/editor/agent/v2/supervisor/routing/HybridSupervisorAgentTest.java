@@ -16,6 +16,7 @@ import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
 import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
 import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessRole;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -496,24 +497,24 @@ class HybridSupervisorAgentTest {
                         "Analyzer",
                         "Inspect the document",
                         workerAgent,
-                        List.of("searchContent", "analyzeDocument"),
-                        List.of("analyze")
+                        List.of("analyze"),
+                        ExecutionToolAccessRole.REVIEW
                 ),
                 new SupervisorContext.WorkerDefinition(
                         "editor",
                         "Editor",
                         "Apply document edits",
                         workerAgent,
-                        List.of("editDocument", "appendToDocument", "getDocumentSnapshot"),
-                        List.of("edit")
+                        List.of("edit"),
+                        ExecutionToolAccessRole.MAIN_WRITE
                 ),
                 new SupervisorContext.WorkerDefinition(
                         SupervisorWorkerIds.REVIEWER,
                         "Reviewer",
                         "Review the updated draft",
                         workerAgent,
-                        List.of("searchContent", "analyzeDocument"),
-                        List.of("review")
+                        List.of("review"),
+                        ExecutionToolAccessRole.REVIEW
                 )
         );
     }
@@ -526,24 +527,24 @@ class HybridSupervisorAgentTest {
                         "Researcher",
                         "Collect evidence from the knowledge base.",
                         workerAgent,
-                        List.of("retrieveKnowledge"),
-                        List.of("research")
+                        List.of("research"),
+                        ExecutionToolAccessRole.RESEARCH
                 ),
                 new SupervisorContext.WorkerDefinition(
                         SupervisorWorkerIds.WRITER,
                         "Writer",
                         "Write or revise the document.",
                         workerAgent,
-                        List.of("editDocument", "appendToDocument", "getDocumentSnapshot"),
-                        List.of("write")
+                        List.of("write"),
+                        ExecutionToolAccessRole.MAIN_WRITE
                 ),
                 new SupervisorContext.WorkerDefinition(
                         SupervisorWorkerIds.REVIEWER,
                         "Reviewer",
                         "Check instruction completion and evidence grounding.",
                         workerAgent,
-                        List.of("searchContent"),
-                        List.of("review")
+                        List.of("review"),
+                        ExecutionToolAccessRole.REVIEW
                 )
         );
     }

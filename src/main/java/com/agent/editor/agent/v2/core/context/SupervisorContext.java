@@ -14,7 +14,6 @@ import java.util.List;
  * supervisor 执行时使用的上下文，额外携带可调度 worker 及其执行结果。
  */
 @Data
-@AllArgsConstructor
 @SuperBuilder
 public class SupervisorContext extends AgentRunContext {
     // 当前 supervisor 可选择分派的 worker 列表。
@@ -31,7 +30,6 @@ public class SupervisorContext extends AgentRunContext {
     }
 
     @Data
-    @AllArgsConstructor
     @NoArgsConstructor
     public static class WorkerDefinition {
         // worker 唯一标识。
@@ -42,32 +40,31 @@ public class SupervisorContext extends AgentRunContext {
         private String description;
         // 实际绑定的 agent 实例。
         private Agent agent;
-        // 分配给该 worker 的工具白名单。
-        private List<String> allowedTools = List.of();
         // 供 supervisor 做筛选和匹配的能力标签。
         private List<String> capabilities = List.of();
-        // worker 在 execution/tool policy 里的显式访问角色；为空时可退回 capability 推断。
+        // worker 在 execution/tool policy 里的显式访问角色。
         private ExecutionToolAccessRole executionToolAccessRole;
 
         public WorkerDefinition(String workerId,
                                 String role,
                                 String description,
                                 Agent agent,
-                                List<String> allowedTools) {
-            this(workerId, role, description, agent, allowedTools, List.of());
+                                List<String> capabilities) {
+            this(workerId, role, description, agent, capabilities, null);
         }
 
         public WorkerDefinition(String workerId,
                                 String role,
                                 String description,
                                 Agent agent,
-                                List<String> allowedTools,
-                                List<String> capabilities) {
-            this(workerId, role, description, agent, allowedTools, capabilities, null);
-        }
-
-        public void setAllowedTools(List<String> allowedTools) {
-            this.allowedTools = allowedTools == null ? List.of() : List.copyOf(allowedTools);
+                                List<String> capabilities,
+                                ExecutionToolAccessRole executionToolAccessRole) {
+            this.workerId = workerId;
+            this.role = role;
+            this.description = description;
+            this.agent = agent;
+            setCapabilities(capabilities);
+            this.executionToolAccessRole = executionToolAccessRole;
         }
 
         public void setCapabilities(List<String> capabilities) {

@@ -16,7 +16,6 @@ import com.agent.editor.agent.v2.supervisor.worker.*;
 import com.agent.editor.agent.v2.tool.ExecutionToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.ExecutionToolAccessRole;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
-import com.agent.editor.agent.v2.tool.memory.MemoryToolNames;
 import com.agent.editor.agent.v2.tool.memory.MemoryToolAccessPolicy;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.supervisor.worker.EvidenceReviewerAgent;
@@ -151,8 +150,6 @@ class AgentV2ConfigurationSplitTest {
                     .isSameAs(context.getBean(EvidenceReviewerAgentContextFactory.class));
             assertThat(ReflectionTestUtils.getField(workerRegistry.get(SupervisorWorkerIds.MEMORY).getAgent(), "contextFactory"))
                     .isSameAs(context.getBean(MemoryAgentContextFactory.class));
-            assertThat(workerRegistry.get(SupervisorWorkerIds.MEMORY).getAllowedTools())
-                    .containsExactly(MemoryToolNames.SEARCH_MEMORY, MemoryToolNames.UPSERT_MEMORY);
         });
     }
 
