@@ -25,6 +25,7 @@ import com.agent.editor.agent.v2.trace.TraceStore;
 import com.agent.editor.agent.v2.supervisor.worker.WorkerRegistry;
 import com.agent.editor.agent.v2.support.NoOpMemoryCompressors;
 import com.agent.editor.agent.v2.tool.ExecutionToolAccessPolicy;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessRole;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
 import com.agent.editor.agent.v2.tool.memory.MemoryToolAccessPolicy;
@@ -337,7 +338,9 @@ class SupervisorOrchestratorTest {
                 "Researcher",
                 "Gather evidence",
                 new StubWorkerAgent("research complete"),
-                List.of("retrieveKnowledge")
+                List.of("retrieveKnowledge"),
+                List.of("research"),
+                ExecutionToolAccessRole.RESEARCH
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 "editor",
@@ -381,7 +384,8 @@ class SupervisorOrchestratorTest {
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
                 List.of(DocumentToolNames.EDIT_DOCUMENT),
-                List.of("write", "edit")
+                List.of("write", "edit"),
+                ExecutionToolAccessRole.MAIN_WRITE
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 SupervisorWorkerIds.REVIEWER,
@@ -389,7 +393,8 @@ class SupervisorOrchestratorTest {
                 "Review the document",
                 new StubWorkerAgent("review complete"),
                 List.of(DocumentToolNames.GET_DOCUMENT_SNAPSHOT),
-                List.of("review")
+                List.of("review"),
+                ExecutionToolAccessRole.REVIEW
         ));
 
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
@@ -434,7 +439,8 @@ class SupervisorOrchestratorTest {
                 "Retrieve and maintain durable document constraints",
                 new StubWorkerAgent("memory summary"),
                 List.of(),
-                List.of("memory")
+                List.of("memory"),
+                ExecutionToolAccessRole.MEMORY
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 SupervisorWorkerIds.WRITER,
@@ -442,7 +448,8 @@ class SupervisorOrchestratorTest {
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
                 List.of(DocumentToolNames.EDIT_DOCUMENT),
-                List.of("write", "edit")
+                List.of("write", "edit"),
+                ExecutionToolAccessRole.MAIN_WRITE
         ));
 
         RecordingExecutionRuntime runtime = new RecordingExecutionRuntime();
@@ -488,7 +495,8 @@ class SupervisorOrchestratorTest {
                 "Retrieve and maintain durable document constraints",
                 new StubWorkerAgent("memory summary"),
                 List.of(MemoryToolNames.SEARCH_MEMORY, MemoryToolNames.UPSERT_MEMORY),
-                List.of("memory")
+                List.of("memory"),
+                ExecutionToolAccessRole.MEMORY
         ));
         workerRegistry.register(new SupervisorContext.WorkerDefinition(
                 SupervisorWorkerIds.WRITER,
@@ -496,7 +504,8 @@ class SupervisorOrchestratorTest {
                 "Apply document edits",
                 new StubWorkerAgent("edited content"),
                 List.of(DocumentToolNames.EDIT_DOCUMENT),
-                List.of("write", "edit")
+                List.of("write", "edit"),
+                ExecutionToolAccessRole.MAIN_WRITE
         ));
 
         MemorySummaryExecutionRuntime runtime = new MemorySummaryExecutionRuntime();

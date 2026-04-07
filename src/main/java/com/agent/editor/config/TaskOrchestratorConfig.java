@@ -24,7 +24,6 @@ import com.agent.editor.agent.v2.reflexion.ReflexionCriticContextFactory;
 import com.agent.editor.agent.v2.reflexion.ReflexionOrchestrator;
 import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
 import com.agent.editor.agent.v2.supervisor.SupervisorOrchestrator;
-import com.agent.editor.agent.v2.supervisor.worker.SupervisorWorkerToolAccessPolicy;
 import com.agent.editor.agent.v2.supervisor.worker.WorkerRegistry;
 import com.agent.editor.agent.v2.task.RoutingTaskOrchestrator;
 import com.agent.editor.agent.v2.react.ReActAgentOrchestrator;
@@ -123,12 +122,6 @@ public class TaskOrchestratorConfig {
     }
 
     @Bean
-    public SupervisorWorkerToolAccessPolicy supervisorWorkerToolAccessPolicy(DocumentToolAccessPolicy documentToolAccessPolicy,
-                                                                             ExecutionToolAccessPolicy executionToolAccessPolicy) {
-        return new SupervisorWorkerToolAccessPolicy(documentToolAccessPolicy, executionToolAccessPolicy);
-    }
-
-    @Bean
     public TaskOrchestrator taskOrchestrator(ToolLoopExecutionRuntime executionRuntime,
                                              PlanningExecutionRuntime planningExecutionRuntime,
                                              SupervisorExecutionRuntime supervisorExecutionRuntime,
@@ -147,8 +140,7 @@ public class TaskOrchestratorConfig {
                                              ReflexionCriticContextFactory reflexionCriticContextFactory,
                                              SupervisorContextFactory supervisorContextFactory,
                                              ExecutionToolAccessPolicy executionToolAccessPolicy,
-                                             DocumentToolAccessPolicy documentToolAccessPolicy,
-                                             SupervisorWorkerToolAccessPolicy supervisorWorkerToolAccessPolicy) {
+                                             DocumentToolAccessPolicy documentToolAccessPolicy) {
         TaskOrchestrator reactOrchestrator = new ReActAgentOrchestrator(
                 executionRuntime,
                 reactAgentDefinition,
@@ -170,7 +162,7 @@ public class TaskOrchestratorConfig {
                 executionRuntime,
                 eventPublisher,
                 supervisorContextFactory,
-                supervisorWorkerToolAccessPolicy
+                executionToolAccessPolicy
         );
         TaskOrchestrator reflexionOrchestrator = new ReflexionOrchestrator(
                 executionRuntime,

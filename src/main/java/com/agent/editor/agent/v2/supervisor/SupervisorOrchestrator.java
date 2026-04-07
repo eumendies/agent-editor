@@ -14,14 +14,15 @@ import com.agent.editor.agent.v2.core.state.TaskStatus;
 import com.agent.editor.agent.v2.event.EventPublisher;
 import com.agent.editor.agent.v2.event.EventType;
 import com.agent.editor.agent.v2.event.ExecutionEvent;
-import com.agent.editor.agent.v2.supervisor.worker.SupervisorWorkerToolAccessPolicy;
 import com.agent.editor.agent.v2.supervisor.worker.WorkerRegistry;
 import com.agent.editor.agent.v2.task.TaskOrchestrator;
 import com.agent.editor.agent.v2.task.TaskRequest;
 import com.agent.editor.agent.v2.task.TaskResult;
 import com.agent.editor.agent.v2.tool.ExecutionToolAccessPolicy;
+import com.agent.editor.agent.v2.tool.ExecutionToolAccessRole;
 import com.agent.editor.agent.v2.tool.memory.MemoryToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy;
+import com.agent.editor.agent.v2.tool.document.DocumentToolMode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,11 +41,11 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
     private final ExecutionRuntime executionRuntime;
     private final EventPublisher eventPublisher;
     private final SupervisorContextFactory supervisorContextFactory;
-    private final SupervisorWorkerToolAccessPolicy supervisorWorkerToolAccessPolicy;
+    private final ExecutionToolAccessPolicy executionToolAccessPolicy;
 
     /**
      * 兼容旧测试/调用方的过渡构造器。
-     * 外部如果仍持有 document policy 与 execution policy，可在这里统一折叠成 worker 级 policy。
+     * 外部如果已经持有 execution tool policy，就直接复用同一套 mode/tool 解析逻辑。
      */
     public SupervisorOrchestrator(SupervisorAgent supervisorAgent,
                                   SupervisorExecutionRuntime supervisorExecutionRuntime,
@@ -61,7 +62,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                 executionRuntime,
                 eventPublisher,
                 supervisorContextFactory,
-                new SupervisorWorkerToolAccessPolicy(documentToolAccessPolicy, executionToolAccessPolicy)
+                executionToolAccessPolicy
         );
     }
 
@@ -83,10 +84,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                 executionRuntime,
                 eventPublisher,
                 supervisorContextFactory,
-                new SupervisorWorkerToolAccessPolicy(
-                        documentToolAccessPolicy,
-                        new ExecutionToolAccessPolicy(documentToolAccessPolicy, new MemoryToolAccessPolicy())
-                )
+                new ExecutionToolAccessPolicy(documentToolAccessPolicy, new MemoryToolAccessPolicy())
         );
     }
 
@@ -96,14 +94,14 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                                   ExecutionRuntime executionRuntime,
                                   EventPublisher eventPublisher,
                                   SupervisorContextFactory supervisorContextFactory,
-                                  SupervisorWorkerToolAccessPolicy supervisorWorkerToolAccessPolicy) {
+                                  ExecutionToolAccessPolicy executionToolAccessPolicy) {
         this.supervisorAgent = supervisorAgent;
         this.supervisorExecutionRuntime = supervisorExecutionRuntime;
         this.workerRegistry = workerRegistry;
         this.executionRuntime = executionRuntime;
         this.eventPublisher = eventPublisher;
         this.supervisorContextFactory = supervisorContextFactory;
-        this.supervisorWorkerToolAccessPolicy = supervisorWorkerToolAccessPolicy;
+        this.executionToolAccessPolicy = executionToolAccessPolicy;
     }
 
     /**
@@ -163,8 +161,7 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                         request.getDocument().getTitle(),
                         currentContent
                 );
-                SupervisorWorkerToolAccessPolicy.WorkerToolAccess workerToolAccess =
-                        supervisorWorkerToolAccessPolicy.resolve(worker, workerDocument);
+                DocumentToolMode documentToolMode = executionToolAccessPolicy.resolveMode(workerDocument);
                 ExecutionResult result = executionRuntime.run(
                         worker.getAgent(),
                         workerExecutionRequest(
@@ -175,7 +172,8 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                                 resolveWorkerMaxIterations(request, worker),
                                 request.getUserProfileGuidance(),
                                 worker.getWorkerId(),
-                                workerToolAccess
+                                documentToolMode,
+                                resolveWorkerAllowedTools(worker, documentToolMode)
                         ),
                         supervisorContextFactory.buildWorkerExecutionContext(
                                 conversationState,
@@ -235,7 +233,8 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                                                     int maxIterations,
                                                     String userProfileGuidance,
                                                     String workerId,
-                                                    SupervisorWorkerToolAccessPolicy.WorkerToolAccess workerToolAccess) {
+                                                    DocumentToolMode documentToolMode,
+                                                    List<String> allowedTools) {
         ExecutionRequest executionRequest = new ExecutionRequest(
                 taskId,
                 sessionId,
@@ -244,15 +243,25 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
                 instruction,
                 maxIterations,
                 workerId,
-                workerToolAccess.getAllowedTools()
+                allowedTools
         );
         executionRequest.setUserProfileGuidance(userProfileGuidance);
-        executionRequest.setDocumentToolMode(workerToolAccess.getDocumentToolMode());
+        executionRequest.setDocumentToolMode(documentToolMode);
         return executionRequest;
     }
 
     private ExecutionRequest withUserProfileGuidance(ExecutionRequest executionRequest, TaskRequest taskRequest) {
         executionRequest.setUserProfileGuidance(taskRequest.getUserProfileGuidance());
         return executionRequest;
+    }
+
+    private List<String> resolveWorkerAllowedTools(SupervisorContext.WorkerDefinition worker,
+                                                   DocumentToolMode documentToolMode) {
+        ExecutionToolAccessRole executionToolAccessRole = worker.getExecutionToolAccessRole();
+        if (executionToolAccessRole != null) {
+            return executionToolAccessPolicy.allowedTools(documentToolMode, executionToolAccessRole);
+        }
+        // 真实配置的 supervisor worker 都应声明 execution role；这里只兼容测试里手写的临时 worker。
+        return worker.getAllowedTools();
     }
 }

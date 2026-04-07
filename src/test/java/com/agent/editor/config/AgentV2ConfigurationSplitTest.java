@@ -13,7 +13,6 @@ import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
 import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
 import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgent;
 import com.agent.editor.agent.v2.supervisor.worker.*;
-import com.agent.editor.agent.v2.supervisor.worker.SupervisorWorkerToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.ExecutionToolAccessPolicy;
 import com.agent.editor.agent.v2.tool.ExecutionToolAccessRole;
 import com.agent.editor.agent.v2.tool.document.DocumentToolNames;
@@ -78,7 +77,8 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(com.agent.editor.agent.v2.tool.document.DocumentToolAccessPolicy.class);
             assertThat(context).hasSingleBean(MemoryToolAccessPolicy.class);
             assertThat(context).hasSingleBean(ExecutionToolAccessPolicy.class);
-            assertThat(context).hasSingleBean(SupervisorWorkerToolAccessPolicy.class);
+            assertThat(context.getBeansOfType(ExecutionToolAccessPolicy.class)).hasSize(1);
+            assertThat(context.containsBean("supervisorWorkerToolAccessPolicy")).isFalse();
             assertThat(context.containsBean("agentV2Config")).isFalse();
             assertThat(context.containsBean("legacyEventAdapter")).isFalse();
         });
