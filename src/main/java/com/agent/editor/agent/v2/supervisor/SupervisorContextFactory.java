@@ -196,6 +196,8 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
         // 历史 worker result 逐条映射为 AI 消息，避免把执行轨迹挤成一大段字符串后丢失轮次边界。
         List<dev.langchain4j.data.message.ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(routingSystemPrompt()));
+        // 候选 worker 属于“本轮请求态信息”，可能随路由裁剪、扩展新 worker 而变化。
+        // 因此它必须放在 user message 里动态渲染，避免 system prompt 和注册表出现双份定义后逐渐漂移。
         messages.add(UserMessage.from("""
                 ## Task
                 %s
@@ -319,9 +321,7 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
 
                 ## Available Actions
                 Decide whether the next step should be:
-                - researcher: gather evidence from the knowledge base
-                - writer: write or revise the document using available context and evidence
-                - reviewer: verify both instruction completion and evidence grounding
+                - assign_worker: choose exactly one worker from the candidate worker list in the user message
                 - complete: stop when the task is already complete
 
                 ## Routing Policy

@@ -213,6 +213,38 @@ class SupervisorContextFactoryTest {
         assertEquals("supervisor_routing", invocationContext.getResponseFormat().jsonSchema().name());
         assertTrue(systemMessage.text().contains("If the latest worker result is from writer, the default next step is reviewer."));
         assertTrue(systemMessage.text().contains("Only choose complete when the latest content has already been reviewed"));
+        assertTrue(!systemMessage.text().contains("researcher: gather evidence"));
+        assertTrue(!systemMessage.text().contains("writer: write or revise"));
+        assertTrue(!systemMessage.text().contains("reviewer: verify both instruction completion"));
+    }
+
+    @Test
+    void shouldRenderCandidateWorkersDynamicallyFromWorkerDefinitions() {
+        SupervisorContextFactory factory = new SupervisorContextFactory(NoOpMemoryCompressors.noop());
+        SupervisorContext context = factory.buildSupervisorContext(
+                taskRequest(),
+                factory.prepareInitialContext(taskRequest()),
+                List.of(),
+                List.of(
+                        worker(SupervisorWorkerIds.WRITER),
+                        new SupervisorContext.WorkerDefinition(
+                                SupervisorWorkerIds.MEMORY,
+                                "Memory",
+                                "Retrieve and maintain durable document constraints",
+                                new NoOpAgent(),
+                                List.of("searchMemory", "upsertMemory"),
+                                List.of("memory")
+                        )
+                )
+        );
+
+        ModelInvocationContext invocationContext = factory.buildRoutingInvocationContext(context, context.getAvailableWorkers());
+        UserMessage message = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+
+        assertTrue(message.singleText().contains("writer | role=Writer"));
+        assertTrue(message.singleText().contains("memory | role=Memory"));
+        assertTrue(message.singleText().contains("description=Retrieve and maintain durable document constraints"));
+        assertTrue(message.singleText().contains("capabilities=memory"));
     }
 
     @Test
