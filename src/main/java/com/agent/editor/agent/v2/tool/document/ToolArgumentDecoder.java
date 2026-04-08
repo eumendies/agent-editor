@@ -1,5 +1,6 @@
 package com.agent.editor.agent.v2.tool.document;
 
+import com.agent.editor.agent.v2.tool.RecoverableToolException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 final class ToolArgumentDecoder {
@@ -13,7 +14,7 @@ final class ToolArgumentDecoder {
         try {
             return OBJECT_MAPPER.readValue(arguments, argumentType);
         } catch (Exception exception) {
-            throw new IllegalArgumentException("Failed to parse tool arguments for " + toolName, exception);
+            throw new RecoverableToolException("Failed to parse tool arguments for " + toolName, exception);
         }
     }
 }

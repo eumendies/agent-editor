@@ -4,6 +4,7 @@ import com.agent.editor.agent.v2.tool.ToolContext;
 import com.agent.editor.agent.v2.tool.ToolHandler;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
 import com.agent.editor.agent.v2.tool.ToolResult;
+import com.agent.editor.agent.v2.tool.RecoverableToolException;
 import com.agent.editor.service.StructuredDocumentService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -74,14 +75,8 @@ public class PatchDocumentNodeTool implements ToolHandler {
                     result.getUpdatedContent()
             );
         } catch (IllegalArgumentException exception) {
-            // patch 校验失败时不能把异常抛给 runtime，否则模型拿不到可自我修正的反馈。
-            return new ToolResult(serialize(new ErrorToolResponse(
-                    "error",
-                    exception.getMessage(),
-                    arguments.getNodeId(),
-                    arguments.getBlockId(),
-                    arguments.getOperation()
-            )));
+            // patch 参数和基线错误通常是模型可修复输入，交给 runtime 统一回注给模型。
+            throw new RecoverableToolException(exception.getMessage(), exception);
         }
     }
 
@@ -105,15 +100,4 @@ public class PatchDocumentNodeTool implements ToolHandler {
         private String operation;
     }
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    private static class ErrorToolResponse {
-
-        private String status;
-        private String errorMessage;
-        private String nodeId;
-        private String blockId;
-        private String operation;
-    }
 }

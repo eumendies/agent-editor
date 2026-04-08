@@ -2,21 +2,18 @@ package com.agent.editor.agent.v2.tool.memory;
 
 import com.agent.editor.agent.v2.tool.ToolContext;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
+import com.agent.editor.agent.v2.tool.RecoverableToolException;
 import com.agent.editor.agent.v2.tool.ToolResult;
 import com.agent.editor.service.LongTermMemoryWriteService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class MemoryUpsertToolTest {
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Test
     void shouldReturnPerformedActionAndMemoryIdAsJson() {
@@ -51,7 +48,7 @@ class MemoryUpsertToolTest {
     }
 
     @Test
-    void shouldReturnJsonErrorWhenWriteServiceRejectsTheRequest() throws Exception {
+    void shouldThrowRecoverableExceptionWhenWriteServiceRejectsTheRequest() {
         LongTermMemoryWriteService writeService = mock(LongTermMemoryWriteService.class);
         when(writeService.upsertResult(
                 MemoryUpsertAction.REPLACE,
@@ -62,57 +59,43 @@ class MemoryUpsertToolTest {
         )).thenThrow(new IllegalArgumentException("memoryId is required for replace/delete"));
         MemoryUpsertTool tool = new MemoryUpsertTool(writeService);
 
-        ToolResult result = tool.execute(
+        RecoverableToolException exception = assertThrows(RecoverableToolException.class, () -> tool.execute(
                 new ToolInvocation(MemoryToolNames.UPSERT_MEMORY, """
                         {"action":"REPLACE","memoryType":"DOCUMENT_DECISION","documentId":"doc-1","summary":"Keep the current outline"}
                         """),
                 new ToolContext("task-1", "doc-1", "title", "body")
-        );
+        ));
 
-        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
-        assertEquals("error", payload.get("status").asText());
-        assertEquals("memoryId is required for replace/delete", payload.get("errorMessage").asText());
-        assertEquals("REPLACE", payload.get("action").asText());
-        assertEquals("DOCUMENT_DECISION", payload.get("memoryType").asText());
-        assertTrue(payload.get("memoryId").isNull());
-        assertEquals("doc-1", payload.get("documentId").asText());
-        assertNull(result.getUpdatedContent());
+        assertEquals("memoryId is required for replace/delete", exception.getMessage());
     }
 
     @Test
-    void shouldReturnJsonErrorWhenActionIsInvalid() throws Exception {
+    void shouldThrowRecoverableExceptionWhenActionIsInvalid() {
         LongTermMemoryWriteService writeService = mock(LongTermMemoryWriteService.class);
         MemoryUpsertTool tool = new MemoryUpsertTool(writeService);
 
-        ToolResult result = tool.execute(
+        RecoverableToolException exception = assertThrows(RecoverableToolException.class, () -> tool.execute(
                 new ToolInvocation(MemoryToolNames.UPSERT_MEMORY, """
                         {"action":"UPSERT","memoryType":"USER_PROFILE","summary":"Prefer concise summaries"}
                         """),
                 new ToolContext("task-1", "doc-1", "title", "body")
-        );
+        ));
 
-        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
-        assertEquals("error", payload.get("status").asText());
-        assertEquals("No enum constant com.agent.editor.agent.v2.tool.memory.MemoryUpsertAction.UPSERT", payload.get("errorMessage").asText());
-        assertEquals("UPSERT", payload.get("action").asText());
-        assertEquals("USER_PROFILE", payload.get("memoryType").asText());
-        assertNull(result.getUpdatedContent());
+        assertEquals("No enum constant com.agent.editor.agent.v2.tool.memory.MemoryUpsertAction.UPSERT", exception.getMessage());
     }
 
     @Test
-    void shouldRejectUserProfileWritesFromMemoryWorker() throws Exception {
+    void shouldThrowRecoverableExceptionWhenUserProfileWritesAreRejected() {
         LongTermMemoryWriteService writeService = mock(LongTermMemoryWriteService.class);
         MemoryUpsertTool tool = new MemoryUpsertTool(writeService);
 
-        ToolResult result = tool.execute(
+        RecoverableToolException exception = assertThrows(RecoverableToolException.class, () -> tool.execute(
                 new ToolInvocation(MemoryToolNames.UPSERT_MEMORY, """
                         {"action":"CREATE","memoryType":"USER_PROFILE","summary":"Prefer concise summaries"}
                         """),
                 new ToolContext("task-1", "doc-1", "title", "body")
-        );
+        ));
 
-        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
-        assertEquals("error", payload.get("status").asText());
-        assertEquals("Autonomous memory writes may only target DOCUMENT_DECISION", payload.get("errorMessage").asText());
+        assertEquals("Autonomous memory writes may only target DOCUMENT_DECISION", exception.getMessage());
     }
 }

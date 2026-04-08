@@ -12,6 +12,7 @@ import com.agent.editor.agent.v2.trace.TraceStore;
 import com.agent.editor.agent.v2.tool.ToolContext;
 import com.agent.editor.agent.v2.tool.ToolHandler;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
+import com.agent.editor.agent.v2.tool.RecoverableToolException;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
 import com.agent.editor.agent.v2.tool.ToolResult;
 import org.junit.jupiter.api.Test;
@@ -95,11 +96,17 @@ class ToolLoopExecutionRuntimeTest {
                 List.of("searchContent")
         );
 
-        IllegalStateException error = assertThrows(IllegalStateException.class, () ->
-                runtime.run(new ToolUsingAgent(), request)
-        );
+        ExecutionResult result = runtime.run(new ToolUsingAgent(), request);
 
-        assertEquals("No tool handler registered for appendText", error.getMessage());
+        assertEquals("updated", result.getFinalMessage());
+        ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) result.getFinalState().getMemory();
+        assertTrue(transcriptMemory.getMessages().stream().anyMatch(message ->
+                message instanceof ChatMessage.ToolExecutionResultChatMessage toolMessage
+                        && "appendText".equals(toolMessage.getName())
+                        && toolMessage.getText().contains("\"status\":\"error\"")
+                        && toolMessage.getText().contains("\"tool\":\"appendText\"")
+                        && toolMessage.getText().contains("not allowed")
+        ));
     }
 
     @Test
@@ -321,6 +328,60 @@ class ToolLoopExecutionRuntimeTest {
                         && toolMessage.getText().contains("\"status\":\"ok\"")
                         && !toolMessage.getText().contains("body rewritten")
         ));
+    }
+
+    @Test
+    void shouldConvertRecoverableToolExceptionsIntoToolMessages() {
+        ToolRegistry registry = new ToolRegistry();
+        registry.register(new RecoverableFailureToolHandler());
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
+                registry,
+                event -> {}
+        );
+        ExecutionRequest request = new ExecutionRequest(
+                "task-9",
+                "session-9",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-9", "title", "body"),
+                "use tool",
+                3
+        );
+
+        ExecutionResult result = runtime.run(new RecoverableFailureAgent(), request);
+
+        assertEquals("recovered", result.getFinalMessage());
+        ChatTranscriptMemory transcriptMemory = (ChatTranscriptMemory) result.getFinalState().getMemory();
+        assertTrue(transcriptMemory.getMessages().stream().anyMatch(message ->
+                message instanceof ChatMessage.ToolExecutionResultChatMessage toolMessage
+                        && "recoverableFailure".equals(toolMessage.getName())
+                        && toolMessage.getText().contains("\"status\":\"error\"")
+                        && toolMessage.getText().contains("\"tool\":\"recoverableFailure\"")
+                        && toolMessage.getText().contains("invalid input from model")
+        ));
+    }
+
+    @Test
+    void shouldPropagateUnexpectedToolFailures() {
+        ToolRegistry registry = new ToolRegistry();
+        registry.register(new UnexpectedFailureToolHandler());
+        ExecutionRuntime runtime = new ToolLoopExecutionRuntime(
+                registry,
+                event -> {}
+        );
+        ExecutionRequest request = new ExecutionRequest(
+                "task-10",
+                "session-10",
+                AgentType.REACT,
+                new DocumentSnapshot("doc-10", "title", "body"),
+                "use tool",
+                3
+        );
+
+        IllegalStateException error = assertThrows(IllegalStateException.class, () ->
+                runtime.run(new UnexpectedFailureAgent(), request)
+        );
+
+        assertEquals("boom", error.getMessage());
     }
 
     private static final class CompletingAgent implements ToolLoopAgent {
@@ -554,6 +615,85 @@ class ToolLoopExecutionRuntimeTest {
             return dev.langchain4j.agent.tool.ToolSpecification.builder()
                     .name("getDocumentSnapshot")
                     .description("Get the latest current document snapshot")
+                    .parameters(dev.langchain4j.model.chat.request.json.JsonObjectSchema.builder().build())
+                    .build();
+        }
+    }
+
+    private static final class RecoverableFailureAgent implements ToolLoopAgent {
+
+        @Override
+        public AgentType type() {
+            return AgentType.REACT;
+        }
+
+        @Override
+        public ToolLoopDecision decide(AgentRunContext context) {
+            if (toolResultCount(context) == 0) {
+                return new ToolLoopDecision.ToolCalls(
+                        List.of(new ToolCall("recoverableFailure", "{\"query\":\"bad\"}")),
+                        "need tool"
+                );
+            }
+            return new ToolLoopDecision.Complete("recovered", "tool error observed");
+        }
+    }
+
+    private static final class RecoverableFailureToolHandler implements ToolHandler {
+
+        @Override
+        public String name() {
+            return "recoverableFailure";
+        }
+
+        @Override
+        public ToolResult execute(ToolInvocation invocation, ToolContext context) {
+            throw new RecoverableToolException("invalid input from model");
+        }
+
+        @Override
+        public dev.langchain4j.agent.tool.ToolSpecification specification() {
+            return dev.langchain4j.agent.tool.ToolSpecification.builder()
+                    .name("recoverableFailure")
+                    .description("Always fails with a recoverable error")
+                    .parameters(dev.langchain4j.model.chat.request.json.JsonObjectSchema.builder().build())
+                    .build();
+        }
+    }
+
+    private static final class UnexpectedFailureAgent implements ToolLoopAgent {
+
+        @Override
+        public AgentType type() {
+            return AgentType.REACT;
+        }
+
+        @Override
+        public ToolLoopDecision decide(AgentRunContext context) {
+            return new ToolLoopDecision.ToolCalls(
+                    List.of(new ToolCall("unexpectedFailure", "{}")),
+                    "need tool"
+            );
+        }
+    }
+
+    private static final class UnexpectedFailureToolHandler implements ToolHandler {
+
+        @Override
+        public String name() {
+            return "unexpectedFailure";
+        }
+
+        @Override
+        public ToolResult execute(ToolInvocation invocation, ToolContext context) {
+            throw new IllegalStateException("boom");
+        }
+
+        @Override
+        public dev.langchain4j.agent.tool.ToolSpecification specification() {
+            return dev.langchain4j.agent.tool.ToolSpecification.builder()
+                    .name("unexpectedFailure")
+                    .description("Always fails unexpectedly")
                     .parameters(dev.langchain4j.model.chat.request.json.JsonObjectSchema.builder().build())
                     .build();
         }

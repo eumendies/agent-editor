@@ -3,13 +3,12 @@ package com.agent.editor.agent.v2.tool.document;
 import com.agent.editor.agent.v2.core.state.DocumentStructureNode;
 import com.agent.editor.agent.v2.core.state.DocumentStructureSnapshot;
 import com.agent.editor.agent.v2.core.state.LeafBlockSnapshot;
+import com.agent.editor.agent.v2.tool.RecoverableToolException;
 import com.agent.editor.agent.v2.tool.ToolContext;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
 import com.agent.editor.agent.v2.tool.ToolResult;
 import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -20,8 +19,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PatchDocumentNodeToolTest {
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final StructuredDocumentService structuredDocumentService =
             new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 120, 60);
@@ -113,7 +110,7 @@ class PatchDocumentNodeToolTest {
     }
 
     @Test
-    void shouldReturnJsonErrorWhenPatchNodeIdDoesNotExist() throws Exception {
+    void shouldThrowRecoverableExceptionWhenPatchNodeIdDoesNotExist() {
         String markdown = """
                 # Intro
 
@@ -122,7 +119,7 @@ class PatchDocumentNodeToolTest {
         DocumentStructureSnapshot snapshot = structuredDocumentService.buildSnapshot("Title", markdown);
         PatchDocumentNodeTool tool = new PatchDocumentNodeTool(structuredDocumentService);
 
-        ToolResult result = tool.execute(
+        RecoverableToolException exception = assertThrows(RecoverableToolException.class, () -> tool.execute(
                 new ToolInvocation(
                         DocumentToolNames.PATCH_DOCUMENT_NODE,
                         """
@@ -130,19 +127,13 @@ class PatchDocumentNodeToolTest {
                         """.formatted(snapshot.getDocumentVersion()).trim()
                 ),
                 new ToolContext("task-1", markdown)
-        );
+        ));
 
-        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
-        assertEquals("error", payload.get("status").asText());
-        assertTrue(payload.get("errorCode") == null);
-        assertEquals("Unknown nodeId: node-999", payload.get("errorMessage").asText());
-        assertEquals("node-999", payload.get("nodeId").asText());
-        assertEquals("replace_node", payload.get("operation").asText());
-        assertNull(result.getUpdatedContent());
+        assertEquals("Unknown nodeId: node-999", exception.getMessage());
     }
 
     @Test
-    void shouldReturnJsonErrorWhenPatchOperationIsUnsupported() throws Exception {
+    void shouldThrowRecoverableExceptionWhenPatchOperationIsUnsupported() {
         String markdown = """
                 # Intro
 
@@ -153,7 +144,7 @@ class PatchDocumentNodeToolTest {
         String baseHash = structuredDocumentService.readNode("Title", markdown, intro.getNodeId(), "content", null).getBaseHash();
         PatchDocumentNodeTool tool = new PatchDocumentNodeTool(structuredDocumentService);
 
-        ToolResult result = tool.execute(
+        RecoverableToolException exception = assertThrows(RecoverableToolException.class, () -> tool.execute(
                 new ToolInvocation(
                         DocumentToolNames.PATCH_DOCUMENT_NODE,
                         """
@@ -161,19 +152,13 @@ class PatchDocumentNodeToolTest {
                         """.formatted(snapshot.getDocumentVersion(), intro.getNodeId(), baseHash).trim()
                 ),
                 new ToolContext("task-1", markdown)
-        );
+        ));
 
-        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
-        assertEquals("error", payload.get("status").asText());
-        assertTrue(payload.get("errorCode") == null);
-        assertEquals("Unsupported patch operation: invalid_operation", payload.get("errorMessage").asText());
-        assertEquals(intro.getNodeId(), payload.get("nodeId").asText());
-        assertEquals("invalid_operation", payload.get("operation").asText());
-        assertNull(result.getUpdatedContent());
+        assertEquals("Unsupported patch operation: invalid_operation", exception.getMessage());
     }
 
     @Test
-    void shouldReturnJsonErrorWhenNodeReplacementContentIsInvalid() throws Exception {
+    void shouldThrowRecoverableExceptionWhenNodeReplacementContentIsInvalid() {
         String markdown = """
                 # Intro
 
@@ -184,7 +169,7 @@ class PatchDocumentNodeToolTest {
         String baseHash = structuredDocumentService.readNode("Title", markdown, intro.getNodeId(), "content", null).getBaseHash();
         PatchDocumentNodeTool tool = new PatchDocumentNodeTool(structuredDocumentService);
 
-        ToolResult result = tool.execute(
+        RecoverableToolException exception = assertThrows(RecoverableToolException.class, () -> tool.execute(
                 new ToolInvocation(
                         DocumentToolNames.PATCH_DOCUMENT_NODE,
                         """
@@ -192,22 +177,16 @@ class PatchDocumentNodeToolTest {
                         """.formatted(snapshot.getDocumentVersion(), intro.getNodeId(), baseHash).trim()
                 ),
                 new ToolContext("task-1", markdown)
-        );
+        ));
 
-        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
-        assertEquals("error", payload.get("status").asText());
-        assertTrue(payload.get("errorCode") == null);
-        assertEquals("replace_node content must contain exactly one top-level heading", payload.get("errorMessage").asText());
-        assertEquals(intro.getNodeId(), payload.get("nodeId").asText());
-        assertEquals("replace_node", payload.get("operation").asText());
-        assertNull(result.getUpdatedContent());
+        assertEquals("replace_node content must contain exactly one top-level heading", exception.getMessage());
     }
 
     @Test
     void shouldFailWhenArgumentsAreNotValidJson() {
         PatchDocumentNodeTool tool = new PatchDocumentNodeTool(structuredDocumentService);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> tool.execute(
+        RecoverableToolException exception = assertThrows(RecoverableToolException.class, () -> tool.execute(
                 new ToolInvocation(DocumentToolNames.PATCH_DOCUMENT_NODE, "{not-json}"),
                 new ToolContext("task-1", "# Intro")
         ));

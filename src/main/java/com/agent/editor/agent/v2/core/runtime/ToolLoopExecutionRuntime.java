@@ -13,6 +13,7 @@ import com.agent.editor.agent.v2.event.ExecutionEvent;
 import com.agent.editor.agent.v2.tool.ToolContext;
 import com.agent.editor.agent.v2.tool.ToolHandler;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
+import com.agent.editor.agent.v2.tool.RecoverableToolException;
 import com.agent.editor.agent.v2.tool.ToolRegistry;
 import com.agent.editor.agent.v2.tool.ToolResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -141,22 +142,33 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
             eventPublisher.publish(new ExecutionEvent(EventType.TOOL_CALLED, request.getTaskId(), call.getName()));
 
             ToolHandler handler = toolRegistry.get(call.getName());
-            // 这里同时做“是否存在”和“是否允许”两层校验，错误统一收敛成不可用工具。
+            // 这里同时做“是否存在”和“是否允许”两层校验。
+            // 对模型来说，这类错误通常可通过下一轮修正 tool name 或参数恢复，因此不能直接打断链路。
             if (handler == null || !toolRegistry.isAllowed(call.getName(), allowedTools)) {
-                eventPublisher.publish(new ExecutionEvent(EventType.TOOL_FAILED, request.getTaskId(), call.getName()));
-                throw new IllegalStateException("No tool handler registered for " + call.getName());
+                ToolResult result = recoverableFailureResult(call, resolveToolAvailabilityError(call.getName(), handler, allowedTools));
+                executions.add(new ToolExecutionRecord(call, result));
+                eventPublisher.publish(new ExecutionEvent(EventType.TOOL_FAILED, request.getTaskId(), result.getMessage()));
+                continue;
             }
 
-            // 工具拿到的是“当前阶段文档内容”，多个 tool call 会在同一轮里顺序叠加修改结果。
-            ToolResult result = handler.execute(
-                    new ToolInvocation(call.getName(), call.getArguments()),
-                    new ToolContext(
-                            request.getTaskId(),
-                            request.getDocument() == null ? null : request.getDocument().getDocumentId(),
-                            request.getDocument() == null ? null : request.getDocument().getTitle(),
-                            updatedContent
-                    )
-            );
+            ToolResult result;
+            try {
+                // 工具拿到的是“当前阶段文档内容”，多个 tool call 会在同一轮里顺序叠加修改结果。
+                result = handler.execute(
+                        new ToolInvocation(call.getName(), call.getArguments()),
+                        new ToolContext(
+                                request.getTaskId(),
+                                request.getDocument() == null ? null : request.getDocument().getDocumentId(),
+                                request.getDocument() == null ? null : request.getDocument().getTitle(),
+                                updatedContent
+                        )
+                );
+            } catch (RecoverableToolException exception) {
+                result = recoverableFailureResult(call, exception.getMessage());
+                executions.add(new ToolExecutionRecord(call, result));
+                eventPublisher.publish(new ExecutionEvent(EventType.TOOL_FAILED, request.getTaskId(), result.getMessage()));
+                continue;
+            }
             executions.add(new ToolExecutionRecord(call, result));
             if (result.getUpdatedContent() != null) {
                 updatedContent = result.getUpdatedContent();
@@ -210,6 +222,43 @@ public class ToolLoopExecutionRuntime implements ExecutionRuntime {
         } catch (Exception ignored) {
             return String.valueOf(result);
         }
+    }
+
+    private String resolveToolAvailabilityError(String toolName, ToolHandler handler, List<String> allowedTools) {
+        if (handler == null) {
+            return "No tool handler registered for " + toolName;
+        }
+        if (!toolRegistry.isAllowed(toolName, allowedTools)) {
+            return "Tool is not allowed in this execution context: " + toolName;
+        }
+        return "Tool is unavailable: " + toolName;
+    }
+
+    private ToolResult recoverableFailureResult(ToolCall call, String errorMessage) {
+        return new ToolResult(serializeRecoverableToolError(new RecoverableToolErrorResponse(
+                "error",
+                call.getName(),
+                errorMessage,
+                call.getArguments()
+        )));
+    }
+
+    private String serializeRecoverableToolError(RecoverableToolErrorResponse response) {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(response);
+        } catch (Exception exception) {
+            throw new IllegalStateException("Failed to serialize recoverable tool error", exception);
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor
+    private static final class RecoverableToolErrorResponse {
+
+        private final String status;
+        private final String tool;
+        private final String errorMessage;
+        private final String arguments;
     }
 
 }

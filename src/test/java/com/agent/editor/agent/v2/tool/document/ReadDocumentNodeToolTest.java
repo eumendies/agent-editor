@@ -2,13 +2,12 @@ package com.agent.editor.agent.v2.tool.document;
 
 import com.agent.editor.agent.v2.core.state.DocumentStructureNode;
 import com.agent.editor.agent.v2.core.state.DocumentStructureSnapshot;
+import com.agent.editor.agent.v2.tool.RecoverableToolException;
 import com.agent.editor.agent.v2.tool.ToolContext;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
 import com.agent.editor.agent.v2.tool.ToolResult;
 import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -17,8 +16,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ReadDocumentNodeToolTest {
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final StructuredDocumentService structuredDocumentService =
             new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 120, 60);
@@ -132,10 +129,10 @@ class ReadDocumentNodeToolTest {
     }
 
     @Test
-    void shouldReturnJsonErrorWhenNodeIdDoesNotExist() throws Exception {
+    void shouldThrowRecoverableExceptionWhenNodeIdDoesNotExist() {
         ReadDocumentNodeTool tool = new ReadDocumentNodeTool(structuredDocumentService);
 
-        ToolResult result = tool.execute(
+        RecoverableToolException exception = assertThrows(RecoverableToolException.class, () -> tool.execute(
                 new ToolInvocation(
                         DocumentToolNames.READ_DOCUMENT_NODE,
                         """
@@ -143,19 +140,13 @@ class ReadDocumentNodeToolTest {
                         """.trim()
                 ),
                 new ToolContext("task-1", "# Intro")
-        );
+        ));
 
-        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
-        assertEquals("error", payload.get("status").asText());
-        assertTrue(payload.get("errorCode") == null);
-        assertEquals("Unknown nodeId: node-999", payload.get("errorMessage").asText());
-        assertEquals("node-999", payload.get("nodeId").asText());
-        assertTrue(payload.get("operation").isNull());
-        assertNull(result.getUpdatedContent());
+        assertEquals("Unknown nodeId: node-999", exception.getMessage());
     }
 
     @Test
-    void shouldReturnJsonErrorWhenReadModeIsUnsupported() throws Exception {
+    void shouldThrowRecoverableExceptionWhenReadModeIsUnsupported() {
         String markdown = """
                 # Intro
 
@@ -165,7 +156,7 @@ class ReadDocumentNodeToolTest {
         DocumentStructureNode intro = snapshot.getNodes().get(0);
         ReadDocumentNodeTool tool = new ReadDocumentNodeTool(structuredDocumentService);
 
-        ToolResult result = tool.execute(
+        RecoverableToolException exception = assertThrows(RecoverableToolException.class, () -> tool.execute(
                 new ToolInvocation(
                         DocumentToolNames.READ_DOCUMENT_NODE,
                         """
@@ -173,18 +164,13 @@ class ReadDocumentNodeToolTest {
                         """.formatted(intro.getNodeId()).trim()
                 ),
                 new ToolContext("task-1", markdown)
-        );
+        ));
 
-        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
-        assertEquals("error", payload.get("status").asText());
-        assertTrue(payload.get("errorCode") == null);
-        assertEquals("Unsupported read mode: invalid", payload.get("errorMessage").asText());
-        assertEquals(intro.getNodeId(), payload.get("nodeId").asText());
-        assertNull(result.getUpdatedContent());
+        assertEquals("Unsupported read mode: invalid", exception.getMessage());
     }
 
     @Test
-    void shouldReturnJsonErrorWhenBlockIdDoesNotExist() throws Exception {
+    void shouldThrowRecoverableExceptionWhenBlockIdDoesNotExist() {
         String markdown = """
                 # Chapter
 
@@ -194,7 +180,7 @@ class ReadDocumentNodeToolTest {
         DocumentStructureNode chapter = snapshot.getNodes().get(0);
         ReadDocumentNodeTool tool = new ReadDocumentNodeTool(structuredDocumentService);
 
-        ToolResult result = tool.execute(
+        RecoverableToolException exception = assertThrows(RecoverableToolException.class, () -> tool.execute(
                 new ToolInvocation(
                         DocumentToolNames.READ_DOCUMENT_NODE,
                         """
@@ -202,22 +188,16 @@ class ReadDocumentNodeToolTest {
                         """.formatted(chapter.getNodeId()).trim()
                 ),
                 new ToolContext("task-1", markdown)
-        );
+        ));
 
-        JsonNode payload = OBJECT_MAPPER.readTree(result.getMessage());
-        assertEquals("error", payload.get("status").asText());
-        assertTrue(payload.get("errorCode") == null);
-        assertEquals("Unknown blockId: missing-block", payload.get("errorMessage").asText());
-        assertEquals(chapter.getNodeId(), payload.get("nodeId").asText());
-        assertEquals("missing-block", payload.get("blockId").asText());
-        assertNull(result.getUpdatedContent());
+        assertEquals("Unknown blockId: missing-block", exception.getMessage());
     }
 
     @Test
     void shouldFailWhenArgumentsAreNotValidJson() {
         ReadDocumentNodeTool tool = new ReadDocumentNodeTool(structuredDocumentService);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> tool.execute(
+        RecoverableToolException exception = assertThrows(RecoverableToolException.class, () -> tool.execute(
                 new ToolInvocation(DocumentToolNames.READ_DOCUMENT_NODE, "{not-json}"),
                 new ToolContext("task-1", "# Intro")
         ));

@@ -4,6 +4,7 @@ import com.agent.editor.agent.v2.tool.ToolContext;
 import com.agent.editor.agent.v2.tool.ToolHandler;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
 import com.agent.editor.agent.v2.tool.ToolResult;
+import com.agent.editor.agent.v2.tool.RecoverableToolException;
 import com.agent.editor.service.StructuredDocumentService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -58,14 +59,8 @@ public class ReadDocumentNodeTool implements ToolHandler {
             );
             return new ToolResult(serialize(result));
         } catch (IllegalArgumentException exception) {
-            // 这些校验失败属于模型可恢复输入错误，返回结构化错误比直接打断 agent 更有用。
-            return new ToolResult(serialize(new ErrorToolResponse(
-                    "error",
-                    exception.getMessage(),
-                    arguments.getNodeId(),
-                    arguments.getBlockId(),
-                    null
-            )));
+            // 这里把文档读取校验错误显式标成“模型可修复”，由 runtime 统一转成 tool result。
+            throw new RecoverableToolException(exception.getMessage(), exception);
         }
     }
 
@@ -77,15 +72,4 @@ public class ReadDocumentNodeTool implements ToolHandler {
         }
     }
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    private static class ErrorToolResponse {
-
-        private String status;
-        private String errorMessage;
-        private String nodeId;
-        private String blockId;
-        private String operation;
-    }
 }
