@@ -1,16 +1,16 @@
 package com.agent.editor.config;
 
-import com.agent.editor.agent.v2.tool.ToolRegistry;
-import com.agent.editor.agent.v2.tool.document.AnalyzeDocumentTool;
-import com.agent.editor.agent.v2.tool.document.AppendToDocumentTool;
-import com.agent.editor.agent.v2.tool.document.EditDocumentTool;
-import com.agent.editor.agent.v2.tool.document.GetDocumentSnapshotTool;
-import com.agent.editor.agent.v2.tool.document.PatchDocumentNodeTool;
-import com.agent.editor.agent.v2.tool.document.ReadDocumentNodeTool;
-import com.agent.editor.agent.v2.tool.document.RetrieveKnowledgeTool;
-import com.agent.editor.agent.v2.tool.document.SearchContentTool;
-import com.agent.editor.agent.v2.tool.memory.MemorySearchTool;
-import com.agent.editor.agent.v2.tool.memory.MemoryUpsertTool;
+import com.agent.editor.agent.tool.ToolRegistry;
+import com.agent.editor.agent.tool.document.AnalyzeDocumentTool;
+import com.agent.editor.agent.tool.document.AppendToDocumentTool;
+import com.agent.editor.agent.tool.document.EditDocumentTool;
+import com.agent.editor.agent.tool.document.GetDocumentSnapshotTool;
+import com.agent.editor.agent.tool.document.PatchDocumentNodeTool;
+import com.agent.editor.agent.tool.document.ReadDocumentNodeTool;
+import com.agent.editor.agent.tool.document.RetrieveKnowledgeTool;
+import com.agent.editor.agent.tool.document.SearchContentTool;
+import com.agent.editor.agent.tool.memory.MemorySearchTool;
+import com.agent.editor.agent.tool.memory.MemoryUpsertTool;
 import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.service.LongTermMemoryRetrievalService;
 import com.agent.editor.service.LongTermMemoryWriteService;

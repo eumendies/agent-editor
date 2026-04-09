@@ -1,8 +1,8 @@
 package com.agent.editor.service;
 
-import com.agent.editor.agent.v2.core.state.DocumentStructureNode;
-import com.agent.editor.agent.v2.core.state.DocumentStructureSnapshot;
-import com.agent.editor.agent.v2.core.state.LeafBlockSnapshot;
+import com.agent.editor.agent.core.state.DocumentStructureNode;
+import com.agent.editor.agent.core.state.DocumentStructureSnapshot;
+import com.agent.editor.agent.core.state.LeafBlockSnapshot;
 import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
 import org.junit.jupiter.api.Test;
 

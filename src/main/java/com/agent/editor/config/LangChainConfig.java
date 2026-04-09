@@ -1,7 +1,7 @@
 package com.agent.editor.config;
 
-import com.agent.editor.agent.v2.event.EventPublisher;
-import com.agent.editor.agent.v2.model.StreamingLLMInvoker;
+import com.agent.editor.agent.event.EventPublisher;
+import com.agent.editor.agent.model.StreamingLLMInvoker;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;

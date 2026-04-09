@@ -1,7 +1,7 @@
 package com.agent.editor.websocket;
 
-import com.agent.editor.agent.v2.event.EventType;
-import com.agent.editor.agent.v2.event.ExecutionEvent;
+import com.agent.editor.agent.event.EventType;
+import com.agent.editor.agent.event.ExecutionEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;

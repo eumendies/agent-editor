@@ -1,6 +1,6 @@
 package com.agent.editor.service;
 
-import com.agent.editor.agent.v2.core.memory.LongTermMemoryItem;
+import com.agent.editor.agent.core.memory.LongTermMemoryItem;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

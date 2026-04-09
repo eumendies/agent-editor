@@ -1,9 +1,9 @@
 package com.agent.editor.service;
 
-import com.agent.editor.agent.v2.core.agent.ToolCall;
-import com.agent.editor.agent.v2.core.memory.ChatMessage;
-import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
-import com.agent.editor.agent.v2.memory.InMemorySessionMemoryStore;
+import com.agent.editor.agent.core.agent.ToolCall;
+import com.agent.editor.agent.core.memory.ChatMessage;
+import com.agent.editor.agent.core.memory.ChatTranscriptMemory;
+import com.agent.editor.agent.memory.InMemorySessionMemoryStore;
 import com.agent.editor.dto.SessionMemoryMessageResponse;
 import com.agent.editor.dto.SessionMemoryResponse;
 import org.junit.jupiter.api.Test;

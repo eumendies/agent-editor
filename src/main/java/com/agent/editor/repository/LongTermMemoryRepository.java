@@ -1,6 +1,6 @@
 package com.agent.editor.repository;
 
-import com.agent.editor.agent.v2.core.memory.LongTermMemoryItem;
+import com.agent.editor.agent.core.memory.LongTermMemoryItem;
 
 import java.util.List;
 import java.util.Optional;

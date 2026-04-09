@@ -1,0 +1,45 @@
+package com.agent.editor.agent.tool.document;
+
+import com.agent.editor.agent.tool.ToolContext;
+import com.agent.editor.agent.tool.ToolInvocation;
+import com.agent.editor.agent.tool.ToolResult;
+import com.agent.editor.model.RetrievedKnowledgeChunk;
+import com.agent.editor.service.KnowledgeRetrievalService;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+class RetrieveKnowledgeToolTest {
+
+    @Test
+    void shouldReturnRetrievedChunksAsJson() {
+        KnowledgeRetrievalService retrievalService = mock(KnowledgeRetrievalService.class);
+        when(retrievalService.retrieve("Spring", null, null))
+                .thenReturn(List.of(new RetrievedKnowledgeChunk(
+                        "doc-1",
+                        "resume.md",
+                        0,
+                        "项目经历",
+                        "Spring Boot 项目经验",
+                        2.0
+                )));
+        RetrieveKnowledgeTool tool = new RetrieveKnowledgeTool(retrievalService);
+
+        ToolResult result = tool.execute(
+                new ToolInvocation(DocumentToolNames.RETRIEVE_KNOWLEDGE, "{\"query\":\"Spring\"}"),
+                new ToolContext("task-1", null)
+        );
+
+        assertTrue(result.getMessage().contains("\"fileName\":\"resume.md\""));
+        assertTrue(result.getMessage().contains("\"heading\":\"项目经历\""));
+        assertTrue(result.getMessage().contains("\"chunkText\":\"Spring Boot 项目经验\""));
+        assertFalse(result.getMessage().contains("\"documentId\""));
+        assertFalse(result.getMessage().contains("\"chunkIndex\""));
+        assertFalse(result.getMessage().contains("\"score\""));
+    }
+}

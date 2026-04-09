@@ -1,8 +1,8 @@
 package com.agent.editor.service;
 
-import com.agent.editor.agent.v2.core.memory.ChatMessage;
-import com.agent.editor.agent.v2.core.memory.ChatTranscriptMemory;
-import com.agent.editor.agent.v2.core.memory.SessionMemoryStore;
+import com.agent.editor.agent.core.memory.ChatMessage;
+import com.agent.editor.agent.core.memory.ChatTranscriptMemory;
+import com.agent.editor.agent.core.memory.SessionMemoryStore;
 import com.agent.editor.dto.SessionMemoryMessageResponse;
 import com.agent.editor.dto.SessionMemoryResponse;
 import com.agent.editor.dto.SessionMemoryToolCallResponse;

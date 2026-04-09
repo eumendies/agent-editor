@@ -1,7 +1,7 @@
 package com.agent.editor.repository;
 
-import com.agent.editor.agent.v2.core.memory.LongTermMemoryItem;
-import com.agent.editor.agent.v2.core.memory.LongTermMemoryType;
+import com.agent.editor.agent.core.memory.LongTermMemoryItem;
+import com.agent.editor.agent.core.memory.LongTermMemoryType;
 import com.agent.editor.config.LongTermMemoryMilvusProperties;
 import io.milvus.v2.client.MilvusClientV2;
 import io.milvus.v2.service.vector.request.QueryReq;

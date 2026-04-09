@@ -1,15 +1,15 @@
 package com.agent.editor.service;
 
-import com.agent.editor.agent.v2.core.agent.AgentType;
-import com.agent.editor.agent.v2.core.state.TaskStatus;
-import com.agent.editor.agent.v2.event.EventType;
-import com.agent.editor.agent.v2.event.EventPublisher;
-import com.agent.editor.agent.v2.tool.memory.MemoryUpsertAction;
-import com.agent.editor.agent.v2.task.TaskOrchestrator;
-import com.agent.editor.agent.v2.task.TaskRequest;
-import com.agent.editor.agent.v2.task.TaskResult;
-import com.agent.editor.agent.v2.core.memory.LongTermMemoryItem;
-import com.agent.editor.agent.v2.core.memory.LongTermMemoryType;
+import com.agent.editor.agent.core.agent.AgentType;
+import com.agent.editor.agent.core.state.TaskStatus;
+import com.agent.editor.agent.event.EventType;
+import com.agent.editor.agent.event.EventPublisher;
+import com.agent.editor.agent.tool.memory.MemoryUpsertAction;
+import com.agent.editor.agent.task.TaskOrchestrator;
+import com.agent.editor.agent.task.TaskRequest;
+import com.agent.editor.agent.task.TaskResult;
+import com.agent.editor.agent.core.memory.LongTermMemoryItem;
+import com.agent.editor.agent.core.memory.LongTermMemoryType;
 import com.agent.editor.dto.AgentTaskRequest;
 import com.agent.editor.dto.AgentTaskResponse;
 import com.agent.editor.dto.PendingDocumentChange;
@@ -588,7 +588,7 @@ class TaskApplicationServiceTest {
         private String lastRemovedTaskId;
 
         @Override
-        public void save(com.agent.editor.agent.v2.core.state.TaskState state) {
+        public void save(com.agent.editor.agent.core.state.TaskState state) {
             lastSavedTaskId = state.getTaskId();
             super.save(state);
         }

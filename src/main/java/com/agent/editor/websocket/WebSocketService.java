@@ -1,6 +1,6 @@
 package com.agent.editor.websocket;
 
-import com.agent.editor.agent.v2.event.ExecutionEvent;
+import com.agent.editor.agent.event.ExecutionEvent;
 import com.agent.editor.dto.AgentEventStreamMessage;
 import com.agent.editor.dto.WebSocketMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -1,15 +1,15 @@
 package com.agent.editor.config;
 
-import com.agent.editor.agent.v2.core.agent.SupervisorAgent;
-import com.agent.editor.agent.v2.core.context.SupervisorContext;
-import com.agent.editor.agent.v2.core.memory.MemoryCompressor;
-import com.agent.editor.agent.v2.model.StreamingLLMInvoker;
-import com.agent.editor.agent.v2.supervisor.SupervisorContextFactory;
-import com.agent.editor.agent.v2.supervisor.SupervisorWorkerIds;
-import com.agent.editor.agent.v2.supervisor.routing.HybridSupervisorAgent;
-import com.agent.editor.agent.v2.supervisor.worker.*;
-import com.agent.editor.agent.v2.supervisor.worker.ResearcherAgent;
-import com.agent.editor.agent.v2.tool.ExecutionToolAccessRole;
+import com.agent.editor.agent.core.agent.SupervisorAgent;
+import com.agent.editor.agent.core.context.SupervisorContext;
+import com.agent.editor.agent.core.memory.MemoryCompressor;
+import com.agent.editor.agent.model.StreamingLLMInvoker;
+import com.agent.editor.agent.supervisor.SupervisorContextFactory;
+import com.agent.editor.agent.supervisor.SupervisorWorkerIds;
+import com.agent.editor.agent.supervisor.routing.HybridSupervisorAgent;
+import com.agent.editor.agent.supervisor.worker.*;
+import com.agent.editor.agent.supervisor.worker.ResearcherAgent;
+import com.agent.editor.agent.tool.ExecutionToolAccessRole;
 import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

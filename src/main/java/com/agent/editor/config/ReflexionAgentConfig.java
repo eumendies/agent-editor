@@ -1,10 +1,10 @@
 package com.agent.editor.config;
 
-import com.agent.editor.agent.v2.reflexion.ReflexionActor;
-import com.agent.editor.agent.v2.reflexion.ReflexionActorContextFactory;
-import com.agent.editor.agent.v2.reflexion.ReflexionCritic;
-import com.agent.editor.agent.v2.reflexion.ReflexionCriticContextFactory;
-import com.agent.editor.agent.v2.model.StreamingLLMInvoker;
+import com.agent.editor.agent.reflexion.ReflexionActor;
+import com.agent.editor.agent.reflexion.ReflexionActorContextFactory;
+import com.agent.editor.agent.reflexion.ReflexionCritic;
+import com.agent.editor.agent.reflexion.ReflexionCriticContextFactory;
+import com.agent.editor.agent.model.StreamingLLMInvoker;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

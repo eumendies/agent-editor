@@ -1,6 +1,6 @@
 package com.agent.editor.controller;
 
-import com.agent.editor.agent.v2.event.ExecutionEvent;
+import com.agent.editor.agent.event.ExecutionEvent;
 import com.agent.editor.dto.AgentTaskRequest;
 import com.agent.editor.dto.AgentTaskResponse;
 import com.agent.editor.model.AgentMode;

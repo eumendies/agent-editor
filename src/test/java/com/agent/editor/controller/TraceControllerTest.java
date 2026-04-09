@@ -1,10 +1,10 @@
 package com.agent.editor.controller;
 
-import com.agent.editor.agent.v2.core.agent.AgentType;
-import com.agent.editor.agent.v2.trace.InMemoryTraceStore;
-import com.agent.editor.agent.v2.trace.TraceCategory;
-import com.agent.editor.agent.v2.trace.TraceRecord;
-import com.agent.editor.agent.v2.trace.TraceStore;
+import com.agent.editor.agent.core.agent.AgentType;
+import com.agent.editor.agent.trace.InMemoryTraceStore;
+import com.agent.editor.agent.trace.TraceCategory;
+import com.agent.editor.agent.trace.TraceRecord;
+import com.agent.editor.agent.trace.TraceStore;
 import com.agent.editor.dto.TraceSummaryResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;

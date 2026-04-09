@@ -1,7 +1,7 @@
 package com.agent.editor.controller;
 
-import com.agent.editor.agent.v2.trace.TraceRecord;
-import com.agent.editor.agent.v2.trace.TraceStore;
+import com.agent.editor.agent.trace.TraceRecord;
+import com.agent.editor.agent.trace.TraceStore;
 import com.agent.editor.dto.TraceSummaryResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

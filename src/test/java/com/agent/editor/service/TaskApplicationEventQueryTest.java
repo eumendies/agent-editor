@@ -1,9 +1,9 @@
 package com.agent.editor.service;
 
-import com.agent.editor.agent.v2.event.EventPublisher;
-import com.agent.editor.agent.v2.event.EventType;
-import com.agent.editor.agent.v2.event.ExecutionEvent;
-import com.agent.editor.agent.v2.task.TaskOrchestrator;
+import com.agent.editor.agent.event.EventPublisher;
+import com.agent.editor.agent.event.EventType;
+import com.agent.editor.agent.event.ExecutionEvent;
+import com.agent.editor.agent.task.TaskOrchestrator;
 import com.agent.editor.websocket.WebSocketService;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.task.TaskExecutor;

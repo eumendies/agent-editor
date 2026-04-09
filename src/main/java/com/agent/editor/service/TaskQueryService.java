@@ -1,7 +1,7 @@
 package com.agent.editor.service;
 
-import com.agent.editor.agent.v2.event.ExecutionEvent;
-import com.agent.editor.agent.v2.core.state.TaskState;
+import com.agent.editor.agent.event.ExecutionEvent;
+import com.agent.editor.agent.core.state.TaskState;
 import com.agent.editor.model.AgentStep;
 import com.agent.editor.model.AgentStepType;
 import org.springframework.stereotype.Service;

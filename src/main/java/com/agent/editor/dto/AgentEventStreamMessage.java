@@ -1,6 +1,6 @@
 package com.agent.editor.dto;
 
-import com.agent.editor.agent.v2.event.ExecutionEvent;
+import com.agent.editor.agent.event.ExecutionEvent;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

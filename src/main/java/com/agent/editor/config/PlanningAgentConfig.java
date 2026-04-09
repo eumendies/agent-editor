@@ -1,7 +1,7 @@
 package com.agent.editor.config;
 
-import com.agent.editor.agent.v2.planning.PlanningAgentImpl;
-import com.agent.editor.agent.v2.planning.PlanningAiService;
+import com.agent.editor.agent.planning.PlanningAgentImpl;
+import com.agent.editor.agent.planning.PlanningAiService;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.context.annotation.Bean;
