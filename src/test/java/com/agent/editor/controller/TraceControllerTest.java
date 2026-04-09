@@ -8,6 +8,7 @@ import com.agent.editor.agent.trace.TraceStore;
 import com.agent.editor.dto.TraceSummaryResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.time.Instant;
 import java.util.List;
@@ -77,5 +78,12 @@ class TraceControllerTest {
         assertEquals(1L, body.getCategoryCounts().get("MODEL_REQUEST"));
         assertEquals(1L, body.getCategoryCounts().get("TOOL_RESULT"));
         assertEquals(List.of("react.model.request", "runtime.tool.result"), body.getStages());
+    }
+
+    @Test
+    void shouldUseFinalTraceRoutePrefix() {
+        RequestMapping mapping = TraceController.class.getAnnotation(RequestMapping.class);
+
+        assertEquals("/api/agent/task/{taskId}/trace", mapping.value()[0]);
     }
 }

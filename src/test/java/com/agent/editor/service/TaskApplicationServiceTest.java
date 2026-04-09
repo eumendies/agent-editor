@@ -158,7 +158,7 @@ class TaskApplicationServiceTest {
     }
 
     @Test
-    void shouldSubmitV2TaskAndReturnRunningStatusBeforeBackgroundExecutionCompletes() {
+    void shouldSubmitAsyncTaskAndReturnRunningStatusBeforeBackgroundExecutionCompletes() {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
@@ -182,7 +182,7 @@ class TaskApplicationServiceTest {
         request.setMode(AgentMode.REACT);
         String originalContent = documentService.getDocument("doc-001").getContent();
 
-        AgentTaskResponse response = service.executeV2(request);
+        AgentTaskResponse response = service.executeAsync(request);
 
         assertNotNull(response.getTaskId());
         assertEquals("RUNNING", response.getStatus());
@@ -263,7 +263,7 @@ class TaskApplicationServiceTest {
     }
 
     @Test
-    void shouldExecuteV2TaskAgainstSubmissionSnapshotInsteadOfLaterDocumentMutations() {
+    void shouldExecuteAsyncTaskAgainstSubmissionSnapshotInsteadOfLaterDocumentMutations() {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
@@ -287,7 +287,7 @@ class TaskApplicationServiceTest {
         request.setInstruction("rewrite");
         request.setMode(AgentMode.REACT);
 
-        service.executeV2(request);
+        service.executeAsync(request);
         documentService.updateDocument("doc-001", "external mutation");
 
         taskExecutor.runNext();
@@ -385,7 +385,7 @@ class TaskApplicationServiceTest {
     }
 
     @Test
-    void shouldBindV2WebSocketSessionToTaskBeforeExecutionWhenSessionIdProvided() {
+    void shouldBindWebSocketSessionToAsyncTaskBeforeExecutionWhenSessionIdProvided() {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
@@ -409,12 +409,12 @@ class TaskApplicationServiceTest {
         request.setDocumentId("doc-001");
         request.setInstruction("rewrite");
         request.setMode(AgentMode.REACT);
-        request.setSessionId("ws-session-v2");
+        request.setSessionId("ws-session-async");
 
-        AgentTaskResponse response = service.executeV2(request);
+        AgentTaskResponse response = service.executeAsync(request);
 
         var order = inOrder(webSocketService, orchestrator);
-        order.verify(webSocketService).bindV2TaskToSession("ws-session-v2", response.getTaskId());
+        order.verify(webSocketService).bindTaskToSession("ws-session-async", response.getTaskId());
         taskExecutor.runNext();
         order.verify(orchestrator).execute(any(TaskRequest.class));
     }
@@ -449,7 +449,7 @@ class TaskApplicationServiceTest {
     }
 
     @Test
-    void shouldMarkV2TaskFailedWhenBackgroundExecutionThrows() {
+    void shouldMarkAsyncTaskFailedWhenBackgroundExecutionThrows() {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
@@ -475,7 +475,7 @@ class TaskApplicationServiceTest {
         request.setInstruction("rewrite");
         request.setMode(AgentMode.REACT);
 
-        AgentTaskResponse response = service.executeV2(request);
+        AgentTaskResponse response = service.executeAsync(request);
 
         taskExecutor.runNext();
 
@@ -511,10 +511,10 @@ class TaskApplicationServiceTest {
         request.setDocumentId("doc-001");
         request.setInstruction("rewrite");
         request.setMode(AgentMode.REACT);
-        request.setSessionId("ws-session-v2");
+        request.setSessionId("ws-session-async");
 
         try {
-            service.executeV2(request);
+            service.executeAsync(request);
         } catch (IllegalStateException ex) {
             assertEquals("Failed to submit agent task", ex.getMessage());
         }
@@ -522,8 +522,8 @@ class TaskApplicationServiceTest {
         assertEquals(queryService.lastSavedTaskId, queryService.lastRemovedTaskId);
         assertNull(queryService.findById(queryService.lastSavedTaskId));
         var order = inOrder(webSocketService);
-        order.verify(webSocketService).bindV2TaskToSession("ws-session-v2", queryService.lastSavedTaskId);
-        order.verify(webSocketService).unbindV2TaskFromSession("ws-session-v2", queryService.lastSavedTaskId);
+        order.verify(webSocketService).bindTaskToSession("ws-session-async", queryService.lastSavedTaskId);
+        order.verify(webSocketService).unbindTaskFromSession("ws-session-async", queryService.lastSavedTaskId);
     }
 
     private static final class StubTaskOrchestrator implements TaskOrchestrator {

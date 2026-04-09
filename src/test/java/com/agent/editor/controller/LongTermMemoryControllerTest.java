@@ -5,6 +5,7 @@ import com.agent.editor.dto.UserProfileMemoryResponse;
 import com.agent.editor.service.TaskApplicationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.List;
 
@@ -74,6 +75,13 @@ class LongTermMemoryControllerTest {
         assertEquals(200, result.getStatusCode().value());
         assertNull(result.getBody());
         verify(taskApplicationService).deleteUserProfile("memory-1");
+    }
+
+    @Test
+    void shouldUseFinalMemoryRoutePrefix() {
+        RequestMapping mapping = LongTermMemoryController.class.getAnnotation(RequestMapping.class);
+
+        assertEquals("/api/memory", mapping.value()[0]);
     }
 
     private UserProfileMemoryResponse profile(String memoryId, String summary) {

@@ -4,9 +4,9 @@ import com.agent.editor.dto.AgentTaskRequest;
 import com.agent.editor.dto.AgentTaskResponse;
 import com.agent.editor.dto.SessionMemoryResponse;
 import com.agent.editor.dto.WebSocketMessage;
+import com.agent.editor.agent.event.ExecutionEvent;
 import com.agent.editor.model.AgentMode;
 import com.agent.editor.model.AgentStep;
-import com.agent.editor.service.DocumentService;
 import com.agent.editor.service.SessionMemoryQueryService;
 import com.agent.editor.service.TaskApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +22,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/agent")
+@RequestMapping("/api/agent")
 @Tag(name = "AI Agent", description = "AI Agent operations for document editing")
 public class AgentController {
     
@@ -29,28 +30,27 @@ public class AgentController {
 
     private final TaskApplicationService taskApplicationService;
     private final SessionMemoryQueryService sessionMemoryQueryService;
-    private final DocumentService documentService;
 
     public AgentController(TaskApplicationService taskApplicationService,
-                           SessionMemoryQueryService sessionMemoryQueryService,
-                           DocumentService documentService) {
+                           SessionMemoryQueryService sessionMemoryQueryService) {
         this.taskApplicationService = taskApplicationService;
         this.sessionMemoryQueryService = sessionMemoryQueryService;
-        this.documentService = documentService;
     }
 
     @PostMapping("/execute")
-    @Operation(summary = "Execute agent task", description = "Execute an AI agent task to edit a document")
+    @Operation(summary = "Execute agent task", description = "Submit an AI agent task for asynchronous native execution")
     public ResponseEntity<AgentTaskResponse> executeAgentTask(@RequestBody AgentTaskRequest request) {
-        logger.info("Executing agent task: mode={}, documentId={}, instruction={}", 
+        logger.info("Executing agent task: mode={}, documentId={}, instruction={}",
             request.getMode(), request.getDocumentId(), request.getInstruction());
-        
+
         try {
-            AgentTaskResponse response = taskApplicationService.execute(request);
-            return ResponseEntity.ok(response);
+            return ResponseEntity.accepted().body(taskApplicationService.executeAsync(request));
         } catch (IllegalArgumentException e) {
             logger.error("Agent task execution failed", e);
             return ResponseEntity.badRequest().build();
+        } catch (IllegalStateException e) {
+            logger.error("Agent task submission rejected", e);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
         } catch (Exception e) {
             logger.error("Unexpected error during agent execution", e);
             return ResponseEntity.internalServerError().build();
@@ -66,6 +66,13 @@ public class AgentController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/task/{taskId}/events")
+    @Operation(summary = "Get native execution events", description = "Get all native execution events for an agent task")
+    public ResponseEntity<List<ExecutionEvent>> getTaskEvents(
+            @Parameter(description = "Task ID") @PathVariable String taskId) {
+        return ResponseEntity.ok(taskApplicationService.getTaskEvents(taskId));
     }
 
     @GetMapping("/task/{taskId}/steps")

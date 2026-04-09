@@ -19,7 +19,7 @@ class WebSocketEventPublisherTest {
 
         publisher.publish(event);
 
-        verify(webSocketService).sendEventToV2Task(
+        verify(webSocketService).sendEventToTask(
                 org.mockito.ArgumentMatchers.eq("task-1"),
                 argThat(publishedEvent ->
                         EventType.TOOL_CALLED == publishedEvent.getType()
@@ -29,7 +29,7 @@ class WebSocketEventPublisherTest {
     }
 
     @Test
-    void shouldForwardTextStreamDeltaEventsToV2ChannelWithoutTranslation() {
+    void shouldForwardTextStreamDeltaEventsWithoutTranslation() {
         TaskQueryService taskQueryService = new TaskQueryService();
         WebSocketService webSocketService = mock(WebSocketService.class);
         WebSocketEventPublisher publisher = new WebSocketEventPublisher(taskQueryService, webSocketService);
@@ -37,7 +37,7 @@ class WebSocketEventPublisherTest {
 
         publisher.publish(event);
 
-        verify(webSocketService).sendEventToV2Task(
+        verify(webSocketService).sendEventToTask(
                 org.mockito.ArgumentMatchers.eq("task-stream"),
                 argThat(publishedEvent ->
                         EventType.TEXT_STREAM_DELTA == publishedEvent.getType()

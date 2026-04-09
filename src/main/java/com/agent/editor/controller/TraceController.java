@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/v1/agent/task/{taskId}/trace")
+@RequestMapping("/api/agent/task/{taskId}/trace")
 public class TraceController {
 
     private final TraceStore traceStore;

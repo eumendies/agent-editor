@@ -203,18 +203,18 @@ public class TaskApplicationService {
     }
 
     public AgentTaskResponse execute(AgentTaskRequest request) {
-        ExecutionContext context = prepareExecutionContext(request, false);
+        ExecutionContext context = prepareExecutionContext(request);
         taskQueryService.save(new TaskState(context.getTaskId(), TaskStatus.RUNNING, null));
         TaskResult result = executeTask(context, request);
         taskQueryService.save(new TaskState(context.getTaskId(), result.getStatus(), result.getFinalContent()));
         return buildCompletedResponse(context.getTaskId(), context.getDocumentId(), result);
     }
 
-    public AgentTaskResponse executeV2(AgentTaskRequest request) {
-        ExecutionContext context = prepareExecutionContext(request, true);
+    public AgentTaskResponse executeAsync(AgentTaskRequest request) {
+        ExecutionContext context = prepareExecutionContext(request);
         taskQueryService.save(new TaskState(context.getTaskId(), TaskStatus.RUNNING, null));
         try {
-            // v2 改成“提交即返回”的模型，真正的编排放到专用后台线程里执行，避免继续占住 MVC 请求线程。
+            // 异步入口改成“提交即返回”的模型，真正的编排放到专用后台线程里执行，避免继续占住 MVC 请求线程。
             taskExecutor.execute(() -> runAsyncTask(context, request));
         } catch (RuntimeException ex) {
             taskQueryService.remove(context.getTaskId());
@@ -224,7 +224,7 @@ public class TaskApplicationService {
         return buildSubmittedResponse(context.getTaskId(), context.getDocumentId());
     }
 
-    private ExecutionContext prepareExecutionContext(AgentTaskRequest request, boolean nativeV2Stream) {
+    private ExecutionContext prepareExecutionContext(AgentTaskRequest request) {
         Document document = documentService.getDocument(request.getDocumentId());
         if (document == null) {
             throw new IllegalArgumentException("Document not found: " + request.getDocumentId());
@@ -236,12 +236,8 @@ public class TaskApplicationService {
         String boundSessionId = null;
         if (hasText(request.getSessionId())) {
             boundSessionId = request.getSessionId();
-            // 无论同步还是异步，session 绑定都必须早于任务启动，否则首批执行事件会丢失。
-            if (nativeV2Stream) {
-                webSocketService.bindV2TaskToSession(request.getSessionId(), taskId);
-            } else {
-                webSocketService.bindTaskToSession(request.getSessionId(), taskId);
-            }
+            // session 绑定必须早于任务启动，否则首批执行事件会丢失。
+            webSocketService.bindTaskToSession(request.getSessionId(), taskId);
         }
         return new ExecutionContext(
                 taskId,
@@ -250,8 +246,7 @@ public class TaskApplicationService {
                 document.getId(),
                 document.getTitle(),
                 document.getContent(),
-                boundSessionId,
-                nativeV2Stream
+                boundSessionId
         );
     }
 
@@ -385,10 +380,6 @@ public class TaskApplicationService {
         if (!hasText(context.getBoundSessionId())) {
             return;
         }
-        if (context.isNativeV2Stream()) {
-            webSocketService.unbindV2TaskFromSession(context.getBoundSessionId(), context.getTaskId());
-            return;
-        }
         webSocketService.unbindTaskFromSession(context.getBoundSessionId(), context.getTaskId());
     }
 
@@ -428,7 +419,6 @@ public class TaskApplicationService {
         private final String documentTitle;
         private final String originalContent;
         private final String boundSessionId;
-        private final boolean nativeV2Stream;
 
         private ExecutionContext(String taskId,
                                  String sessionId,
@@ -436,8 +426,7 @@ public class TaskApplicationService {
                                  String documentId,
                                  String documentTitle,
                                  String originalContent,
-                                 String boundSessionId,
-                                 boolean nativeV2Stream) {
+                                 String boundSessionId) {
             this.taskId = taskId;
             this.sessionId = sessionId;
             this.agentType = agentType;
@@ -445,7 +434,6 @@ public class TaskApplicationService {
             this.documentTitle = documentTitle;
             this.originalContent = originalContent;
             this.boundSessionId = boundSessionId;
-            this.nativeV2Stream = nativeV2Stream;
         }
 
         private String getTaskId() {
@@ -474,10 +462,6 @@ public class TaskApplicationService {
 
         private String getBoundSessionId() {
             return boundSessionId;
-        }
-
-        private boolean isNativeV2Stream() {
-            return nativeV2Stream;
         }
     }
 }

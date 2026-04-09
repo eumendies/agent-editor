@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v2/memory")
+@RequestMapping("/api/memory")
 @Tag(name = "Long-Term Memory", description = "Long-term memory management operations")
 public class LongTermMemoryController {
 

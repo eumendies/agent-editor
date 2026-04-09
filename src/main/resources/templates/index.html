@@ -918,7 +918,7 @@
         renderUserProfiles();
 
         try {
-            const response = await fetch("/api/v2/memory/profiles");
+            const response = await fetch("/api/memory/profiles");
             if (!response.ok) {
                 throw new Error("User profile request failed");
             }
@@ -962,7 +962,7 @@
 
         setUserProfileMutationState(true, "正在新增 user profile...");
         try {
-            const response = await fetch("/api/v2/memory/profiles", {
+            const response = await fetch("/api/memory/profiles", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({summary})
@@ -1011,7 +1011,7 @@
         // 编辑态始终以当前选中的 memoryId 为准，保存成功后重新从服务端拉取，避免前端本地列表和后端状态漂移。
         setUserProfileMutationState(true, "正在保存 user profile...");
         try {
-            const response = await fetch(`/api/v2/memory/profiles/${encodeURIComponent(memoryId)}`, {
+            const response = await fetch(`/api/memory/profiles/${encodeURIComponent(memoryId)}`, {
                 method: "PUT",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({summary})
@@ -1039,7 +1039,7 @@
         // 删除成功后统一重新加载列表，保证当前编辑态、空状态和服务端真实数据一起收敛。
         setUserProfileMutationState(true, "正在删除 user profile...");
         try {
-            const response = await fetch(`/api/v2/memory/profiles/${encodeURIComponent(memoryId)}`, {
+            const response = await fetch(`/api/memory/profiles/${encodeURIComponent(memoryId)}`, {
                 method: "DELETE"
             });
             if (!response.ok) {
@@ -1123,7 +1123,7 @@
 
     function initWebSocket() {
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const wsUrl = `${protocol}//${window.location.host}/ws/agent/v2`;
+        const wsUrl = `${protocol}//${window.location.host}/ws/agent`;
 
         ws = new WebSocket(wsUrl);
 
@@ -1346,7 +1346,7 @@
             return null;
         }
 
-        const response = await fetch(`/api/v2/agent/task/${taskId}`);
+        const response = await fetch(`/api/agent/task/${taskId}`);
         if (response.status === 404) {
             return null;
         }
@@ -1454,7 +1454,7 @@
         appendChatMessage("user", "Instruction", instruction, `Mode ${mode}`);
 
         try {
-            const response = await fetch("/api/v2/agent/execute", {
+            const response = await fetch("/api/agent/execute", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({

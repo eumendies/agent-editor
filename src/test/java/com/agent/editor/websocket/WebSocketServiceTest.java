@@ -13,20 +13,20 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class WebSocketServiceV2Test {
+class WebSocketServiceTest {
 
     @Test
-    void shouldSendNativeEventEnvelopeToV2TaskSubscribers() throws Exception {
+    void shouldSendNativeEventEnvelopeToTaskSubscribers() throws Exception {
         WebSocketService service = new WebSocketService();
         ReflectionTestUtils.setField(service, "objectMapper", new ObjectMapper());
         WebSocketSession session = mock(WebSocketSession.class);
-        when(session.getId()).thenReturn("session-v2-1");
+        when(session.getId()).thenReturn("session-1");
         when(session.isOpen()).thenReturn(true);
 
-        service.registerV2Session(session);
-        service.bindV2TaskToSession("session-v2-1", "task-1");
+        service.registerSession(session);
+        service.bindTaskToSession("session-1", "task-1");
 
-        service.sendEventToV2Task("task-1", new ExecutionEvent(EventType.TOOL_CALLED, "task-1", "editDocument"));
+        service.sendEventToTask("task-1", new ExecutionEvent(EventType.TOOL_CALLED, "task-1", "editDocument"));
 
         verify(session).sendMessage(argThat((TextMessage message) ->
                 message.getPayload().contains("\"type\":\"EVENT\"")
@@ -36,17 +36,17 @@ class WebSocketServiceV2Test {
     }
 
     @Test
-    void shouldSendTextStreamDeltaEnvelopeToV2TaskSubscribers() throws Exception {
+    void shouldSendTextStreamDeltaEnvelopeToTaskSubscribers() throws Exception {
         WebSocketService service = new WebSocketService();
         ReflectionTestUtils.setField(service, "objectMapper", new ObjectMapper());
         WebSocketSession session = mock(WebSocketSession.class);
-        when(session.getId()).thenReturn("session-v2-stream");
+        when(session.getId()).thenReturn("session-stream");
         when(session.isOpen()).thenReturn(true);
 
-        service.registerV2Session(session);
-        service.bindV2TaskToSession("session-v2-stream", "task-stream");
+        service.registerSession(session);
+        service.bindTaskToSession("session-stream", "task-stream");
 
-        service.sendEventToV2Task("task-stream", new ExecutionEvent(EventType.TEXT_STREAM_DELTA, "task-stream", "partial text"));
+        service.sendEventToTask("task-stream", new ExecutionEvent(EventType.TEXT_STREAM_DELTA, "task-stream", "partial text"));
 
         verify(session).sendMessage(argThat((TextMessage message) ->
                 message.getPayload().contains("\"type\":\"EVENT\"")

@@ -13,8 +13,8 @@ class AgentPackageMigrationGuardTest {
 
     @Test
     void shouldNotReferenceVersionedAgentPackages() throws IOException {
-        String mainSources = readJavaSources(Path.of("src/main/java/com/agent/editor/agent"));
-        String testSources = readJavaSources(Path.of("src/test/java/com/agent/editor/agent"));
+        String mainSources = readTextFiles(Path.of("src/main/java"), ".java");
+        String testSources = readTextFiles(Path.of("src/test/java"), ".java");
 
         assertFalse(mainSources.contains("com.agent.editor.agent.v2"));
         assertFalse(mainSources.contains("com.agent.editor.agent.v1"));
@@ -22,9 +22,29 @@ class AgentPackageMigrationGuardTest {
         assertFalse(testSources.contains("com.agent.editor.agent.v1"));
     }
 
-    private String readJavaSources(Path root) throws IOException {
+    @Test
+    void shouldNotReferenceLegacyAgentVersionMarkersOrRoutes() throws IOException {
+        String mainSources = readTextFiles(Path.of("src/main/java"), ".java");
+        String testSources = readTextFiles(Path.of("src/test/java"), ".java");
+        String templates = readTextFiles(Path.of("src/main/resources/templates"), ".html");
+
+        assertFalse(mainSources.contains("AgentV2"));
+        assertFalse(testSources.contains("AgentV2"));
+        assertFalse(mainSources.contains("/api/v2/agent"));
+        assertFalse(testSources.contains("/api/v2/agent"));
+        assertFalse(templates.contains("/api/v2/agent"));
+        assertFalse(mainSources.contains("/api/v2/memory"));
+        assertFalse(testSources.contains("/api/v2/memory"));
+        assertFalse(templates.contains("/api/v2/memory"));
+        assertFalse(mainSources.contains("/ws/agent/v2"));
+        assertFalse(testSources.contains("/ws/agent/v2"));
+        assertFalse(templates.contains("/ws/agent/v2"));
+    }
+
+    private String readTextFiles(Path root, String suffix) throws IOException {
         try (Stream<Path> paths = Files.walk(root)) {
-            return paths.filter(path -> path.toString().endsWith(".java"))
+            return paths.filter(path -> path.toString().endsWith(suffix))
+                    .filter(path -> !path.endsWith("AgentPackageMigrationGuardTest.java"))
                     .map(this::readSafely)
                     .reduce("", (left, right) -> left + "\n" + right);
         }

@@ -1,16 +1,22 @@
 package com.agent.editor.controller;
 
+import com.agent.editor.agent.event.EventType;
+import com.agent.editor.agent.event.ExecutionEvent;
 import com.agent.editor.dto.AgentTaskRequest;
 import com.agent.editor.dto.AgentTaskResponse;
 import com.agent.editor.dto.SessionMemoryResponse;
 import com.agent.editor.model.AgentMode;
-import com.agent.editor.service.DocumentService;
 import com.agent.editor.service.SessionMemoryQueryService;
 import com.agent.editor.service.TaskApplicationService;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
@@ -23,8 +29,7 @@ class AgentControllerTest {
     void shouldExecuteTaskThroughTaskApplicationService() {
         TaskApplicationService taskApplicationService = mock(TaskApplicationService.class);
         SessionMemoryQueryService sessionMemoryQueryService = mock(SessionMemoryQueryService.class);
-        DocumentService documentService = mock(DocumentService.class);
-        AgentController controller = new AgentController(taskApplicationService, sessionMemoryQueryService, documentService);
+        AgentController controller = new AgentController(taskApplicationService, sessionMemoryQueryService);
 
         AgentTaskRequest request = new AgentTaskRequest();
         request.setDocumentId("doc-1");
@@ -33,23 +38,22 @@ class AgentControllerTest {
 
         AgentTaskResponse response = new AgentTaskResponse();
         response.setTaskId("task-1");
-        response.setStatus("COMPLETED");
+        response.setStatus("RUNNING");
 
-        when(taskApplicationService.execute(request)).thenReturn(response);
+        when(taskApplicationService.executeAsync(request)).thenReturn(response);
 
         ResponseEntity<AgentTaskResponse> result = controller.executeAgentTask(request);
 
-        assertEquals(200, result.getStatusCode().value());
+        assertEquals(202, result.getStatusCode().value());
         assertSame(response, result.getBody());
-        verify(taskApplicationService).execute(request);
+        verify(taskApplicationService).executeAsync(request);
     }
 
     @Test
     void shouldReadTaskStatusThroughTaskApplicationService() {
         TaskApplicationService taskApplicationService = mock(TaskApplicationService.class);
         SessionMemoryQueryService sessionMemoryQueryService = mock(SessionMemoryQueryService.class);
-        DocumentService documentService = mock(DocumentService.class);
-        AgentController controller = new AgentController(taskApplicationService, sessionMemoryQueryService, documentService);
+        AgentController controller = new AgentController(taskApplicationService, sessionMemoryQueryService);
 
         AgentTaskResponse response = new AgentTaskResponse();
         response.setTaskId("task-1");
@@ -68,8 +72,7 @@ class AgentControllerTest {
     void shouldExposeSupervisorMode() {
         TaskApplicationService taskApplicationService = mock(TaskApplicationService.class);
         SessionMemoryQueryService sessionMemoryQueryService = mock(SessionMemoryQueryService.class);
-        DocumentService documentService = mock(DocumentService.class);
-        AgentController controller = new AgentController(taskApplicationService, sessionMemoryQueryService, documentService);
+        AgentController controller = new AgentController(taskApplicationService, sessionMemoryQueryService);
 
         ResponseEntity<java.util.List<String>> result = controller.getSupportedModes();
 
@@ -82,8 +85,7 @@ class AgentControllerTest {
     void shouldReadSessionMemoryThroughQueryService() {
         TaskApplicationService taskApplicationService = mock(TaskApplicationService.class);
         SessionMemoryQueryService sessionMemoryQueryService = mock(SessionMemoryQueryService.class);
-        DocumentService documentService = mock(DocumentService.class);
-        AgentController controller = new AgentController(taskApplicationService, sessionMemoryQueryService, documentService);
+        AgentController controller = new AgentController(taskApplicationService, sessionMemoryQueryService);
 
         SessionMemoryResponse response = new SessionMemoryResponse();
         response.setSessionId("session-1");
@@ -96,5 +98,47 @@ class AgentControllerTest {
         assertEquals(200, result.getStatusCode().value());
         assertSame(response, result.getBody());
         verify(sessionMemoryQueryService).getSessionMemory("session-1");
+    }
+
+    @Test
+    void shouldExposeNativeExecutionEvents() {
+        TaskApplicationService taskApplicationService = mock(TaskApplicationService.class);
+        SessionMemoryQueryService sessionMemoryQueryService = mock(SessionMemoryQueryService.class);
+        AgentController controller = new AgentController(taskApplicationService, sessionMemoryQueryService);
+        List<ExecutionEvent> events = List.of(new ExecutionEvent(EventType.TOOL_CALLED, "task-1", "editDocument"));
+
+        when(taskApplicationService.getTaskEvents("task-1")).thenReturn(events);
+
+        ResponseEntity<List<ExecutionEvent>> result = controller.getTaskEvents("task-1");
+
+        assertEquals(200, result.getStatusCode().value());
+        assertSame(events, result.getBody());
+        verify(taskApplicationService).getTaskEvents("task-1");
+    }
+
+    @Test
+    void shouldReturnServiceUnavailableWhenTaskSubmissionRejected() {
+        TaskApplicationService taskApplicationService = mock(TaskApplicationService.class);
+        SessionMemoryQueryService sessionMemoryQueryService = mock(SessionMemoryQueryService.class);
+        AgentController controller = new AgentController(taskApplicationService, sessionMemoryQueryService);
+
+        AgentTaskRequest request = new AgentTaskRequest();
+        request.setDocumentId("doc-1");
+        request.setInstruction("rewrite");
+        request.setMode(AgentMode.REACT);
+
+        when(taskApplicationService.executeAsync(request)).thenThrow(new IllegalStateException("Failed to submit agent task"));
+
+        ResponseEntity<AgentTaskResponse> result = controller.executeAgentTask(request);
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, result.getStatusCode());
+        assertNull(result.getBody());
+    }
+
+    @Test
+    void shouldUseFinalAgentRoutePrefix() {
+        RequestMapping mapping = AgentController.class.getAnnotation(RequestMapping.class);
+
+        assertEquals("/api/agent", mapping.value()[0]);
     }
 }
