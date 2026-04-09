@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 
 @Configuration
-@ConditionalOnBean(MilvusClientV2.class)
 @ConditionalOnProperty(prefix = "milvus", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class LongTermMemoryMilvusConfig {
 
