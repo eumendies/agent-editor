@@ -11,10 +11,12 @@ import com.agent.editor.service.TaskApplicationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -140,5 +142,16 @@ class AgentControllerTest {
         RequestMapping mapping = AgentController.class.getAnnotation(RequestMapping.class);
 
         assertEquals("/api/agent", mapping.value()[0]);
+    }
+
+    @Test
+    void shouldNotExposeLegacyConnectEndpoint() {
+        boolean hasLegacyConnectEndpoint = java.util.Arrays.stream(AgentController.class.getDeclaredMethods())
+                .anyMatch(method -> {
+                    PostMapping mapping = method.getAnnotation(PostMapping.class);
+                    return mapping != null && mapping.value().length > 0 && "/connect".equals(mapping.value()[0]);
+                });
+
+        assertFalse(hasLegacyConnectEndpoint);
     }
 }

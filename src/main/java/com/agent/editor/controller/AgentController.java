@@ -3,7 +3,6 @@ package com.agent.editor.controller;
 import com.agent.editor.dto.AgentTaskRequest;
 import com.agent.editor.dto.AgentTaskResponse;
 import com.agent.editor.dto.SessionMemoryResponse;
-import com.agent.editor.dto.WebSocketMessage;
 import com.agent.editor.agent.event.ExecutionEvent;
 import com.agent.editor.model.AgentMode;
 import com.agent.editor.model.AgentStep;
@@ -19,7 +18,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/agent")
@@ -96,18 +94,5 @@ public class AgentController {
         return ResponseEntity.ok(List.of(AgentMode.values()).stream()
                 .map(Enum::name)
                 .toList());
-    }
-
-    @PostMapping("/connect")
-    @Operation(summary = "Create WebSocket session", description = "Create a new WebSocket session for real-time updates")
-    public ResponseEntity<WebSocketMessage> createSession() {
-        String sessionId = UUID.randomUUID().toString();
-        
-        WebSocketMessage response = new WebSocketMessage();
-        response.setType("SESSION_CREATED");
-        response.setSessionId(sessionId);
-        response.setContent("WebSocket session created. Connect to /ws/agent?sessionId=" + sessionId);
-        
-        return ResponseEntity.ok(response);
     }
 }
