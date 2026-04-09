@@ -11,7 +11,6 @@ import io.milvus.v2.service.collection.request.HasCollectionReq;
 import io.milvus.v2.service.collection.request.LoadCollectionReq;
 import io.milvus.v2.service.index.request.CreateIndexReq;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -76,11 +75,11 @@ public class LongTermMemoryMilvusConfig {
                 .build();
         schema.addField(varcharField(MEMORY_ID, 128, true));
         schema.addField(varcharField(MEMORY_TYPE, 64, false));
-        schema.addField(varcharField(DOCUMENT_ID, 128, false));
+        schema.addField(nullableVarcharField(DOCUMENT_ID, 128));
         schema.addField(varcharField(SUMMARY, 4096, false));
         schema.addField(varcharField(DETAILS, 8192, false));
-        schema.addField(varcharField(SOURCE_TASK_ID, 128, false));
-        schema.addField(varcharField(SOURCE_SESSION_ID, 128, false));
+        schema.addField(nullableVarcharField(SOURCE_TASK_ID, 128));
+        schema.addField(nullableVarcharField(SOURCE_SESSION_ID, 128));
         schema.addField(varcharField(CREATED_AT, 64, false));
         schema.addField(varcharField(UPDATED_AT, 64, false));
         schema.addField(AddFieldReq.builder()
@@ -98,6 +97,15 @@ public class LongTermMemoryMilvusConfig {
                 .maxLength(maxLength)
                 .isPrimaryKey(primaryKey)
                 .autoID(false)
+                .build();
+    }
+
+    private AddFieldReq nullableVarcharField(String fieldName, int maxLength) {
+        return AddFieldReq.builder()
+                .fieldName(fieldName)
+                .dataType(DataType.VarChar)
+                .maxLength(maxLength)
+                .isNullable(true)
                 .build();
     }
 }
