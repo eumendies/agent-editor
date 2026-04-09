@@ -38,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class AgentV2ConfigurationSplitTest {
+class AgentConfigurationSplitTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withUserConfiguration(
@@ -53,7 +53,7 @@ class AgentV2ConfigurationSplitTest {
             );
 
     @Test
-    void shouldWireAgentV2BeansAfterConfigurationSplit() {
+    void shouldWireAgentBeansAfterConfigurationSplit() {
         contextRunner.run(context -> {
             assertThat(context).hasSingleBean(ToolRegistry.class);
             assertThat(context).hasSingleBean(TraceStore.class);
@@ -78,7 +78,7 @@ class AgentV2ConfigurationSplitTest {
             assertThat(context).hasSingleBean(ExecutionToolAccessPolicy.class);
             assertThat(context.getBeansOfType(ExecutionToolAccessPolicy.class)).hasSize(1);
             assertThat(context.containsBean("supervisorWorkerToolAccessPolicy")).isFalse();
-            assertThat(context.containsBean("agentV2Config")).isFalse();
+            assertThat(context.containsBean("agentConfig")).isFalse();
             assertThat(context.containsBean("legacyEventAdapter")).isFalse();
         });
     }
