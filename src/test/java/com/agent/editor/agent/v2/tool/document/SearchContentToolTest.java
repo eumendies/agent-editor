@@ -1,5 +1,6 @@
 package com.agent.editor.agent.v2.tool.document;
 
+import com.agent.editor.agent.v2.tool.RecoverableToolException;
 import com.agent.editor.agent.v2.tool.ToolContext;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
 import com.agent.editor.agent.v2.tool.ToolResult;
@@ -40,7 +41,7 @@ class SearchContentToolTest {
     void shouldFailWhenArgumentsAreNotValidJson() {
         SearchContentTool tool = new SearchContentTool();
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> tool.execute(
+        RecoverableToolException exception = assertThrows(RecoverableToolException.class, () -> tool.execute(
                 new ToolInvocation(DocumentToolNames.SEARCH_CONTENT, "{not-json}"),
                 new ToolContext("task-1", "hello agent")
         ));

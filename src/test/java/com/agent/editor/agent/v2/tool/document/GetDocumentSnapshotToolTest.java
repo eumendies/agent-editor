@@ -1,5 +1,6 @@
 package com.agent.editor.agent.v2.tool.document;
 
+import com.agent.editor.agent.v2.tool.RecoverableToolException;
 import com.agent.editor.agent.v2.tool.ToolContext;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
 import com.agent.editor.agent.v2.tool.ToolResult;
@@ -42,7 +43,7 @@ class GetDocumentSnapshotToolTest {
     void shouldFailWhenArgumentsAreNotValidJson() {
         GetDocumentSnapshotTool tool = new GetDocumentSnapshotTool();
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> tool.execute(
+        RecoverableToolException exception = assertThrows(RecoverableToolException.class, () -> tool.execute(
                 new ToolInvocation(DocumentToolNames.GET_DOCUMENT_SNAPSHOT, "{not-json}"),
                 new ToolContext("task-1", "body")
         ));

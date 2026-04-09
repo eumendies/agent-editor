@@ -1,5 +1,6 @@
 package com.agent.editor.agent.v2.tool.document;
 
+import com.agent.editor.agent.v2.tool.RecoverableToolException;
 import com.agent.editor.agent.v2.tool.ToolContext;
 import com.agent.editor.agent.v2.tool.ToolInvocation;
 import com.agent.editor.agent.v2.tool.ToolResult;
@@ -41,7 +42,7 @@ class EditDocumentToolTest {
     void shouldFailWhenArgumentsAreNotValidJson() {
         EditDocumentTool tool = new EditDocumentTool();
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> tool.execute(
+        RecoverableToolException exception = assertThrows(RecoverableToolException.class, () -> tool.execute(
                 new ToolInvocation(DocumentToolNames.EDIT_DOCUMENT, "{not-json}"),
                 new ToolContext("task-1", "original")
         ));
