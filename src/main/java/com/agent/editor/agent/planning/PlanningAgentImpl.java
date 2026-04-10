@@ -5,7 +5,6 @@ import com.agent.editor.agent.core.agent.PlanningAgent;
 import com.agent.editor.agent.core.context.AgentRunContext;
 import com.agent.editor.agent.core.agent.PlanResult;
 import com.agent.editor.service.StructuredDocumentService;
-import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,10 +16,6 @@ public class PlanningAgentImpl implements PlanningAgent {
 
     private final PlanningAiService planningAiService;
     private final StructuredDocumentService structuredDocumentService;
-
-    public PlanningAgentImpl(PlanningAiService planningAiService) {
-        this(planningAiService, new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200));
-    }
 
     public PlanningAgentImpl(PlanningAiService planningAiService,
                              StructuredDocumentService structuredDocumentService) {

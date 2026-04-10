@@ -26,7 +26,7 @@ class PlanningAgentContextFactoryTest {
 
     @Test
     void shouldPrepareInitialPlanningContextFromUserTask() {
-        PlanningAgentContextFactory factory = new PlanningAgentContextFactory(NoOpMemoryCompressors.noop());
+        PlanningAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.planningAgentContextFactory(NoOpMemoryCompressors.noop());
         ChatTranscriptMemory sessionMemory = new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("previous turn")
         ));
@@ -51,7 +51,7 @@ class PlanningAgentContextFactoryTest {
 
     @Test
     void shouldPrepareExecutionStepContextByAppendingStepInstruction() {
-        PlanningAgentContextFactory factory = new PlanningAgentContextFactory(NoOpMemoryCompressors.noop());
+        PlanningAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.planningAgentContextFactory(NoOpMemoryCompressors.noop());
         AgentRunContext currentState = new AgentRunContext(
                 null,
                 1,
@@ -78,7 +78,7 @@ class PlanningAgentContextFactoryTest {
 
     @Test
     void shouldPrepareExecutionBaseContextWithoutInjectingOriginalTaskInstruction() {
-        PlanningAgentContextFactory factory = new PlanningAgentContextFactory(NoOpMemoryCompressors.noop());
+        PlanningAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.planningAgentContextFactory(NoOpMemoryCompressors.noop());
 
         AgentRunContext stepContext = factory.prepareExecutionInitialContext(new TaskRequest(
                 "task-1",
@@ -100,7 +100,7 @@ class PlanningAgentContextFactoryTest {
 
     @Test
     void shouldSummarizeCompletedStepWithoutLeakingToolTranscript() {
-        PlanningAgentContextFactory factory = new PlanningAgentContextFactory(NoOpMemoryCompressors.noop());
+        PlanningAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.planningAgentContextFactory(NoOpMemoryCompressors.noop());
         AgentRunContext stepContext = new AgentRunContext(
                 null,
                 1,

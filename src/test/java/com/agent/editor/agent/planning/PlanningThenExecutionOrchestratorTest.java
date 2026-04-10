@@ -46,7 +46,7 @@ class PlanningThenExecutionOrchestratorTest {
                 new FailIfCalledPlanningAgentImpl(),
                 executionRuntime,
                 new CompletingExecutionAgent(),
-                new PlanningAgentContextFactory(NoOpMemoryCompressors.noop()),
+                com.agent.editor.testsupport.AgentTestFixtures.planningAgentContextFactory(NoOpMemoryCompressors.noop()),
                 executionToolAccessPolicy(100)
         );
 
@@ -78,7 +78,7 @@ class PlanningThenExecutionOrchestratorTest {
                 new StaticPlanningAgentImpl(plan("unused")),
                 runtime,
                 new CompletingExecutionAgent(),
-                new PlanningAgentContextFactory(NoOpMemoryCompressors.noop()),
+                com.agent.editor.testsupport.AgentTestFixtures.planningAgentContextFactory(NoOpMemoryCompressors.noop()),
                 executionToolAccessPolicy(100)
         );
 
@@ -131,7 +131,7 @@ class PlanningThenExecutionOrchestratorTest {
                 new StaticPlanningAgentImpl(plan("unused")),
                 executionRuntime,
                 new CompletingExecutionAgent(),
-                new PlanningAgentContextFactory(NoOpMemoryCompressors.noop()),
+                com.agent.editor.testsupport.AgentTestFixtures.planningAgentContextFactory(NoOpMemoryCompressors.noop()),
                 executionToolAccessPolicy(10)
         );
 
@@ -155,7 +155,7 @@ class PlanningThenExecutionOrchestratorTest {
     private DocumentToolAccessPolicy documentToolAccessPolicy(int threshold) {
         return new DocumentToolAccessPolicy(
                 new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200),
-                new DocumentToolModeProperties(threshold)
+                com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(threshold)
         );
     }
 
@@ -206,7 +206,7 @@ class PlanningThenExecutionOrchestratorTest {
         private final PlanResult planResult;
 
         private StaticPlanningAgentImpl(PlanResult planResult) {
-            super(null);
+            super(null, com.agent.editor.testsupport.AgentTestFixtures.structuredDocumentService());
             this.planResult = planResult;
         }
 
@@ -219,7 +219,7 @@ class PlanningThenExecutionOrchestratorTest {
     private static final class FailIfCalledPlanningAgentImpl extends PlanningAgentImpl {
 
         private FailIfCalledPlanningAgentImpl() {
-            super(null);
+            super(null, com.agent.editor.testsupport.AgentTestFixtures.structuredDocumentService());
         }
 
         @Override

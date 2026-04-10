@@ -12,6 +12,7 @@ import com.agent.editor.agent.event.EventPublisher;
 import com.agent.editor.agent.event.WebSocketEventPublisher;
 import com.agent.editor.agent.memory.InMemorySessionMemoryStore;
 import com.agent.editor.agent.memory.ModelBasedMemoryCompressor;
+import com.agent.editor.agent.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.planning.PlanningAgentContextFactory;
 import com.agent.editor.agent.planning.PlanningAgentImpl;
 import com.agent.editor.agent.planning.PlanningThenExecutionOrchestrator;
@@ -80,28 +81,41 @@ public class TaskOrchestratorConfig {
     }
 
     @Bean
-    public ReactAgentContextFactory reactAgentContextFactory(MemoryCompressor memoryCompressor) {
-        return new ReactAgentContextFactory(memoryCompressor);
+    public ExecutionMemoryChatMessageMapper executionMemoryChatMessageMapper() {
+        return new ExecutionMemoryChatMessageMapper();
     }
 
     @Bean
-    public PlanningAgentContextFactory planningAgentContextFactory(MemoryCompressor memoryCompressor) {
-        return new PlanningAgentContextFactory(memoryCompressor);
+    public ReactAgentContextFactory reactAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
+                                                             MemoryCompressor memoryCompressor,
+                                                             StructuredDocumentService structuredDocumentService) {
+        return new ReactAgentContextFactory(memoryChatMessageMapper, memoryCompressor, structuredDocumentService);
     }
 
     @Bean
-    public ReflexionActorContextFactory reflexionActorContextFactory(MemoryCompressor memoryCompressor) {
-        return new ReflexionActorContextFactory(memoryCompressor);
+    public PlanningAgentContextFactory planningAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
+                                                                   MemoryCompressor memoryCompressor) {
+        return new PlanningAgentContextFactory(memoryChatMessageMapper, memoryCompressor);
     }
 
     @Bean
-    public ReflexionCriticContextFactory reflexionCriticContextFactory(MemoryCompressor memoryCompressor) {
-        return new ReflexionCriticContextFactory(memoryCompressor);
+    public ReflexionActorContextFactory reflexionActorContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
+                                                                     MemoryCompressor memoryCompressor,
+                                                                     StructuredDocumentService structuredDocumentService) {
+        return new ReflexionActorContextFactory(memoryChatMessageMapper, memoryCompressor, structuredDocumentService);
     }
 
     @Bean
-    public SupervisorContextFactory supervisorContextFactory(MemoryCompressor memoryCompressor) {
-        return new SupervisorContextFactory(memoryCompressor);
+    public ReflexionCriticContextFactory reflexionCriticContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
+                                                                       MemoryCompressor memoryCompressor,
+                                                                       StructuredDocumentService structuredDocumentService) {
+        return new ReflexionCriticContextFactory(memoryChatMessageMapper, memoryCompressor, structuredDocumentService);
+    }
+
+    @Bean
+    public SupervisorContextFactory supervisorContextFactory(MemoryCompressor memoryCompressor,
+                                                             StructuredDocumentService structuredDocumentService) {
+        return new SupervisorContextFactory(memoryCompressor, structuredDocumentService);
     }
 
     @Bean

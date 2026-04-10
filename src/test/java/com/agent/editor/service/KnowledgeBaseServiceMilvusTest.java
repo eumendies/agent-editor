@@ -28,7 +28,7 @@ class KnowledgeBaseServiceMilvusTest {
         InMemoryKnowledgeStore store = new InMemoryKnowledgeStore();
         KnowledgeChunkRepository repository = mock(KnowledgeChunkRepository.class);
         KnowledgeDocumentParser parser = mock(KnowledgeDocumentParser.class);
-        KnowledgeChunkSplitter splitter = new KnowledgeChunkSplitter(new com.agent.editor.config.RagProperties(500, 80, 5, 8, 12));
+        KnowledgeChunkSplitter splitter = new KnowledgeChunkSplitter(com.agent.editor.testsupport.ConfigurationTestFixtures.ragProperties(500, 80, 5, 8, 12));
         KnowledgeEmbeddingService embeddingService = mock(KnowledgeEmbeddingService.class);
         KnowledgeBaseService service = new KnowledgeBaseService(
                 store,
@@ -58,7 +58,7 @@ class KnowledgeBaseServiceMilvusTest {
         InMemoryKnowledgeStore store = new InMemoryKnowledgeStore();
         KnowledgeChunkRepository repository = mock(KnowledgeChunkRepository.class);
         KnowledgeDocumentParser parser = mock(KnowledgeDocumentParser.class);
-        KnowledgeChunkSplitter splitter = new KnowledgeChunkSplitter(new com.agent.editor.config.RagProperties(30, 10, 5, 8, 12));
+        KnowledgeChunkSplitter splitter = new KnowledgeChunkSplitter(com.agent.editor.testsupport.ConfigurationTestFixtures.ragProperties(30, 10, 5, 8, 12));
         KnowledgeBaseService service = new KnowledgeBaseService(
                 store,
                 repository,

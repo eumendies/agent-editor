@@ -31,7 +31,7 @@ class EvidenceReviewerAgentTest {
 
     @Test
     void shouldReportReactType() {
-        EvidenceReviewerAgent definition = EvidenceReviewerAgent.blocking(mock(ChatModel.class), new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop()));
+        EvidenceReviewerAgent definition = EvidenceReviewerAgent.blocking(mock(ChatModel.class), com.agent.editor.testsupport.AgentTestFixtures.evidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         assertEquals(AgentType.REACT, definition.type());
     }
@@ -43,7 +43,7 @@ class EvidenceReviewerAgentTest {
                         {"verdict":"PASS","instructionSatisfied":true,"evidenceGrounded":true,"unsupportedClaims":[],"missingRequirements":[],"feedback":"ok","reasoning":"complete"}
                         """))
                 .build());
-        EvidenceReviewerAgent definition = EvidenceReviewerAgent.blocking(chatModel, new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop()));
+        EvidenceReviewerAgent definition = EvidenceReviewerAgent.blocking(chatModel, com.agent.editor.testsupport.AgentTestFixtures.evidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         definition.decide(context(List.of(readDocumentNodeTool(), searchContentTool(), analyzeDocumentTool(), getDocumentSnapshotTool())));
 
@@ -71,7 +71,7 @@ class EvidenceReviewerAgentTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("need one more verification step", List.of(toolRequest)))
                 .build());
-        EvidenceReviewerAgent definition = EvidenceReviewerAgent.blocking(chatModel, new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop()));
+        EvidenceReviewerAgent definition = EvidenceReviewerAgent.blocking(chatModel, com.agent.editor.testsupport.AgentTestFixtures.evidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision toolLoopDecision = definition.decide(context(List.of(analyzeDocumentTool())));
 
@@ -86,7 +86,7 @@ class EvidenceReviewerAgentTest {
                         {"verdict":"PASS","instructionSatisfied":true,"evidenceGrounded":true,"unsupportedClaims":[],"missingRequirements":[],"feedback":"ok","reasoning":"complete"}
                         """))
                 .build());
-        EvidenceReviewerAgent definition = EvidenceReviewerAgent.blocking(chatModel, new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop()));
+        EvidenceReviewerAgent definition = EvidenceReviewerAgent.blocking(chatModel, com.agent.editor.testsupport.AgentTestFixtures.evidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision decision = definition.decide(context(List.of(searchContentTool(), analyzeDocumentTool())));
 
@@ -105,7 +105,7 @@ class EvidenceReviewerAgentTest {
                         ```
                         """))
                 .build());
-        EvidenceReviewerAgent definition = EvidenceReviewerAgent.blocking(chatModel, new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop()));
+        EvidenceReviewerAgent definition = EvidenceReviewerAgent.blocking(chatModel, com.agent.editor.testsupport.AgentTestFixtures.evidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision decision = definition.decide(context(List.of(searchContentTool(), analyzeDocumentTool())));
 
@@ -206,7 +206,11 @@ class EvidenceReviewerAgentTest {
         private int buildInvocationCount;
 
         private StubEvidenceReviewerContextFactory() {
-            super(NoOpMemoryCompressors.noop());
+            super(
+                    com.agent.editor.testsupport.AgentTestFixtures.memoryChatMessageMapper(),
+                    NoOpMemoryCompressors.noop(),
+                    com.agent.editor.testsupport.AgentTestFixtures.structuredDocumentService()
+            );
         }
 
         @Override

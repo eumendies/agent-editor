@@ -31,7 +31,7 @@ class MemoryAgentTest {
 
     @Test
     void shouldReportReactType() {
-        MemoryAgent definition = MemoryAgent.blocking(mock(ChatModel.class), new MemoryAgentContextFactory(NoOpMemoryCompressors.noop()));
+        MemoryAgent definition = MemoryAgent.blocking(mock(ChatModel.class), com.agent.editor.testsupport.AgentTestFixtures.memoryAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         assertEquals(AgentType.REACT, definition.type());
     }
@@ -43,7 +43,7 @@ class MemoryAgentTest {
                         {"confirmedConstraints":["keep title hierarchy"],"deprecatedConstraints":[],"activeRisks":[],"guidanceForDownstreamWorkers":"Preserve the current outline."}
                         """))
                 .build());
-        MemoryAgent definition = MemoryAgent.blocking(chatModel, new MemoryAgentContextFactory(NoOpMemoryCompressors.noop()));
+        MemoryAgent definition = MemoryAgent.blocking(chatModel, com.agent.editor.testsupport.AgentTestFixtures.memoryAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         definition.decide(context(List.of(searchMemoryTool(), upsertMemoryTool())));
 
@@ -68,7 +68,7 @@ class MemoryAgentTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("need one more memory lookup", List.of(toolRequest)))
                 .build());
-        MemoryAgent definition = MemoryAgent.blocking(chatModel, new MemoryAgentContextFactory(NoOpMemoryCompressors.noop()));
+        MemoryAgent definition = MemoryAgent.blocking(chatModel, com.agent.editor.testsupport.AgentTestFixtures.memoryAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision toolLoopDecision = definition.decide(context(List.of(searchMemoryTool())));
 
@@ -83,7 +83,7 @@ class MemoryAgentTest {
                         {"confirmedConstraints":["keep title hierarchy"],"deprecatedConstraints":["remove speculative claims"],"activeRisks":["old memory may be stale"],"guidanceForDownstreamWorkers":"Preserve the current outline."}
                         """))
                 .build());
-        MemoryAgent definition = MemoryAgent.blocking(chatModel, new MemoryAgentContextFactory(NoOpMemoryCompressors.noop()));
+        MemoryAgent definition = MemoryAgent.blocking(chatModel, com.agent.editor.testsupport.AgentTestFixtures.memoryAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision decision = definition.decide(context(List.of(searchMemoryTool(), upsertMemoryTool())));
 
@@ -172,7 +172,7 @@ class MemoryAgentTest {
         private int buildInvocationCount;
 
         private StubMemoryAgentContextFactory() {
-            super(NoOpMemoryCompressors.noop());
+            super(com.agent.editor.testsupport.AgentTestFixtures.memoryChatMessageMapper(), NoOpMemoryCompressors.noop());
         }
 
         @Override

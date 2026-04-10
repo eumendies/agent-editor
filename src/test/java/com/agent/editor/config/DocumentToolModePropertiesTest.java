@@ -8,7 +8,7 @@ class DocumentToolModePropertiesTest {
 
     @Test
     void shouldKeepConfiguredThresholdValue() {
-        DocumentToolModeProperties properties = new DocumentToolModeProperties(4321);
+        DocumentToolModeProperties properties = com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(4321);
 
         assertEquals(4321, properties.getLongDocumentThresholdTokens());
     }

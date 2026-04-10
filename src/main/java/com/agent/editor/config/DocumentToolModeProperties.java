@@ -11,7 +11,4 @@ public class DocumentToolModeProperties {
 
     private int longDocumentThresholdTokens = 4_000;
 
-    public DocumentToolModeProperties(int longDocumentThresholdTokens) {
-        this.longDocumentThresholdTokens = longDocumentThresholdTokens == 0 ? 4_000 : longDocumentThresholdTokens;
-    }
 }

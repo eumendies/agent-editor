@@ -46,7 +46,7 @@ class SingleAgentOrchestratorTest {
         ReActAgentOrchestrator orchestrator = new ReActAgentOrchestrator(
                 runtime,
                 agent,
-                new ReactAgentContextFactory(NoOpMemoryCompressors.noop()),
+                com.agent.editor.testsupport.AgentTestFixtures.reactAgentContextFactory(NoOpMemoryCompressors.noop()),
                 executionToolAccessPolicy(100)
         );
 
@@ -78,7 +78,7 @@ class SingleAgentOrchestratorTest {
         ReActAgentOrchestrator orchestrator = new ReActAgentOrchestrator(
                 runtime,
                 new StubAgent(),
-                new ReactAgentContextFactory(NoOpMemoryCompressors.noop()),
+                com.agent.editor.testsupport.AgentTestFixtures.reactAgentContextFactory(NoOpMemoryCompressors.noop()),
                 executionToolAccessPolicy(10)
         );
 
@@ -103,7 +103,7 @@ class SingleAgentOrchestratorTest {
     private DocumentToolAccessPolicy documentToolAccessPolicy(int threshold) {
         return new DocumentToolAccessPolicy(
                 new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200),
-                new DocumentToolModeProperties(threshold)
+                com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(threshold)
         );
     }
 

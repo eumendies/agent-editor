@@ -19,7 +19,7 @@ class ReflexionActorContextFactoryTest {
 
     @Test
     void shouldPrepareRevisionContextByAppendingStructuredCritiqueMessage() {
-        ReflexionActorContextFactory factory = new ReflexionActorContextFactory(com.agent.editor.agent.support.NoOpMemoryCompressors.noop());
+        ReflexionActorContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.reflexionActorContextFactory(com.agent.editor.agent.support.NoOpMemoryCompressors.noop());
         AgentRunContext actorState = new AgentRunContext(
                 null,
                 1,

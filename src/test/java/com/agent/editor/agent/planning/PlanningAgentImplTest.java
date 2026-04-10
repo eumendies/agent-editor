@@ -22,7 +22,7 @@ class PlanningAgentImplTest {
 
     @Test
     void shouldReportPlanningType() {
-        PlanningAgentImpl definition = new PlanningAgentImpl((PlanningAiService) null);
+        PlanningAgentImpl definition = new PlanningAgentImpl((PlanningAiService) null, com.agent.editor.testsupport.AgentTestFixtures.structuredDocumentService());
 
         assertEquals(AgentType.PLANNING, definition.type());
     }
@@ -39,7 +39,7 @@ class PlanningAgentImplTest {
                     new PlanningResponse.Step("Rewrite introduction"),
                     new PlanningResponse.Step("Polish tone")
             ));
-        });
+        }, com.agent.editor.testsupport.AgentTestFixtures.structuredDocumentService());
 
         PlanResult result = definition.createPlan(context("# Intro\n\nbody paragraph that should stay out of the planning context", "Improve this document"));
 
@@ -68,7 +68,7 @@ class PlanningAgentImplTest {
 
     @Test
     void shouldFallbackToSingleStepPlanWhenAiServiceUnavailable() {
-        PlanningAgentImpl definition = new PlanningAgentImpl((PlanningAiService) null);
+        PlanningAgentImpl definition = new PlanningAgentImpl((PlanningAiService) null, com.agent.editor.testsupport.AgentTestFixtures.structuredDocumentService());
 
         PlanResult result = definition.createPlan(context("body", "Improve this document"));
 
@@ -79,7 +79,7 @@ class PlanningAgentImplTest {
     @Test
     void shouldFallbackToSingleStepPlanWhenAiServiceReturnsNoSteps() {
         PlanningAgentImpl definition = new PlanningAgentImpl((document, instruction) ->
-                new PlanningResponse(List.of()));
+                new PlanningResponse(List.of()), com.agent.editor.testsupport.AgentTestFixtures.structuredDocumentService());
 
         PlanResult result = definition.createPlan(context("body", "Improve this document"));
 
@@ -91,7 +91,7 @@ class PlanningAgentImplTest {
     void shouldFallbackToSingleStepPlanWhenAiServiceFails() {
         PlanningAgentImpl definition = new PlanningAgentImpl((document, instruction) -> {
             throw new IllegalStateException("boom");
-        });
+        }, com.agent.editor.testsupport.AgentTestFixtures.structuredDocumentService());
 
         PlanResult result = definition.createPlan(context("body", "Improve this document"));
 

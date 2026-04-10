@@ -24,7 +24,7 @@ class KnowledgeRetrievalServiceTest {
         KnowledgeRetrievalService service = new KnowledgeRetrievalService(
                 repository,
                 embeddingService,
-                new RagProperties(500, 80, 5, 8, 12)
+                com.agent.editor.testsupport.ConfigurationTestFixtures.ragProperties(500, 80, 5, 8, 12)
         );
 
         service.retrieve("Spring Boot", List.of("doc-1"), 2);
@@ -40,7 +40,7 @@ class KnowledgeRetrievalServiceTest {
         KnowledgeRetrievalService service = new KnowledgeRetrievalService(
                 repository,
                 embeddingService,
-                new RagProperties(500, 80, 5, 8, 12)
+                com.agent.editor.testsupport.ConfigurationTestFixtures.ragProperties(500, 80, 5, 8, 12)
         );
 
         assertTrue(service.retrieve("   ", null, null).isEmpty());

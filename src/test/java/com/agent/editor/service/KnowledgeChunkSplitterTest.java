@@ -17,7 +17,7 @@ class KnowledgeChunkSplitterTest {
 
     @Test
     void shouldSplitByHeadingAndKeepMetadata() {
-        RagProperties properties = new RagProperties(500, 80, 5, 8, 12);
+        RagProperties properties = com.agent.editor.testsupport.ConfigurationTestFixtures.ragProperties(500, 80, 5, 8, 12);
         KnowledgeChunkSplitter splitter = new KnowledgeChunkSplitter(properties);
         String content = "# 项目经历\nJava Spring Boot ElasticSearch RabbitMQ\n\n# 实习经历\nWebFlux Flowable";
 
@@ -31,7 +31,7 @@ class KnowledgeChunkSplitterTest {
 
     @Test
     void shouldRecursivelySplitMarkdownByNestedHeadings() {
-        RagProperties properties = new RagProperties(80, 10, 5, 8, 12);
+        RagProperties properties = com.agent.editor.testsupport.ConfigurationTestFixtures.ragProperties(80, 10, 5, 8, 12);
         KnowledgeChunkSplitter splitter = new KnowledgeChunkSplitter(properties);
         String content = """
                 # 项目经历
@@ -51,7 +51,7 @@ class KnowledgeChunkSplitterTest {
 
     @Test
     void shouldFallbackToSlidingWindowWhenLeafSectionExceedsChunkSize() {
-        RagProperties properties = new RagProperties(60, 10, 5, 8, 12);
+        RagProperties properties = com.agent.editor.testsupport.ConfigurationTestFixtures.ragProperties(60, 10, 5, 8, 12);
         KnowledgeChunkSplitter splitter = new KnowledgeChunkSplitter(properties);
         String content = """
                 # 项目经历
@@ -69,7 +69,7 @@ class KnowledgeChunkSplitterTest {
 
     @Test
     void shouldBuildFullHeadingPathForNestedMarkdownSections() {
-        RagProperties properties = new RagProperties(30, 10, 5, 8, 12);
+        RagProperties properties = com.agent.editor.testsupport.ConfigurationTestFixtures.ragProperties(30, 10, 5, 8, 12);
         KnowledgeChunkSplitter splitter = new KnowledgeChunkSplitter(properties);
         String content = """
                 # 项目经历
@@ -87,7 +87,7 @@ class KnowledgeChunkSplitterTest {
 
     @Test
     void shouldKeepHeadingNullForHeadinglessMarkdown() {
-        RagProperties properties = new RagProperties(20, 5, 5, 8, 12);
+        RagProperties properties = com.agent.editor.testsupport.ConfigurationTestFixtures.ragProperties(20, 5, 5, 8, 12);
         KnowledgeChunkSplitter splitter = new KnowledgeChunkSplitter(properties);
 
         List<KnowledgeChunk> chunks = splitter.split("doc-1", "notes.md", "纯正文内容纯正文内容纯正文内容纯正文内容", Map.of());
@@ -98,7 +98,7 @@ class KnowledgeChunkSplitterTest {
 
     @Test
     void shouldPreferChildSectionsOverDuplicatingOversizedParentSection() {
-        RagProperties properties = new RagProperties(40, 10, 5, 8, 12);
+        RagProperties properties = com.agent.editor.testsupport.ConfigurationTestFixtures.ragProperties(40, 10, 5, 8, 12);
         KnowledgeChunkSplitter splitter = new KnowledgeChunkSplitter(properties);
         String content = """
                 # 项目经历
@@ -117,7 +117,7 @@ class KnowledgeChunkSplitterTest {
 
     @Test
     void shouldKeepHeadingNullForNonMarkdownTextChunks() {
-        RagProperties properties = new RagProperties(20, 5, 5, 8, 12);
+        RagProperties properties = com.agent.editor.testsupport.ConfigurationTestFixtures.ragProperties(20, 5, 5, 8, 12);
         KnowledgeChunkSplitter splitter = new KnowledgeChunkSplitter(properties);
 
         List<KnowledgeChunk> chunks = splitter.split("doc-1", "notes.txt", "纯正文内容纯正文内容纯正文内容纯正文内容", Map.of());

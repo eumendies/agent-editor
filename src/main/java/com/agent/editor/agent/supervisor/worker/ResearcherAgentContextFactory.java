@@ -22,10 +22,6 @@ public class ResearcherAgentContextFactory implements AgentContextFactory, Memor
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
     private final MemoryCompressor memoryCompressor;
 
-    public ResearcherAgentContextFactory(MemoryCompressor memoryCompressor) {
-        this(new ExecutionMemoryChatMessageMapper(), memoryCompressor);
-    }
-
     public ResearcherAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
                                          MemoryCompressor memoryCompressor) {
         this.memoryChatMessageMapper = memoryChatMessageMapper;

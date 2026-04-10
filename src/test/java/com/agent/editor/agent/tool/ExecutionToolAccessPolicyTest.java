@@ -22,7 +22,7 @@ class ExecutionToolAccessPolicyTest {
     @Test
     void shouldCombineDocumentWriteAndMemoryToolsForMainWriteRole() {
         ExecutionToolAccessPolicy policy = new ExecutionToolAccessPolicy(
-                new DocumentToolAccessPolicy(structuredDocumentService, new DocumentToolModeProperties(50)),
+                new DocumentToolAccessPolicy(structuredDocumentService, com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(50)),
                 new MemoryToolAccessPolicy()
         );
 
@@ -44,7 +44,7 @@ class ExecutionToolAccessPolicyTest {
     @Test
     void shouldExposeMemoryToolsOnlyForMemoryRole() {
         ExecutionToolAccessPolicy policy = new ExecutionToolAccessPolicy(
-                new DocumentToolAccessPolicy(structuredDocumentService, new DocumentToolModeProperties(50)),
+                new DocumentToolAccessPolicy(structuredDocumentService, com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(50)),
                 new MemoryToolAccessPolicy()
         );
 
@@ -63,7 +63,7 @@ class ExecutionToolAccessPolicyTest {
     @Test
     void shouldKeepReviewRoleOnDocumentReviewToolsOnly() {
         ExecutionToolAccessPolicy policy = new ExecutionToolAccessPolicy(
-                new DocumentToolAccessPolicy(structuredDocumentService, new DocumentToolModeProperties(10)),
+                new DocumentToolAccessPolicy(structuredDocumentService, com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(10)),
                 new MemoryToolAccessPolicy()
         );
 
@@ -83,7 +83,7 @@ class ExecutionToolAccessPolicyTest {
     @Test
     void shouldKeepResearchRoleOnRetrievalOnly() {
         ExecutionToolAccessPolicy policy = new ExecutionToolAccessPolicy(
-                new DocumentToolAccessPolicy(structuredDocumentService, new DocumentToolModeProperties(10)),
+                new DocumentToolAccessPolicy(structuredDocumentService, com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(10)),
                 new MemoryToolAccessPolicy()
         );
 

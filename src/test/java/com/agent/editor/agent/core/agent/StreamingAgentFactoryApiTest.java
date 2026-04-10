@@ -28,18 +28,18 @@ class StreamingAgentFactoryApiTest {
         ChatModel chatModel = mock(ChatModel.class);
         StreamingLLMInvoker streamingLLMInvoker = mock(StreamingLLMInvoker.class);
 
-        assertNotNull(ReactAgent.blocking(chatModel, new ReactAgentContextFactory(NoOpMemoryCompressors.noop())));
-        assertNotNull(ReactAgent.streaming(streamingLLMInvoker, new ReactAgentContextFactory(NoOpMemoryCompressors.noop())));
-        assertNotNull(ResearcherAgent.blocking(chatModel, new ResearcherAgentContextFactory(NoOpMemoryCompressors.noop())));
-        assertNotNull(ResearcherAgent.streaming(streamingLLMInvoker, new ResearcherAgentContextFactory(NoOpMemoryCompressors.noop())));
-        assertNotNull(GroundedWriterAgent.blocking(chatModel, new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop())));
-        assertNotNull(GroundedWriterAgent.streaming(streamingLLMInvoker, new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop())));
-        assertNotNull(EvidenceReviewerAgent.blocking(chatModel, new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop())));
-        assertNotNull(EvidenceReviewerAgent.streaming(streamingLLMInvoker, new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop())));
-        assertNotNull(ReflexionCritic.blocking(chatModel, new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())));
-        assertNotNull(ReflexionCritic.streaming(streamingLLMInvoker, new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())));
-        assertNotNull(ReflexionActor.blocking(chatModel, new ReflexionActorContextFactory(NoOpMemoryCompressors.noop())));
-        assertNotNull(ReflexionActor.streaming(streamingLLMInvoker, new ReflexionActorContextFactory(NoOpMemoryCompressors.noop())));
+        assertNotNull(ReactAgent.blocking(chatModel, com.agent.editor.testsupport.AgentTestFixtures.reactAgentContextFactory(NoOpMemoryCompressors.noop())));
+        assertNotNull(ReactAgent.streaming(streamingLLMInvoker, com.agent.editor.testsupport.AgentTestFixtures.reactAgentContextFactory(NoOpMemoryCompressors.noop())));
+        assertNotNull(ResearcherAgent.blocking(chatModel, com.agent.editor.testsupport.AgentTestFixtures.researcherAgentContextFactory(NoOpMemoryCompressors.noop())));
+        assertNotNull(ResearcherAgent.streaming(streamingLLMInvoker, com.agent.editor.testsupport.AgentTestFixtures.researcherAgentContextFactory(NoOpMemoryCompressors.noop())));
+        assertNotNull(GroundedWriterAgent.blocking(chatModel, com.agent.editor.testsupport.AgentTestFixtures.groundedWriterAgentContextFactory(NoOpMemoryCompressors.noop())));
+        assertNotNull(GroundedWriterAgent.streaming(streamingLLMInvoker, com.agent.editor.testsupport.AgentTestFixtures.groundedWriterAgentContextFactory(NoOpMemoryCompressors.noop())));
+        assertNotNull(EvidenceReviewerAgent.blocking(chatModel, com.agent.editor.testsupport.AgentTestFixtures.evidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop())));
+        assertNotNull(EvidenceReviewerAgent.streaming(streamingLLMInvoker, com.agent.editor.testsupport.AgentTestFixtures.evidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop())));
+        assertNotNull(ReflexionCritic.blocking(chatModel, com.agent.editor.testsupport.AgentTestFixtures.reflexionCriticContextFactory(NoOpMemoryCompressors.noop())));
+        assertNotNull(ReflexionCritic.streaming(streamingLLMInvoker, com.agent.editor.testsupport.AgentTestFixtures.reflexionCriticContextFactory(NoOpMemoryCompressors.noop())));
+        assertNotNull(ReflexionActor.blocking(chatModel, com.agent.editor.testsupport.AgentTestFixtures.reflexionActorContextFactory(NoOpMemoryCompressors.noop())));
+        assertNotNull(ReflexionActor.streaming(streamingLLMInvoker, com.agent.editor.testsupport.AgentTestFixtures.reflexionActorContextFactory(NoOpMemoryCompressors.noop())));
 
         assertEquals(0, ReactAgent.class.getConstructors().length);
         assertEquals(0, ResearcherAgent.class.getConstructors().length);

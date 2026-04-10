@@ -32,7 +32,7 @@ class GroundedWriterAgentTest {
 
     @Test
     void shouldReportReactType() {
-        GroundedWriterAgent definition = GroundedWriterAgent.blocking(mock(ChatModel.class), new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
+        GroundedWriterAgent definition = GroundedWriterAgent.blocking(mock(ChatModel.class), com.agent.editor.testsupport.AgentTestFixtures.groundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         assertEquals(AgentType.REACT, definition.type());
     }
@@ -42,7 +42,7 @@ class GroundedWriterAgentTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("Document updated"))
                 .build());
-        GroundedWriterAgent definition = GroundedWriterAgent.blocking(chatModel, new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
+        GroundedWriterAgent definition = GroundedWriterAgent.blocking(chatModel, com.agent.editor.testsupport.AgentTestFixtures.groundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         definition.decide(context(DocumentToolMode.INCREMENTAL, List.of(
                 readDocumentNodeTool(),
@@ -79,7 +79,7 @@ class GroundedWriterAgentTest {
         RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
                 .aiMessage(AiMessage.from("apply grounded draft", List.of(toolRequest)))
                 .build());
-        GroundedWriterAgent definition = GroundedWriterAgent.blocking(chatModel, new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
+        GroundedWriterAgent definition = GroundedWriterAgent.blocking(chatModel, com.agent.editor.testsupport.AgentTestFixtures.groundedWriterAgentContextFactory(NoOpMemoryCompressors.noop()));
 
         ToolLoopDecision toolLoopDecision = definition.decide(context(DocumentToolMode.FULL, List.of(editDocumentTool())));
 
@@ -194,7 +194,11 @@ class GroundedWriterAgentTest {
         private int buildInvocationCount;
 
         private StubGroundedWriterContextFactory() {
-            super(NoOpMemoryCompressors.noop());
+            super(
+                    com.agent.editor.testsupport.AgentTestFixtures.memoryChatMessageMapper(),
+                    NoOpMemoryCompressors.noop(),
+                    com.agent.editor.testsupport.AgentTestFixtures.structuredDocumentService()
+            );
         }
 
         @Override

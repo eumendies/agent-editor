@@ -29,7 +29,7 @@ class ReactAgentContextFactoryTest {
 
     @Test
     void shouldPrepareInitialContextByAppendingCurrentInstructionOnce() {
-        ReactAgentContextFactory factory = new ReactAgentContextFactory(NoOpMemoryCompressors.noop());
+        ReactAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.reactAgentContextFactory(NoOpMemoryCompressors.noop());
         ChatTranscriptMemory sessionMemory = new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("previous turn")
         ));
@@ -56,7 +56,7 @@ class ReactAgentContextFactoryTest {
 
     @Test
     void shouldBuildModelInvocationContextFromTranscriptAndVisibleTools() {
-        ReactAgentContextFactory factory = new ReactAgentContextFactory(NoOpMemoryCompressors.noop());
+        ReactAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.reactAgentContextFactory(NoOpMemoryCompressors.noop());
         ToolSpecification readToolSpecification = ToolSpecification.builder()
                 .name(DocumentToolNames.READ_DOCUMENT_NODE)
                 .description("read document node")
@@ -119,7 +119,7 @@ class ReactAgentContextFactoryTest {
 
     @Test
     void shouldDescribeWholeDocumentWorkflowWhenOnlyFullDocumentToolsAreVisible() {
-        ReactAgentContextFactory factory = new ReactAgentContextFactory(NoOpMemoryCompressors.noop());
+        ReactAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.reactAgentContextFactory(NoOpMemoryCompressors.noop());
         ToolSpecification toolSpecification = ToolSpecification.builder()
                 .name(DocumentToolNames.GET_DOCUMENT_SNAPSHOT)
                 .description("read the latest full document")
@@ -157,7 +157,7 @@ class ReactAgentContextFactoryTest {
 
     @Test
     void shouldIncludeConfirmedUserProfileGuidanceInSystemPrompt() {
-        ReactAgentContextFactory factory = new ReactAgentContextFactory(NoOpMemoryCompressors.noop());
+        ReactAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.reactAgentContextFactory(NoOpMemoryCompressors.noop());
         ExecutionRequest request = fullRequest(
                 "task-5",
                 "session-5",
@@ -195,7 +195,8 @@ class ReactAgentContextFactoryTest {
                             true,
                             "compressed"
                     );
-                }
+                },
+                com.agent.editor.testsupport.AgentTestFixtures.structuredDocumentService()
         );
 
         var invocationContext = factory.buildModelInvocationContext(new AgentRunContext(

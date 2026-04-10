@@ -13,7 +13,6 @@ import com.agent.editor.agent.core.state.ExecutionStage;
 import com.agent.editor.agent.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.task.TaskRequest;
 import com.agent.editor.service.StructuredDocumentService;
-import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
 import com.agent.editor.agent.tool.document.DocumentToolMode;
 import com.agent.editor.agent.tool.document.DocumentToolNames;
 import dev.langchain4j.data.message.SystemMessage;
@@ -46,23 +45,6 @@ public class ReflexionCriticContextFactory implements AgentContextFactory, Memor
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
     private final MemoryCompressor memoryCompressor;
     private final StructuredDocumentService structuredDocumentService;
-
-    public ReflexionCriticContextFactory(MemoryCompressor memoryCompressor) {
-        this(
-                new ExecutionMemoryChatMessageMapper(),
-                memoryCompressor,
-                new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200)
-        );
-    }
-
-    public ReflexionCriticContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
-                                         MemoryCompressor memoryCompressor) {
-        this(
-                memoryChatMessageMapper,
-                memoryCompressor,
-                new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200)
-        );
-    }
 
     public ReflexionCriticContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
                                          MemoryCompressor memoryCompressor,

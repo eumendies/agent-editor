@@ -27,10 +27,6 @@ public class MemoryAgentContextFactory implements AgentContextFactory, MemoryCom
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
     private final MemoryCompressor memoryCompressor;
 
-    public MemoryAgentContextFactory(MemoryCompressor memoryCompressor) {
-        this(new ExecutionMemoryChatMessageMapper(), memoryCompressor);
-    }
-
     public MemoryAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
                                      MemoryCompressor memoryCompressor) {
         this.memoryChatMessageMapper = memoryChatMessageMapper;

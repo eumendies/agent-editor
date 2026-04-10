@@ -241,7 +241,7 @@ class ReactAgentTest {
     private ReactAgent definition(ChatModel chatModel) {
         return ReactAgent.blocking(
                 chatModel != null ? chatModel : mock(ChatModel.class),
-                new ReactAgentContextFactory(NoOpMemoryCompressors.noop())
+                com.agent.editor.testsupport.AgentTestFixtures.reactAgentContextFactory(NoOpMemoryCompressors.noop())
         );
     }
 

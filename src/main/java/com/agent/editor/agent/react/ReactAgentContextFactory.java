@@ -15,7 +15,6 @@ import com.agent.editor.agent.task.TaskRequest;
 import com.agent.editor.agent.tool.document.DocumentToolMode;
 import com.agent.editor.agent.tool.document.DocumentToolNames;
 import com.agent.editor.service.StructuredDocumentService;
-import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
 import dev.langchain4j.data.message.SystemMessage;
 
 import java.util.ArrayList;
@@ -26,23 +25,6 @@ public class ReactAgentContextFactory implements AgentContextFactory, MemoryComp
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
     private final MemoryCompressor memoryCompressor;
     private final StructuredDocumentService structuredDocumentService;
-
-    public ReactAgentContextFactory(MemoryCompressor memoryCompressor) {
-        this(
-                new ExecutionMemoryChatMessageMapper(),
-                memoryCompressor,
-                new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200)
-        );
-    }
-
-    public ReactAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
-                                    MemoryCompressor memoryCompressor) {
-        this(
-                memoryChatMessageMapper,
-                memoryCompressor,
-                new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200)
-        );
-    }
 
     public ReactAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
                                     MemoryCompressor memoryCompressor,

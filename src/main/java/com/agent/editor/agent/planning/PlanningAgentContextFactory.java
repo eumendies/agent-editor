@@ -23,10 +23,6 @@ public class PlanningAgentContextFactory implements AgentContextFactory, MemoryC
     private final ExecutionMemoryChatMessageMapper memoryChatMessageMapper;
     private final MemoryCompressor memoryCompressor;
 
-    public PlanningAgentContextFactory(MemoryCompressor memoryCompressor) {
-        this(new ExecutionMemoryChatMessageMapper(), memoryCompressor);
-    }
-
     public PlanningAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
                                        MemoryCompressor memoryCompressor) {
         this.memoryChatMessageMapper = memoryChatMessageMapper;

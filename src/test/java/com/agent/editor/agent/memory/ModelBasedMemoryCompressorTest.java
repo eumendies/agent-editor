@@ -29,7 +29,7 @@ class ModelBasedMemoryCompressorTest {
                 new ChatMessage.UserChatMessage("turn 1"),
                 new ChatMessage.AiChatMessage("turn 2")
         );
-        ModelBasedMemoryCompressor compressor = new ModelBasedMemoryCompressor(new RecordingChatModel("unused"));
+        ModelBasedMemoryCompressor compressor = new ModelBasedMemoryCompressor(new RecordingChatModel("unused"), com.agent.editor.testsupport.ConfigurationTestFixtures.memoryCompressionProperties());
 
         MemoryCompressionResult result = compressor.compress(new MemoryCompressionRequest(
                 memory,
@@ -63,7 +63,7 @@ class ModelBasedMemoryCompressorTest {
                 Memory summary [2/2]
                 - important decisions: decision made
                 - unresolved points: none
-                """));
+                """), com.agent.editor.testsupport.ConfigurationTestFixtures.memoryCompressionProperties());
 
         MemoryCompressionResult result = compressor.compress(new MemoryCompressionRequest(
                 memory,
@@ -95,7 +95,7 @@ class ModelBasedMemoryCompressorTest {
                 new ChatMessage.UserChatMessage("turn 3"),
                 new ChatMessage.AiChatMessage("turn 4")
         );
-        ModelBasedMemoryCompressor compressor = new ModelBasedMemoryCompressor(new FailingChatModel());
+        ModelBasedMemoryCompressor compressor = new ModelBasedMemoryCompressor(new FailingChatModel(), com.agent.editor.testsupport.ConfigurationTestFixtures.memoryCompressionProperties());
 
         MemoryCompressionResult result = compressor.compress(new MemoryCompressionRequest(
                 memory,
@@ -121,7 +121,8 @@ class ModelBasedMemoryCompressorTest {
                 new ChatMessage.UserChatMessage("turn 5")
         );
         ModelBasedMemoryCompressor compressor = new ModelBasedMemoryCompressor(
-                new RecordingChatModel("Memory summary [1/1]\n- user goals: keep context compact")
+                new RecordingChatModel("Memory summary [1/1]\n- user goals: keep context compact"),
+                com.agent.editor.testsupport.ConfigurationTestFixtures.memoryCompressionProperties()
         );
 
         MemoryCompressionResult result = compressor.compress(new MemoryCompressionRequest(
@@ -152,7 +153,7 @@ class ModelBasedMemoryCompressorTest {
         );
         ModelBasedMemoryCompressor compressor = new ModelBasedMemoryCompressor(
                 new RecordingChatModel("Memory summary [1/1]\n- important decisions: summarized"),
-                new MemoryCompressionProperties(1000, 2, 99)
+                com.agent.editor.testsupport.ConfigurationTestFixtures.memoryCompressionProperties(1000, 2, 99)
         );
 
         MemoryCompressionResult result = compressor.compress(new MemoryCompressionRequest(

@@ -21,7 +21,6 @@ import com.agent.editor.agent.task.TaskResult;
 import com.agent.editor.agent.tool.ExecutionToolAccessPolicy;
 import com.agent.editor.agent.tool.ExecutionToolAccessRole;
 import com.agent.editor.agent.tool.memory.MemoryToolAccessPolicy;
-import com.agent.editor.agent.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.tool.document.DocumentToolMode;
 
 import java.util.ArrayList;
@@ -42,51 +41,6 @@ public class SupervisorOrchestrator implements TaskOrchestrator {
     private final EventPublisher eventPublisher;
     private final SupervisorContextFactory supervisorContextFactory;
     private final ExecutionToolAccessPolicy executionToolAccessPolicy;
-
-    /**
-     * 兼容旧测试/调用方的过渡构造器。
-     * 外部如果已经持有 execution tool policy，就直接复用同一套 mode/tool 解析逻辑。
-     */
-    public SupervisorOrchestrator(SupervisorAgent supervisorAgent,
-                                  SupervisorExecutionRuntime supervisorExecutionRuntime,
-                                  WorkerRegistry workerRegistry,
-                                  ExecutionRuntime executionRuntime,
-                                  EventPublisher eventPublisher,
-                                  SupervisorContextFactory supervisorContextFactory,
-                                  DocumentToolAccessPolicy documentToolAccessPolicy,
-                                  ExecutionToolAccessPolicy executionToolAccessPolicy) {
-        this(
-                supervisorAgent,
-                supervisorExecutionRuntime,
-                workerRegistry,
-                executionRuntime,
-                eventPublisher,
-                supervisorContextFactory,
-                executionToolAccessPolicy
-        );
-    }
-
-    /**
-     * 兼容旧测试/调用方的过渡构造器。
-     * 这里保留原有 document policy 入参，内部补齐默认 execution policy，避免把迁移成本扩散到所有测试。
-     */
-    public SupervisorOrchestrator(SupervisorAgent supervisorAgent,
-                                  SupervisorExecutionRuntime supervisorExecutionRuntime,
-                                  WorkerRegistry workerRegistry,
-                                  ExecutionRuntime executionRuntime,
-                                  EventPublisher eventPublisher,
-                                  SupervisorContextFactory supervisorContextFactory,
-                                  DocumentToolAccessPolicy documentToolAccessPolicy) {
-        this(
-                supervisorAgent,
-                supervisorExecutionRuntime,
-                workerRegistry,
-                executionRuntime,
-                eventPublisher,
-                supervisorContextFactory,
-                new ExecutionToolAccessPolicy(documentToolAccessPolicy, new MemoryToolAccessPolicy())
-        );
-    }
 
     public SupervisorOrchestrator(SupervisorAgent supervisorAgent,
                                   SupervisorExecutionRuntime supervisorExecutionRuntime,

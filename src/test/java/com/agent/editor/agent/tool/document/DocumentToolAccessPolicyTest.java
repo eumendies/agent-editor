@@ -19,7 +19,7 @@ class DocumentToolAccessPolicyTest {
     void shouldResolveFullModeForSmallDocument() {
         DocumentToolAccessPolicy policy = new DocumentToolAccessPolicy(
                 structuredDocumentService,
-                new DocumentToolModeProperties(50)
+                com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(50)
         );
 
         assertEquals(
@@ -32,7 +32,7 @@ class DocumentToolAccessPolicyTest {
     void shouldResolveIncrementalModeForLargeDocument() {
         DocumentToolAccessPolicy policy = new DocumentToolAccessPolicy(
                 structuredDocumentService,
-                new DocumentToolModeProperties(10)
+                com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(10)
         );
 
         assertEquals(
@@ -45,7 +45,7 @@ class DocumentToolAccessPolicyTest {
     void shouldExposeWholeDocumentToolsForWriteRoleInFullMode() {
         DocumentToolAccessPolicy policy = new DocumentToolAccessPolicy(
                 structuredDocumentService,
-                new DocumentToolModeProperties(50)
+                com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(50)
         );
 
         assertEquals(
@@ -66,7 +66,7 @@ class DocumentToolAccessPolicyTest {
     void shouldExposeIncrementalToolsForWriteRoleInIncrementalMode() {
         DocumentToolAccessPolicy policy = new DocumentToolAccessPolicy(
                 structuredDocumentService,
-                new DocumentToolModeProperties(10)
+                com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(10)
         );
 
         assertEquals(
@@ -86,7 +86,7 @@ class DocumentToolAccessPolicyTest {
     void shouldSwitchReviewRoleBetweenSnapshotAndTargetedRead() {
         DocumentToolAccessPolicy policy = new DocumentToolAccessPolicy(
                 structuredDocumentService,
-                new DocumentToolModeProperties(10)
+                com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(10)
         );
 
         assertEquals(
@@ -106,7 +106,7 @@ class DocumentToolAccessPolicyTest {
     void shouldKeepResearchRoleOnRetrievalOnly() {
         DocumentToolAccessPolicy policy = new DocumentToolAccessPolicy(
                 structuredDocumentService,
-                new DocumentToolModeProperties(10)
+                com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(10)
         );
 
         assertEquals(

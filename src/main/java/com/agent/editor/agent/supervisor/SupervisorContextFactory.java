@@ -17,7 +17,6 @@ import com.agent.editor.agent.core.state.DocumentSnapshot;
 import com.agent.editor.agent.core.state.ExecutionStage;
 import com.agent.editor.agent.task.TaskRequest;
 import com.agent.editor.service.StructuredDocumentService;
-import com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -58,10 +57,6 @@ public class SupervisorContextFactory implements AgentContextFactory, MemoryComp
 
     private final MemoryCompressor memoryCompressor;
     private final StructuredDocumentService structuredDocumentService;
-
-    public SupervisorContextFactory(MemoryCompressor memoryCompressor) {
-        this(memoryCompressor, new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200));
-    }
 
     public SupervisorContextFactory(MemoryCompressor memoryCompressor,
                                     StructuredDocumentService structuredDocumentService) {

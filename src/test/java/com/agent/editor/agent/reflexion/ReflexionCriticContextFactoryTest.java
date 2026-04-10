@@ -32,7 +32,7 @@ class ReflexionCriticContextFactoryTest {
 
     @Test
     void shouldPrepareReviewContextFromActorStateAndSummary() {
-        ReflexionCriticContextFactory factory = new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop());
+        ReflexionCriticContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.reflexionCriticContextFactory(NoOpMemoryCompressors.noop());
         TaskRequest request = new TaskRequest(
                 "task-1",
                 "session-1",
@@ -75,7 +75,7 @@ class ReflexionCriticContextFactoryTest {
 
     @Test
     void shouldPreserveObservedTokensWhenPreparingInitialContext() {
-        ReflexionCriticContextFactory factory = new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop());
+        ReflexionCriticContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.reflexionCriticContextFactory(NoOpMemoryCompressors.noop());
         ChatTranscriptMemory sessionMemory = new ChatTranscriptMemory(List.of(
                 new ChatMessage.UserChatMessage("previous turn")
         ));
@@ -98,7 +98,7 @@ class ReflexionCriticContextFactoryTest {
 
     @Test
     void shouldBuildAnalysisInvocationContextWithTranscriptAndVisibleTools() {
-        ReflexionCriticContextFactory factory = new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop());
+        ReflexionCriticContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.reflexionCriticContextFactory(NoOpMemoryCompressors.noop());
         ToolSpecification toolSpecification = ToolSpecification.builder()
                 .name("analyzeDocument")
                 .description("analyze document")
@@ -142,7 +142,7 @@ class ReflexionCriticContextFactoryTest {
 
     @Test
     void shouldDescribeIncrementalReviewToolsWhenNodeReadIsVisible() {
-        ReflexionCriticContextFactory factory = new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop());
+        ReflexionCriticContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.reflexionCriticContextFactory(NoOpMemoryCompressors.noop());
         ToolSpecification toolSpecification = ToolSpecification.builder()
                 .name(DocumentToolNames.READ_DOCUMENT_NODE)
                 .description("read one node")
@@ -174,7 +174,7 @@ class ReflexionCriticContextFactoryTest {
 
     @Test
     void shouldEmbedCurrentDocumentContentWhenFullReviewToolsAreVisible() {
-        ReflexionCriticContextFactory factory = new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop());
+        ReflexionCriticContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.reflexionCriticContextFactory(NoOpMemoryCompressors.noop());
         ToolSpecification toolSpecification = ToolSpecification.builder()
                 .name(DocumentToolNames.GET_DOCUMENT_SNAPSHOT)
                 .description("read full document")
@@ -208,7 +208,7 @@ class ReflexionCriticContextFactoryTest {
 
     @Test
     void shouldBuildStrictJsonFinalizationInvocationWithoutTools() {
-        ReflexionCriticContextFactory factory = new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop());
+        ReflexionCriticContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.reflexionCriticContextFactory(NoOpMemoryCompressors.noop());
         AgentRunContext context = new AgentRunContext(
                 fullRequest(
                         "task-3",
@@ -258,7 +258,8 @@ class ReflexionCriticContextFactoryTest {
                             true,
                             "compressed"
                     );
-                }
+                },
+                com.agent.editor.testsupport.AgentTestFixtures.structuredDocumentService()
         );
 
         var invocationContext = factory.buildModelInvocationContext(new AgentRunContext(

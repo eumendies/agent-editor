@@ -23,7 +23,9 @@ class ResearcherAgentContextFactoryTest {
     @Test
     void shouldBuildInvocationContextFromTranscriptIncludingCurrentInstruction() {
         AtomicInteger compressionCalls = new AtomicInteger();
-        ResearcherAgentContextFactory factory = new ResearcherAgentContextFactory(request -> {
+        ResearcherAgentContextFactory factory = new ResearcherAgentContextFactory(
+                com.agent.editor.testsupport.AgentTestFixtures.memoryChatMessageMapper(),
+                request -> {
             compressionCalls.incrementAndGet();
             return new com.agent.editor.agent.core.memory.MemoryCompressionResult(
                     new ChatTranscriptMemory(List.of(
@@ -59,7 +61,7 @@ class ResearcherAgentContextFactoryTest {
 
     @Test
     void shouldPrepareInitialContextByAppendingCurrentInstructionToTranscript() {
-        ResearcherAgentContextFactory factory = new ResearcherAgentContextFactory(NoOpMemoryCompressors.noop());
+        ResearcherAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.researcherAgentContextFactory(NoOpMemoryCompressors.noop());
 
         AgentRunContext context = factory.prepareInitialContext(new com.agent.editor.agent.task.TaskRequest(
                 "task-1",
@@ -78,7 +80,7 @@ class ResearcherAgentContextFactoryTest {
     }
 
     private AgentRunContext context() {
-        ResearcherAgentContextFactory factory = new ResearcherAgentContextFactory(NoOpMemoryCompressors.noop());
+        ResearcherAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.researcherAgentContextFactory(NoOpMemoryCompressors.noop());
         return factory.prepareInitialContext(new com.agent.editor.agent.task.TaskRequest(
                 "task-1",
                 "session-1",

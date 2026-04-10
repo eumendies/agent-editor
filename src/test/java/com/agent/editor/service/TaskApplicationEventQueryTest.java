@@ -10,6 +10,7 @@ import org.springframework.core.task.TaskExecutor;
 
 import java.util.List;
 
+import static com.agent.editor.testsupport.AgentTestFixtures.emptyProvider;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
@@ -22,7 +23,7 @@ class TaskApplicationEventQueryTest {
         DiffService diffService = new DiffService();
         PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         TaskOrchestrator orchestrator = mock(TaskOrchestrator.class);
-        TaskApplicationService service = new TaskApplicationService(
+        TaskApplicationService service = newTaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
@@ -44,5 +45,29 @@ class TaskApplicationEventQueryTest {
 
     private static TaskExecutor directTaskExecutor() {
         return Runnable::run;
+    }
+
+    private static TaskApplicationService newTaskApplicationService(DocumentService documentService,
+                                                                    TaskQueryService taskQueryService,
+                                                                    DiffService diffService,
+                                                                    PendingDocumentChangeService pendingDocumentChangeService,
+                                                                    TaskOrchestrator taskOrchestrator,
+                                                                    WebSocketService webSocketService,
+                                                                    EventPublisher eventPublisher,
+                                                                    TaskExecutor taskExecutor) {
+        return new TaskApplicationService(
+                documentService,
+                taskQueryService,
+                diffService,
+                pendingDocumentChangeService,
+                taskOrchestrator,
+                null,
+                new UserProfilePromptAssembler(),
+                emptyProvider(),
+                emptyProvider(),
+                webSocketService,
+                eventPublisher,
+                taskExecutor
+        );
     }
 }

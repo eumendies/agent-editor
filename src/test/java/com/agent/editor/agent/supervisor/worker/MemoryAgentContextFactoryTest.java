@@ -24,7 +24,9 @@ class MemoryAgentContextFactoryTest {
     @Test
     void shouldBuildInvocationContextFromTranscriptIncludingCurrentInstruction() {
         AtomicInteger compressionCalls = new AtomicInteger();
-        MemoryAgentContextFactory factory = new MemoryAgentContextFactory(request -> {
+        MemoryAgentContextFactory factory = new MemoryAgentContextFactory(
+                com.agent.editor.testsupport.AgentTestFixtures.memoryChatMessageMapper(),
+                request -> {
             compressionCalls.incrementAndGet();
             return new com.agent.editor.agent.core.memory.MemoryCompressionResult(
                     new ChatTranscriptMemory(List.of(
@@ -60,7 +62,7 @@ class MemoryAgentContextFactoryTest {
 
     @Test
     void shouldPrepareInitialContextByAppendingCurrentInstructionToTranscript() {
-        MemoryAgentContextFactory factory = new MemoryAgentContextFactory(NoOpMemoryCompressors.noop());
+        MemoryAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.memoryAgentContextFactory(NoOpMemoryCompressors.noop());
 
         AgentRunContext context = factory.prepareInitialContext(new com.agent.editor.agent.task.TaskRequest(
                 "task-1",
@@ -79,7 +81,7 @@ class MemoryAgentContextFactoryTest {
     }
 
     private AgentRunContext context() {
-        MemoryAgentContextFactory factory = new MemoryAgentContextFactory(NoOpMemoryCompressors.noop());
+        MemoryAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.memoryAgentContextFactory(NoOpMemoryCompressors.noop());
         return factory.prepareInitialContext(new com.agent.editor.agent.task.TaskRequest(
                 "task-1",
                 "session-1",

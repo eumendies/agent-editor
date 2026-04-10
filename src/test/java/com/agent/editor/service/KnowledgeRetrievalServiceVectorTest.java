@@ -34,7 +34,7 @@ class KnowledgeRetrievalServiceVectorTest {
         KnowledgeRetrievalService service = new KnowledgeRetrievalService(
                 repository,
                 embeddingService,
-                new RagProperties(500, 80, 5, 8, 12)
+                com.agent.editor.testsupport.ConfigurationTestFixtures.ragProperties(500, 80, 5, 8, 12)
         );
 
         List<RetrievedKnowledgeChunk> results = service.retrieve("streaming project", null, null);

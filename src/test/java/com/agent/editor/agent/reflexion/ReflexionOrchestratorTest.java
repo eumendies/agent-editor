@@ -57,8 +57,8 @@ class ReflexionOrchestratorTest {
                 criticWithResponses("""
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"done"}
                         """),
-                new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
-                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                com.agent.editor.testsupport.AgentTestFixtures.reflexionActorContextFactory(NoOpMemoryCompressors.noop()),
+                com.agent.editor.testsupport.AgentTestFixtures.reflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
                 executionToolAccessPolicy(100),
                 documentToolAccessPolicy(100)
         );
@@ -114,8 +114,8 @@ class ReflexionOrchestratorTest {
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"done"}
                         """
                 ),
-                new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
-                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                com.agent.editor.testsupport.AgentTestFixtures.reflexionActorContextFactory(NoOpMemoryCompressors.noop()),
+                com.agent.editor.testsupport.AgentTestFixtures.reflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
                 executionToolAccessPolicy(100),
                 documentToolAccessPolicy(100)
         );
@@ -163,8 +163,8 @@ class ReflexionOrchestratorTest {
                         {"verdict":"REVISE","feedback":"Round 2","reasoning":"continue"}
                         """
                 ),
-                new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
-                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                com.agent.editor.testsupport.AgentTestFixtures.reflexionActorContextFactory(NoOpMemoryCompressors.noop()),
+                com.agent.editor.testsupport.AgentTestFixtures.reflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
                 executionToolAccessPolicy(100),
                 documentToolAccessPolicy(100)
         );
@@ -198,8 +198,8 @@ class ReflexionOrchestratorTest {
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"done"}
                         """
                 ),
-                new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
-                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                com.agent.editor.testsupport.AgentTestFixtures.reflexionActorContextFactory(NoOpMemoryCompressors.noop()),
+                com.agent.editor.testsupport.AgentTestFixtures.reflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
                 executionToolAccessPolicy(100),
                 documentToolAccessPolicy(100)
         );
@@ -242,9 +242,9 @@ class ReflexionOrchestratorTest {
         ReflexionOrchestrator orchestrator = new ReflexionOrchestrator(
                 runtime,
                 new ActorAgent(),
-                ReflexionCritic.blocking(criticModel, new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())),
-                new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
-                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                ReflexionCritic.blocking(criticModel, com.agent.editor.testsupport.AgentTestFixtures.reflexionCriticContextFactory(NoOpMemoryCompressors.noop())),
+                com.agent.editor.testsupport.AgentTestFixtures.reflexionActorContextFactory(NoOpMemoryCompressors.noop()),
+                com.agent.editor.testsupport.AgentTestFixtures.reflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
                 executionToolAccessPolicy(100),
                 documentToolAccessPolicy(100)
         );
@@ -278,8 +278,8 @@ class ReflexionOrchestratorTest {
                 criticWithResponses("""
                         {"verdict":"PASS","feedback":"Looks good","reasoning":"done"}
                         """),
-                new ReflexionActorContextFactory(NoOpMemoryCompressors.noop()),
-                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
+                com.agent.editor.testsupport.AgentTestFixtures.reflexionActorContextFactory(NoOpMemoryCompressors.noop()),
+                com.agent.editor.testsupport.AgentTestFixtures.reflexionCriticContextFactory(NoOpMemoryCompressors.noop()),
                 executionToolAccessPolicy(10),
                 documentToolAccessPolicy(10)
         );
@@ -311,7 +311,7 @@ class ReflexionOrchestratorTest {
     private DocumentToolAccessPolicy documentToolAccessPolicy(int threshold) {
         return new DocumentToolAccessPolicy(
                 new StructuredDocumentService(new com.agent.editor.utils.rag.markdown.MarkdownSectionTreeBuilder(), 4_000, 1_200),
-                new DocumentToolModeProperties(threshold)
+                com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(threshold)
         );
     }
 
@@ -325,7 +325,7 @@ class ReflexionOrchestratorTest {
     private ReflexionCritic criticWithResponses(String... responses) {
         return ReflexionCritic.blocking(
                 new QueueChatModel(responses),
-                new ReflexionCriticContextFactory(NoOpMemoryCompressors.noop())
+                com.agent.editor.testsupport.AgentTestFixtures.reflexionCriticContextFactory(NoOpMemoryCompressors.noop())
         );
     }
 

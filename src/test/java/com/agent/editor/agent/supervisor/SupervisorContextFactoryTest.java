@@ -36,7 +36,7 @@ class SupervisorContextFactoryTest {
 
     @Test
     void shouldPrepareInitialSupervisorConversationStateFromTaskRequest() {
-        SupervisorContextFactory factory = new SupervisorContextFactory(NoOpMemoryCompressors.noop());
+        SupervisorContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(NoOpMemoryCompressors.noop());
 
         AgentRunContext context = factory.prepareInitialContext(new TaskRequest(
                 "task-1",
@@ -57,7 +57,7 @@ class SupervisorContextFactoryTest {
 
     @Test
     void shouldBuildSupervisorContextWithSnapshotCopies() {
-        SupervisorContextFactory factory = new SupervisorContextFactory(NoOpMemoryCompressors.noop());
+        SupervisorContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(NoOpMemoryCompressors.noop());
         AgentRunContext conversationState = new AgentRunContext(
                 null,
                 1,
@@ -90,7 +90,7 @@ class SupervisorContextFactoryTest {
 
     @Test
     void shouldBuildWorkerExecutionContextWithoutToolTranscriptLeakage() {
-        SupervisorContextFactory factory = new SupervisorContextFactory(NoOpMemoryCompressors.noop());
+        SupervisorContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(NoOpMemoryCompressors.noop());
         AgentRunContext conversationState = new AgentRunContext(
                 null,
                 1,
@@ -119,7 +119,7 @@ class SupervisorContextFactoryTest {
 
     @Test
     void shouldSummarizeWorkerResultBackIntoConversationState() {
-        SupervisorContextFactory factory = new SupervisorContextFactory(NoOpMemoryCompressors.noop());
+        SupervisorContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(NoOpMemoryCompressors.noop());
         AgentRunContext conversationState = new AgentRunContext(
                 null,
                 1,
@@ -145,7 +145,7 @@ class SupervisorContextFactoryTest {
 
     @Test
     void shouldKeepMemoryWorkerStructuredSummaryVisibleToLaterWorkers() {
-        SupervisorContextFactory factory = new SupervisorContextFactory(NoOpMemoryCompressors.noop());
+        SupervisorContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(NoOpMemoryCompressors.noop());
         AgentRunContext conversationState = new AgentRunContext(
                 null,
                 1,
@@ -177,7 +177,7 @@ class SupervisorContextFactoryTest {
 
     @Test
     void shouldBuildRoutingInvocationContextWithCandidateAndWorkerSummaries() {
-        SupervisorContextFactory factory = new SupervisorContextFactory(NoOpMemoryCompressors.noop());
+        SupervisorContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(NoOpMemoryCompressors.noop());
         SupervisorContext context = factory.buildSupervisorContext(
                 taskRequest(),
                 factory.prepareInitialContext(taskRequest()),
@@ -222,7 +222,7 @@ class SupervisorContextFactoryTest {
 
     @Test
     void shouldRenderCandidateWorkersDynamicallyFromWorkerDefinitions() {
-        SupervisorContextFactory factory = new SupervisorContextFactory(NoOpMemoryCompressors.noop());
+        SupervisorContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(NoOpMemoryCompressors.noop());
         SupervisorContext context = factory.buildSupervisorContext(
                 taskRequest(),
                 factory.prepareInitialContext(taskRequest()),
@@ -258,7 +258,8 @@ class SupervisorContextFactoryTest {
                         )),
                         true,
                         "compressed"
-                )
+                ),
+                com.agent.editor.testsupport.AgentTestFixtures.structuredDocumentService()
         );
         AgentRunContext conversationState = new AgentRunContext(
                 null,

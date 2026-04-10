@@ -26,6 +26,8 @@ import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Queue;
 
+import static com.agent.editor.testsupport.AgentTestFixtures.emptyProvider;
+import static com.agent.editor.testsupport.AgentTestFixtures.singletonProvider;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -48,7 +50,7 @@ class TaskApplicationServiceTest {
         DiffService diffService = new DiffService();
         PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         TaskOrchestrator orchestrator = new StubTaskOrchestrator();
-        TaskApplicationService service = new TaskApplicationService(
+        TaskApplicationService service = newTaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
@@ -86,7 +88,7 @@ class TaskApplicationServiceTest {
         CapturingTaskOrchestrator orchestrator = new CapturingTaskOrchestrator();
         LongTermMemoryRetrievalService retrievalService = mock(LongTermMemoryRetrievalService.class);
         when(retrievalService.loadConfirmedProfiles()).thenReturn(List.of(profile("Always answer in Chinese")));
-        TaskApplicationService service = new TaskApplicationService(
+        TaskApplicationService service = newTaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
@@ -122,7 +124,7 @@ class TaskApplicationServiceTest {
                 .thenReturn(profile("Always answer in Chinese"));
         when(writeService.upsert(MemoryUpsertAction.REPLACE, LongTermMemoryType.USER_PROFILE, "memory-profile", null, "Prefer concise summaries"))
                 .thenReturn(profile("Prefer concise summaries"));
-        TaskApplicationService service = new TaskApplicationService(
+        TaskApplicationService service = newTaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
@@ -165,7 +167,7 @@ class TaskApplicationServiceTest {
         PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         TaskOrchestrator orchestrator = new StubTaskOrchestrator();
         CapturingTaskExecutor taskExecutor = new CapturingTaskExecutor();
-        TaskApplicationService service = new TaskApplicationService(
+        TaskApplicationService service = newTaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
@@ -203,7 +205,7 @@ class TaskApplicationServiceTest {
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
         PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
-        TaskApplicationService service = new TaskApplicationService(
+        TaskApplicationService service = newTaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
@@ -237,7 +239,7 @@ class TaskApplicationServiceTest {
         TaskQueryService queryService = new TaskQueryService();
         DiffService diffService = new DiffService();
         PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
-        TaskApplicationService service = new TaskApplicationService(
+        TaskApplicationService service = newTaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
@@ -270,7 +272,7 @@ class TaskApplicationServiceTest {
         PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         CapturingTaskOrchestrator orchestrator = new CapturingTaskOrchestrator();
         CapturingTaskExecutor taskExecutor = new CapturingTaskExecutor();
-        TaskApplicationService service = new TaskApplicationService(
+        TaskApplicationService service = newTaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
@@ -302,7 +304,7 @@ class TaskApplicationServiceTest {
         DiffService diffService = new DiffService();
         PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         CapturingTaskOrchestrator orchestrator = new CapturingTaskOrchestrator();
-        TaskApplicationService service = new TaskApplicationService(
+        TaskApplicationService service = newTaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
@@ -330,7 +332,7 @@ class TaskApplicationServiceTest {
         DiffService diffService = new DiffService();
         PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         CapturingTaskOrchestrator orchestrator = new CapturingTaskOrchestrator();
-        TaskApplicationService service = new TaskApplicationService(
+        TaskApplicationService service = newTaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
@@ -360,7 +362,7 @@ class TaskApplicationServiceTest {
         TaskOrchestrator orchestrator = mock(TaskOrchestrator.class);
         when(orchestrator.execute(any(TaskRequest.class))).thenReturn(new TaskResult(TaskStatus.COMPLETED, "rewritten content"));
         WebSocketService webSocketService = mock(WebSocketService.class);
-        TaskApplicationService service = new TaskApplicationService(
+        TaskApplicationService service = newTaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
@@ -394,7 +396,7 @@ class TaskApplicationServiceTest {
         when(orchestrator.execute(any(TaskRequest.class))).thenReturn(new TaskResult(TaskStatus.COMPLETED, "rewritten content"));
         WebSocketService webSocketService = mock(WebSocketService.class);
         CapturingTaskExecutor taskExecutor = new CapturingTaskExecutor();
-        TaskApplicationService service = new TaskApplicationService(
+        TaskApplicationService service = newTaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
@@ -427,7 +429,7 @@ class TaskApplicationServiceTest {
         PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         TaskOrchestrator orchestrator = new StubTaskOrchestrator();
         WebSocketService webSocketService = mock(WebSocketService.class);
-        TaskApplicationService service = new TaskApplicationService(
+        TaskApplicationService service = newTaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
@@ -459,7 +461,7 @@ class TaskApplicationServiceTest {
         };
         EventPublisher eventPublisher = mock(EventPublisher.class);
         CapturingTaskExecutor taskExecutor = new CapturingTaskExecutor();
-        TaskApplicationService service = new TaskApplicationService(
+        TaskApplicationService service = newTaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
@@ -494,7 +496,7 @@ class TaskApplicationServiceTest {
         PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
         TaskOrchestrator orchestrator = new StubTaskOrchestrator();
         WebSocketService webSocketService = mock(WebSocketService.class);
-        TaskApplicationService service = new TaskApplicationService(
+        TaskApplicationService service = newTaskApplicationService(
                 documentService,
                 queryService,
                 diffService,
@@ -547,6 +549,84 @@ class TaskApplicationServiceTest {
 
     private static TaskExecutor directTaskExecutor() {
         return Runnable::run;
+    }
+
+    private static TaskApplicationService newTaskApplicationService(DocumentService documentService,
+                                                                    TaskQueryService taskQueryService,
+                                                                    DiffService diffService,
+                                                                    PendingDocumentChangeService pendingDocumentChangeService,
+                                                                    TaskOrchestrator taskOrchestrator,
+                                                                    LongTermMemoryRetrievalService longTermMemoryRetrievalService,
+                                                                    UserProfilePromptAssembler userProfilePromptAssembler,
+                                                                    WebSocketService webSocketService,
+                                                                    EventPublisher eventPublisher,
+                                                                    TaskExecutor taskExecutor) {
+        return new TaskApplicationService(
+                documentService,
+                taskQueryService,
+                diffService,
+                pendingDocumentChangeService,
+                taskOrchestrator,
+                longTermMemoryRetrievalService,
+                userProfilePromptAssembler,
+                emptyProvider(),
+                emptyProvider(),
+                webSocketService,
+                eventPublisher,
+                taskExecutor
+        );
+    }
+
+    private static TaskApplicationService newTaskApplicationService(DocumentService documentService,
+                                                                    TaskQueryService taskQueryService,
+                                                                    DiffService diffService,
+                                                                    PendingDocumentChangeService pendingDocumentChangeService,
+                                                                    TaskOrchestrator taskOrchestrator,
+                                                                    LongTermMemoryRetrievalService longTermMemoryRetrievalService,
+                                                                    UserProfilePromptAssembler userProfilePromptAssembler,
+                                                                    LongTermMemoryWriteService longTermMemoryWriteService,
+                                                                    LongTermMemoryRepository longTermMemoryRepository,
+                                                                    WebSocketService webSocketService,
+                                                                    EventPublisher eventPublisher,
+                                                                    TaskExecutor taskExecutor) {
+        return new TaskApplicationService(
+                documentService,
+                taskQueryService,
+                diffService,
+                pendingDocumentChangeService,
+                taskOrchestrator,
+                longTermMemoryRetrievalService,
+                userProfilePromptAssembler,
+                singletonProvider(longTermMemoryWriteService),
+                singletonProvider(longTermMemoryRepository),
+                webSocketService,
+                eventPublisher,
+                taskExecutor
+        );
+    }
+
+    private static TaskApplicationService newTaskApplicationService(DocumentService documentService,
+                                                                    TaskQueryService taskQueryService,
+                                                                    DiffService diffService,
+                                                                    PendingDocumentChangeService pendingDocumentChangeService,
+                                                                    TaskOrchestrator taskOrchestrator,
+                                                                    WebSocketService webSocketService,
+                                                                    EventPublisher eventPublisher,
+                                                                    TaskExecutor taskExecutor) {
+        return new TaskApplicationService(
+                documentService,
+                taskQueryService,
+                diffService,
+                pendingDocumentChangeService,
+                taskOrchestrator,
+                null,
+                new UserProfilePromptAssembler(),
+                emptyProvider(),
+                emptyProvider(),
+                webSocketService,
+                eventPublisher,
+                taskExecutor
+        );
     }
 
     private static LongTermMemoryItem profile(String summary) {

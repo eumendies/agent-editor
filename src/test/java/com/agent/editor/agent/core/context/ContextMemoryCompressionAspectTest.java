@@ -237,42 +237,42 @@ class ContextMemoryCompressionAspectTest {
 
         @Bean
         ReactAgentContextFactory reactAgentContextFactory(MemoryCompressor memoryCompressor) {
-            return new ReactAgentContextFactory(memoryCompressor);
+            return com.agent.editor.testsupport.AgentTestFixtures.reactAgentContextFactory(memoryCompressor);
         }
 
         @Bean
         SupervisorContextFactory supervisorContextFactory(MemoryCompressor memoryCompressor) {
-            return new SupervisorContextFactory(memoryCompressor);
+            return com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(memoryCompressor);
         }
 
         @Bean
         PlanningAgentContextFactory planningAgentContextFactory(MemoryCompressor memoryCompressor) {
-            return new PlanningAgentContextFactory(memoryCompressor);
+            return com.agent.editor.testsupport.AgentTestFixtures.planningAgentContextFactory(memoryCompressor);
         }
 
         @Bean
         ReflexionActorContextFactory reflexionActorContextFactory(MemoryCompressor memoryCompressor) {
-            return new ReflexionActorContextFactory(memoryCompressor);
+            return com.agent.editor.testsupport.AgentTestFixtures.reflexionActorContextFactory(memoryCompressor);
         }
 
         @Bean
         ReflexionCriticContextFactory reflexionCriticContextFactory(MemoryCompressor memoryCompressor) {
-            return new ReflexionCriticContextFactory(memoryCompressor);
+            return com.agent.editor.testsupport.AgentTestFixtures.reflexionCriticContextFactory(memoryCompressor);
         }
 
         @Bean
         ResearcherAgentContextFactory researcherAgentContextFactory(MemoryCompressor memoryCompressor) {
-            return new ResearcherAgentContextFactory(memoryCompressor);
+            return com.agent.editor.testsupport.AgentTestFixtures.researcherAgentContextFactory(memoryCompressor);
         }
 
         @Bean
         GroundedWriterAgentContextFactory groundedWriterAgentContextFactory(MemoryCompressor memoryCompressor) {
-            return new GroundedWriterAgentContextFactory(memoryCompressor);
+            return com.agent.editor.testsupport.AgentTestFixtures.groundedWriterAgentContextFactory(memoryCompressor);
         }
 
         @Bean
         EvidenceReviewerAgentContextFactory evidenceReviewerAgentContextFactory(MemoryCompressor memoryCompressor) {
-            return new EvidenceReviewerAgentContextFactory(memoryCompressor);
+            return com.agent.editor.testsupport.AgentTestFixtures.evidenceReviewerAgentContextFactory(memoryCompressor);
         }
     }
 }

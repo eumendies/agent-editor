@@ -72,8 +72,8 @@ class SupervisorOrchestratorTest {
                 workerRegistry,
                 runtime,
                 eventPublisher,
-                new SupervisorContextFactory(NoOpMemoryCompressors.noop()),
-                documentToolAccessPolicy(100)
+                com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(NoOpMemoryCompressors.noop()),
+                executionToolAccessPolicy(100)
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -133,8 +133,8 @@ class SupervisorOrchestratorTest {
                 workerRegistry,
                 new RecordingExecutionRuntime(),
                 event -> {},
-                new SupervisorContextFactory(NoOpMemoryCompressors.noop()),
-                documentToolAccessPolicy(100)
+                com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(NoOpMemoryCompressors.noop()),
+                executionToolAccessPolicy(100)
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -172,7 +172,7 @@ class SupervisorOrchestratorTest {
                 runtime,
                 event -> {},
                 contextFactory,
-                documentToolAccessPolicy(100)
+                executionToolAccessPolicy(100)
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -223,8 +223,8 @@ class SupervisorOrchestratorTest {
                 workerRegistry,
                 runtime,
                 event -> {},
-                new SupervisorContextFactory(NoOpMemoryCompressors.noop()),
-                documentToolAccessPolicy(100)
+                com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(NoOpMemoryCompressors.noop()),
+                executionToolAccessPolicy(100)
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -279,8 +279,8 @@ class SupervisorOrchestratorTest {
                 workerRegistry,
                 runtime,
                 event -> {},
-                new SupervisorContextFactory(NoOpMemoryCompressors.noop()),
-                documentToolAccessPolicy(100)
+                com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(NoOpMemoryCompressors.noop()),
+                executionToolAccessPolicy(100)
         );
 
         orchestrator.execute(new TaskRequest(
@@ -324,8 +324,8 @@ class SupervisorOrchestratorTest {
                 workerRegistry,
                 new RecordingExecutionRuntime(),
                 event -> {},
-                new SupervisorContextFactory(NoOpMemoryCompressors.noop()),
-                documentToolAccessPolicy(100)
+                com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(NoOpMemoryCompressors.noop()),
+                executionToolAccessPolicy(100)
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -366,8 +366,8 @@ class SupervisorOrchestratorTest {
                 workerRegistry,
                 runtime,
                 event -> {},
-                new SupervisorContextFactory(NoOpMemoryCompressors.noop()),
-                documentToolAccessPolicy(100)
+                com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(NoOpMemoryCompressors.noop()),
+                executionToolAccessPolicy(100)
         );
 
         TaskResult result = orchestrator.execute(new TaskRequest(
@@ -409,8 +409,8 @@ class SupervisorOrchestratorTest {
                 workerRegistry,
                 runtime,
                 event -> {},
-                new SupervisorContextFactory(NoOpMemoryCompressors.noop()),
-                documentToolAccessPolicy(10)
+                com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(NoOpMemoryCompressors.noop()),
+                executionToolAccessPolicy(10)
         );
 
         orchestrator.execute(new TaskRequest(
@@ -460,8 +460,7 @@ class SupervisorOrchestratorTest {
                 workerRegistry,
                 runtime,
                 event -> {},
-                new SupervisorContextFactory(NoOpMemoryCompressors.noop()),
-                documentToolAccessPolicy(100),
+                com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(NoOpMemoryCompressors.noop()),
                 executionToolAccessPolicy(100)
         );
 
@@ -512,8 +511,7 @@ class SupervisorOrchestratorTest {
                 workerRegistry,
                 runtime,
                 event -> {},
-                new SupervisorContextFactory(NoOpMemoryCompressors.noop()),
-                documentToolAccessPolicy(100),
+                com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(NoOpMemoryCompressors.noop()),
                 executionToolAccessPolicy(100)
         );
 
@@ -552,8 +550,8 @@ class SupervisorOrchestratorTest {
                 workerRegistry,
                 new RecordingExecutionRuntime(),
                 event -> {},
-                new SupervisorContextFactory(NoOpMemoryCompressors.noop()),
-                documentToolAccessPolicy(100)
+                com.agent.editor.testsupport.AgentTestFixtures.supervisorContextFactory(NoOpMemoryCompressors.noop()),
+                executionToolAccessPolicy(100)
         );
 
         IllegalStateException error = assertThrows(IllegalStateException.class, () -> orchestrator.execute(new TaskRequest(
@@ -572,7 +570,7 @@ class SupervisorOrchestratorTest {
     private DocumentToolAccessPolicy documentToolAccessPolicy(int threshold) {
         return new DocumentToolAccessPolicy(
                 new StructuredDocumentService(new MarkdownSectionTreeBuilder(), 4_000, 1_200),
-                new DocumentToolModeProperties(threshold)
+                com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(threshold)
         );
     }
 
@@ -876,7 +874,7 @@ class SupervisorOrchestratorTest {
         private int workerSummaryCount;
 
         private RecordingSupervisorContextFactory() {
-            super(NoOpMemoryCompressors.noop());
+            super(NoOpMemoryCompressors.noop(), com.agent.editor.testsupport.AgentTestFixtures.structuredDocumentService());
         }
 
         @Override

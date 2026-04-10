@@ -26,7 +26,9 @@ class GroundedWriterAgentContextFactoryTest {
     @Test
     void shouldBuildInvocationContextFromTranscriptOrderWithoutInjectingInstructionAheadOfHistory() {
         AtomicInteger compressionCalls = new AtomicInteger();
-        GroundedWriterAgentContextFactory factory = new GroundedWriterAgentContextFactory(request -> {
+        GroundedWriterAgentContextFactory factory = new GroundedWriterAgentContextFactory(
+                com.agent.editor.testsupport.AgentTestFixtures.memoryChatMessageMapper(),
+                request -> {
             compressionCalls.incrementAndGet();
             return new com.agent.editor.agent.core.memory.MemoryCompressionResult(
                     new ChatTranscriptMemory(List.of(
@@ -36,7 +38,9 @@ class GroundedWriterAgentContextFactoryTest {
                     true,
                     "compressed"
             );
-        });
+        },
+                com.agent.editor.testsupport.AgentTestFixtures.structuredDocumentService()
+        );
 
         var invocationContext = factory.buildModelInvocationContext(context().withToolSpecifications(List.of(
                 ToolSpecification.builder()
@@ -70,7 +74,7 @@ class GroundedWriterAgentContextFactoryTest {
 
     @Test
     void shouldPrepareInitialContextByAppendingCurrentInstructionToTranscript() {
-        GroundedWriterAgentContextFactory factory = new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop());
+        GroundedWriterAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.groundedWriterAgentContextFactory(NoOpMemoryCompressors.noop());
 
         AgentRunContext context = factory.prepareInitialContext(new com.agent.editor.agent.task.TaskRequest(
                 "task-1",
@@ -90,7 +94,7 @@ class GroundedWriterAgentContextFactoryTest {
 
     @Test
     void shouldDescribeWholeDocumentWorkflowWhenSnapshotToolIsVisible() {
-        GroundedWriterAgentContextFactory factory = new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop());
+        GroundedWriterAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.groundedWriterAgentContextFactory(NoOpMemoryCompressors.noop());
 
         var invocationContext = factory.buildModelInvocationContext(
                 context()
@@ -115,7 +119,7 @@ class GroundedWriterAgentContextFactoryTest {
     }
 
     private AgentRunContext context() {
-        GroundedWriterAgentContextFactory factory = new GroundedWriterAgentContextFactory(NoOpMemoryCompressors.noop());
+        GroundedWriterAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.groundedWriterAgentContextFactory(NoOpMemoryCompressors.noop());
         return factory.prepareInitialContext(new com.agent.editor.agent.task.TaskRequest(
                 "task-1",
                 "session-1",

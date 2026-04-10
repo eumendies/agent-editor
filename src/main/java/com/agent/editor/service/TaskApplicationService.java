@@ -60,57 +60,6 @@ public class TaskApplicationService {
                                   WebSocketService webSocketService,
                                   EventPublisher eventPublisher,
                                   @Qualifier("agentTaskExecutor") TaskExecutor taskExecutor) {
-        this(documentService,
-                taskQueryService,
-                diffService,
-                pendingDocumentChangeService,
-                taskOrchestrator,
-                longTermMemoryRetrievalService,
-                userProfilePromptAssembler,
-                longTermMemoryWriteServiceProvider.getIfAvailable(),
-                longTermMemoryRepositoryProvider.getIfAvailable(),
-                webSocketService,
-                eventPublisher,
-                taskExecutor);
-    }
-
-    public TaskApplicationService(DocumentService documentService,
-                                  TaskQueryService taskQueryService,
-                                  DiffService diffService,
-                                  PendingDocumentChangeService pendingDocumentChangeService,
-                                  TaskOrchestrator taskOrchestrator,
-                                  LongTermMemoryRetrievalService longTermMemoryRetrievalService,
-                                  UserProfilePromptAssembler userProfilePromptAssembler,
-                                  LongTermMemoryRepository longTermMemoryRepository,
-                                  WebSocketService webSocketService,
-                                  EventPublisher eventPublisher,
-                                  @Qualifier("agentTaskExecutor") TaskExecutor taskExecutor) {
-        this(documentService,
-                taskQueryService,
-                diffService,
-                pendingDocumentChangeService,
-                taskOrchestrator,
-                longTermMemoryRetrievalService,
-                userProfilePromptAssembler,
-                null,
-                longTermMemoryRepository,
-                webSocketService,
-                eventPublisher,
-                taskExecutor);
-    }
-
-    public TaskApplicationService(DocumentService documentService,
-                                  TaskQueryService taskQueryService,
-                                  DiffService diffService,
-                                  PendingDocumentChangeService pendingDocumentChangeService,
-                                  TaskOrchestrator taskOrchestrator,
-                                  LongTermMemoryRetrievalService longTermMemoryRetrievalService,
-                                  UserProfilePromptAssembler userProfilePromptAssembler,
-                                  LongTermMemoryWriteService longTermMemoryWriteService,
-                                  LongTermMemoryRepository longTermMemoryRepository,
-                                  WebSocketService webSocketService,
-                                  EventPublisher eventPublisher,
-                                  @Qualifier("agentTaskExecutor") TaskExecutor taskExecutor) {
         this.documentService = documentService;
         this.taskQueryService = taskQueryService;
         this.diffService = diffService;
@@ -118,57 +67,11 @@ public class TaskApplicationService {
         this.taskOrchestrator = taskOrchestrator;
         this.longTermMemoryRetrievalService = longTermMemoryRetrievalService;
         this.userProfilePromptAssembler = userProfilePromptAssembler;
-        this.longTermMemoryWriteService = longTermMemoryWriteService;
-        this.longTermMemoryRepository = longTermMemoryRepository;
+        this.longTermMemoryWriteService = longTermMemoryWriteServiceProvider.getIfAvailable();
+        this.longTermMemoryRepository = longTermMemoryRepositoryProvider.getIfAvailable();
         this.webSocketService = webSocketService;
         this.eventPublisher = eventPublisher;
         this.taskExecutor = taskExecutor;
-    }
-
-    public TaskApplicationService(DocumentService documentService,
-                                  TaskQueryService taskQueryService,
-                                  DiffService diffService,
-                                  PendingDocumentChangeService pendingDocumentChangeService,
-                                  TaskOrchestrator taskOrchestrator,
-                                  LongTermMemoryRetrievalService longTermMemoryRetrievalService,
-                                  UserProfilePromptAssembler userProfilePromptAssembler,
-                                  WebSocketService webSocketService,
-                                  EventPublisher eventPublisher,
-                                  @Qualifier("agentTaskExecutor") TaskExecutor taskExecutor) {
-        this(documentService,
-                taskQueryService,
-                diffService,
-                pendingDocumentChangeService,
-                taskOrchestrator,
-                longTermMemoryRetrievalService,
-                userProfilePromptAssembler,
-                null,
-                (LongTermMemoryRepository) null,
-                webSocketService,
-                eventPublisher,
-                taskExecutor);
-    }
-
-    public TaskApplicationService(DocumentService documentService,
-                                  TaskQueryService taskQueryService,
-                                  DiffService diffService,
-                                  PendingDocumentChangeService pendingDocumentChangeService,
-                                  TaskOrchestrator taskOrchestrator,
-                                  WebSocketService webSocketService,
-                                  EventPublisher eventPublisher,
-                                  @Qualifier("agentTaskExecutor") TaskExecutor taskExecutor) {
-        this(documentService,
-                taskQueryService,
-                diffService,
-                pendingDocumentChangeService,
-                taskOrchestrator,
-                null,
-                new UserProfilePromptAssembler(),
-                null,
-                (LongTermMemoryRepository) null,
-                webSocketService,
-                eventPublisher,
-                taskExecutor);
     }
 
     public List<UserProfileMemoryResponse> listUserProfiles() {

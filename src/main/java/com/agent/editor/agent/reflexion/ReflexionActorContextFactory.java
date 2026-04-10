@@ -5,13 +5,17 @@ import com.agent.editor.agent.core.memory.ChatMessage;
 import com.agent.editor.agent.core.context.AgentRunContext;
 import com.agent.editor.agent.core.context.CompressContextMemory;
 import com.agent.editor.agent.core.state.ExecutionStage;
+import com.agent.editor.agent.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.react.ReactAgentContextFactory;
 import com.agent.editor.agent.task.TaskRequest;
+import com.agent.editor.service.StructuredDocumentService;
 
 public class ReflexionActorContextFactory extends ReactAgentContextFactory {
 
-    public ReflexionActorContextFactory(MemoryCompressor memoryCompressor) {
-        super(memoryCompressor);
+    public ReflexionActorContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
+                                        MemoryCompressor memoryCompressor,
+                                        StructuredDocumentService structuredDocumentService) {
+        super(memoryChatMessageMapper, memoryCompressor, structuredDocumentService);
     }
 
     @CompressContextMemory

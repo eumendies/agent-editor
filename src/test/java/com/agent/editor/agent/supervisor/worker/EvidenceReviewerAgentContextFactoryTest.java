@@ -26,7 +26,9 @@ class EvidenceReviewerAgentContextFactoryTest {
     @Test
     void shouldBuildInvocationContextFromTranscriptOrderWithoutInjectingInstructionAheadOfHistory() {
         AtomicInteger compressionCalls = new AtomicInteger();
-        EvidenceReviewerAgentContextFactory factory = new EvidenceReviewerAgentContextFactory(request -> {
+        EvidenceReviewerAgentContextFactory factory = new EvidenceReviewerAgentContextFactory(
+                com.agent.editor.testsupport.AgentTestFixtures.memoryChatMessageMapper(),
+                request -> {
             compressionCalls.incrementAndGet();
             return new com.agent.editor.agent.core.memory.MemoryCompressionResult(
                     new ChatTranscriptMemory(List.of(
@@ -36,7 +38,9 @@ class EvidenceReviewerAgentContextFactoryTest {
                     true,
                     "compressed"
             );
-        });
+        },
+                com.agent.editor.testsupport.AgentTestFixtures.structuredDocumentService()
+        );
 
         var invocationContext = factory.buildModelInvocationContext(context());
 
@@ -61,7 +65,7 @@ class EvidenceReviewerAgentContextFactoryTest {
 
     @Test
     void shouldPrepareInitialContextByAppendingCurrentInstructionToTranscript() {
-        EvidenceReviewerAgentContextFactory factory = new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop());
+        EvidenceReviewerAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.evidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop());
 
         AgentRunContext context = factory.prepareInitialContext(new com.agent.editor.agent.task.TaskRequest(
                 "task-1",
@@ -81,7 +85,7 @@ class EvidenceReviewerAgentContextFactoryTest {
 
     @Test
     void shouldDescribeSnapshotWorkflowWhenFullReviewToolsAreVisible() {
-        EvidenceReviewerAgentContextFactory factory = new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop());
+        EvidenceReviewerAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.evidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop());
 
         var invocationContext = factory.buildModelInvocationContext(context().withToolSpecifications(List.of(
                 ToolSpecification.builder()
@@ -101,7 +105,7 @@ class EvidenceReviewerAgentContextFactoryTest {
     }
 
     private AgentRunContext context() {
-        EvidenceReviewerAgentContextFactory factory = new EvidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop());
+        EvidenceReviewerAgentContextFactory factory = com.agent.editor.testsupport.AgentTestFixtures.evidenceReviewerAgentContextFactory(NoOpMemoryCompressors.noop());
         return factory.prepareInitialContext(new com.agent.editor.agent.task.TaskRequest(
                 "task-1",
                 "session-1",

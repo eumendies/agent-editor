@@ -23,10 +23,6 @@ public class ModelBasedMemoryCompressor implements MemoryCompressor {
     private final ChatModel chatModel;
     private final MemoryCompressionProperties properties;
 
-    public ModelBasedMemoryCompressor(ChatModel chatModel) {
-        this(chatModel, new MemoryCompressionProperties());
-    }
-
     public ModelBasedMemoryCompressor(ChatModel chatModel,
                                       MemoryCompressionProperties properties) {
         this.chatModel = Objects.requireNonNull(chatModel, "chatModel must not be null");

@@ -3,6 +3,7 @@ package com.agent.editor.config;
 import com.agent.editor.agent.core.agent.SupervisorAgent;
 import com.agent.editor.agent.core.context.SupervisorContext;
 import com.agent.editor.agent.core.memory.MemoryCompressor;
+import com.agent.editor.agent.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.model.StreamingLLMInvoker;
 import com.agent.editor.agent.supervisor.SupervisorContextFactory;
 import com.agent.editor.agent.supervisor.SupervisorWorkerIds;
@@ -10,6 +11,7 @@ import com.agent.editor.agent.supervisor.routing.HybridSupervisorAgent;
 import com.agent.editor.agent.supervisor.worker.*;
 import com.agent.editor.agent.supervisor.worker.ResearcherAgent;
 import com.agent.editor.agent.tool.ExecutionToolAccessRole;
+import com.agent.editor.service.StructuredDocumentService;
 import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,23 +26,29 @@ public class SupervisorAgentConfig {
     }
 
     @Bean
-    public ResearcherAgentContextFactory researcherAgentContextFactory(MemoryCompressor memoryCompressor) {
-        return new ResearcherAgentContextFactory(memoryCompressor);
+    public ResearcherAgentContextFactory researcherAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
+                                                                       MemoryCompressor memoryCompressor) {
+        return new ResearcherAgentContextFactory(memoryChatMessageMapper, memoryCompressor);
     }
 
     @Bean
-    public GroundedWriterAgentContextFactory groundedWriterAgentContextFactory(MemoryCompressor memoryCompressor) {
-        return new GroundedWriterAgentContextFactory(memoryCompressor);
+    public GroundedWriterAgentContextFactory groundedWriterAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
+                                                                               MemoryCompressor memoryCompressor,
+                                                                               StructuredDocumentService structuredDocumentService) {
+        return new GroundedWriterAgentContextFactory(memoryChatMessageMapper, memoryCompressor, structuredDocumentService);
     }
 
     @Bean
-    public EvidenceReviewerAgentContextFactory evidenceReviewerAgentContextFactory(MemoryCompressor memoryCompressor) {
-        return new EvidenceReviewerAgentContextFactory(memoryCompressor);
+    public EvidenceReviewerAgentContextFactory evidenceReviewerAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
+                                                                                   MemoryCompressor memoryCompressor,
+                                                                                   StructuredDocumentService structuredDocumentService) {
+        return new EvidenceReviewerAgentContextFactory(memoryChatMessageMapper, memoryCompressor, structuredDocumentService);
     }
 
     @Bean
-    public MemoryAgentContextFactory memoryAgentContextFactory(MemoryCompressor memoryCompressor) {
-        return new MemoryAgentContextFactory(memoryCompressor);
+    public MemoryAgentContextFactory memoryAgentContextFactory(ExecutionMemoryChatMessageMapper memoryChatMessageMapper,
+                                                               MemoryCompressor memoryCompressor) {
+        return new MemoryAgentContextFactory(memoryChatMessageMapper, memoryCompressor);
     }
 
     @Bean
