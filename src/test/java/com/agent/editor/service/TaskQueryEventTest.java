@@ -4,12 +4,15 @@ import com.agent.editor.agent.event.EventType;
 import com.agent.editor.agent.event.ExecutionEvent;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class TaskQueryEventTest {
 
     @Test
-    void shouldStoreEventsAndExposeLegacySteps() {
+    void shouldStoreEventsInArrivalOrder() {
         TaskQueryService service = new TaskQueryService();
         service.appendEvent(new ExecutionEvent(EventType.TOOL_CALLED, "task-1", "editDocument"));
         service.appendEvent(new ExecutionEvent(EventType.TASK_COMPLETED, "task-1", "done"));
@@ -17,9 +20,8 @@ class TaskQueryEventTest {
         assertEquals(2, service.getEvents("task-1").size());
         assertEquals(EventType.TOOL_CALLED, service.getEvents("task-1").get(0).getType());
         assertEquals("editDocument", service.getEvents("task-1").get(0).getMessage());
-        assertEquals(2, service.getTaskSteps("task-1").size());
-        assertEquals("editDocument", service.getTaskSteps("task-1").get(0).getAction());
-        assertEquals("done", service.getTaskSteps("task-1").get(1).getResult());
+        assertEquals(EventType.TASK_COMPLETED, service.getEvents("task-1").get(1).getType());
+        assertEquals("done", service.getEvents("task-1").get(1).getMessage());
     }
 
     @Test
@@ -35,5 +37,13 @@ class TaskQueryEventTest {
         assertEquals("hello ", service.getEvents("task-stream").get(1).getMessage());
         assertEquals("world", service.getEvents("task-stream").get(2).getMessage());
         assertEquals(EventType.TEXT_STREAM_COMPLETED, service.getEvents("task-stream").get(3).getType());
+    }
+
+    @Test
+    void shouldNotExposeLegacyStepProjectionMethod() {
+        boolean hasLegacyProjection = Arrays.stream(TaskQueryService.class.getDeclaredMethods())
+                .anyMatch(method -> "getTaskSteps".equals(method.getName()));
+
+        assertFalse(hasLegacyProjection);
     }
 }

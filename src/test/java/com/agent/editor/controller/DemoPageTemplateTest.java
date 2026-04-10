@@ -54,7 +54,6 @@ class DemoPageTemplateTest {
         assertFalse(template.contains("await refreshDocument(currentTaskDocumentId);"));
         assertFalse(template.contains("Scenario Bar"));
         assertFalse(template.contains("Mode Lens"));
-        assertFalse(template.contains("Agent V2 Orchestration Demo"));
         assertFalse(template.contains("Final Result"));
         assertFalse(template.contains("chat-session"));
         assertFalse(template.contains("tracePanel"));

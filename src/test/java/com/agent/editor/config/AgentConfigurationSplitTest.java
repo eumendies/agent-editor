@@ -79,7 +79,6 @@ class AgentConfigurationSplitTest {
             assertThat(context.getBeansOfType(ExecutionToolAccessPolicy.class)).hasSize(1);
             assertThat(context.containsBean("supervisorWorkerToolAccessPolicy")).isFalse();
             assertThat(context.containsBean("agentConfig")).isFalse();
-            assertThat(context.containsBean("legacyEventAdapter")).isFalse();
         });
     }
 

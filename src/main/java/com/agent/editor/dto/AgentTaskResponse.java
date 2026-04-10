@@ -1,14 +1,11 @@
 package com.agent.editor.dto;
 
-import com.agent.editor.model.AgentStep;
-
 import java.time.LocalDateTime;
 
 public class AgentTaskResponse {
     private String taskId;
     private String documentId;
     private String status;
-    private AgentStep currentStep;
     private String finalResult;
     private int totalSteps;
     private LocalDateTime startTime;
@@ -36,14 +33,6 @@ public class AgentTaskResponse {
 
     public void setStatus(String status) {
         this.status = status;
-    }
-
-    public AgentStep getCurrentStep() {
-        return currentStep;
-    }
-
-    public void setCurrentStep(AgentStep currentStep) {
-        this.currentStep = currentStep;
     }
 
     public String getFinalResult() {

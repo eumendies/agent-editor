@@ -18,7 +18,6 @@ import com.agent.editor.agent.core.memory.LongTermMemoryItem;
 import com.agent.editor.agent.core.memory.LongTermMemoryType;
 import com.agent.editor.agent.tool.memory.MemoryUpsertAction;
 import com.agent.editor.repository.LongTermMemoryRepository;
-import com.agent.editor.model.AgentStep;
 import com.agent.editor.model.AgentMode;
 import com.agent.editor.model.Document;
 import com.agent.editor.websocket.WebSocketService;
@@ -305,10 +304,6 @@ public class TaskApplicationService {
         return response;
     }
 
-    public List<AgentStep> getTaskSteps(String taskId) {
-        return taskQueryService.getTaskSteps(taskId);
-    }
-
     public List<ExecutionEvent> getTaskEvents(String taskId) {
         return taskQueryService.getEvents(taskId);
     }
@@ -335,7 +330,7 @@ public class TaskApplicationService {
     }
 
     private AgentType mapAgentType(AgentMode mode) {
-        // controller 仍然面对旧的 AgentMode，应用层负责映射到 v2 的统一 agent type。
+        // controller 仍然面对旧的 AgentMode，应用层负责映射到统一的 agent type。
         if (mode == AgentMode.PLANNING) {
             return AgentType.PLANNING;
         }

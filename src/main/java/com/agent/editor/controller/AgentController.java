@@ -5,7 +5,6 @@ import com.agent.editor.dto.AgentTaskResponse;
 import com.agent.editor.dto.SessionMemoryResponse;
 import com.agent.editor.agent.event.ExecutionEvent;
 import com.agent.editor.model.AgentMode;
-import com.agent.editor.model.AgentStep;
 import com.agent.editor.service.SessionMemoryQueryService;
 import com.agent.editor.service.TaskApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -71,14 +70,6 @@ public class AgentController {
     public ResponseEntity<List<ExecutionEvent>> getTaskEvents(
             @Parameter(description = "Task ID") @PathVariable String taskId) {
         return ResponseEntity.ok(taskApplicationService.getTaskEvents(taskId));
-    }
-
-    @GetMapping("/task/{taskId}/steps")
-    @Operation(summary = "Get task steps", description = "Get all execution steps of an agent task")
-    public ResponseEntity<List<AgentStep>> getTaskSteps(
-            @Parameter(description = "Task ID") @PathVariable String taskId) {
-        List<AgentStep> steps = taskApplicationService.getTaskSteps(taskId);
-        return ResponseEntity.ok(steps);
     }
 
     @GetMapping("/session/{sessionId}/memory")

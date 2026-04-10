@@ -4,7 +4,6 @@ import com.agent.editor.dto.AgentTaskRequest;
 import com.agent.editor.dto.AgentTaskResponse;
 import com.agent.editor.dto.DiffResult;
 import com.agent.editor.model.Document;
-import com.agent.editor.model.AgentStep;
 import com.agent.editor.service.DocumentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * v2 的工具注册表。
+ * 工具注册表。
  * 它同时承担两件事：runtime 侧按名字查 handler，模型侧按白名单导出可见的 tool specification。
  */
 public class ToolRegistry {

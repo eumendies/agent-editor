@@ -11,6 +11,7 @@ import com.agent.editor.service.TaskApplicationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -153,5 +154,16 @@ class AgentControllerTest {
                 });
 
         assertFalse(hasLegacyConnectEndpoint);
+    }
+
+    @Test
+    void shouldNotExposeLegacyStepsEndpoint() {
+        boolean hasLegacyStepsEndpoint = java.util.Arrays.stream(AgentController.class.getDeclaredMethods())
+                .anyMatch(method -> {
+                    GetMapping mapping = method.getAnnotation(GetMapping.class);
+                    return mapping != null && mapping.value().length > 0 && "/task/{taskId}/steps".equals(mapping.value()[0]);
+                });
+
+        assertFalse(hasLegacyStepsEndpoint);
     }
 }
