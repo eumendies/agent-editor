@@ -10,11 +10,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class MemoryToolAccessPolicyTest {
 
     @Test
-    void shouldExposeSearchOnlyForMainWriteRole() {
+    void shouldExposeReadWriteMemoryToolsForMainWriteRole() {
         MemoryToolAccessPolicy policy = new MemoryToolAccessPolicy();
 
         assertEquals(
-                List.of(MemoryToolNames.SEARCH_MEMORY),
+                List.of(MemoryToolNames.SEARCH_MEMORY, MemoryToolNames.UPSERT_MEMORY),
                 policy.allowedTools(ExecutionToolAccessRole.MAIN_WRITE)
         );
     }
@@ -30,10 +30,16 @@ class MemoryToolAccessPolicyTest {
     }
 
     @Test
-    void shouldHideMemoryToolsFromNonMainRoles() {
+    void shouldExposeSearchMemoryToolsForReviewRole() {
         MemoryToolAccessPolicy policy = new MemoryToolAccessPolicy();
 
-        assertEquals(List.of(), policy.allowedTools(ExecutionToolAccessRole.REVIEW));
+        assertEquals(List.of(MemoryToolNames.SEARCH_MEMORY), policy.allowedTools(ExecutionToolAccessRole.REVIEW));
+    }
+
+    @Test
+    void shouldHideMemoryToolsFromResearchRole() {
+        MemoryToolAccessPolicy policy = new MemoryToolAccessPolicy();
+
         assertEquals(List.of(), policy.allowedTools(ExecutionToolAccessRole.RESEARCH));
     }
 }

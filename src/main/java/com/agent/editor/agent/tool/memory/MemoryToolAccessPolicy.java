@@ -9,12 +9,12 @@ import java.util.List;
  */
 public class MemoryToolAccessPolicy {
 
-    private static final List<String> MAIN_WRITE_TOOLS = List.of(
-            MemoryToolNames.SEARCH_MEMORY
-    );
-    private static final List<String> MEMORY_WORKER_TOOLS = List.of(
+    private static final List<String> READ_WRITE_TOOLS = List.of(
             MemoryToolNames.SEARCH_MEMORY,
             MemoryToolNames.UPSERT_MEMORY
+    );
+    private static final List<String> REVIEW_TOOLS = List.of(
+            MemoryToolNames.SEARCH_MEMORY
     );
 
     /**
@@ -24,11 +24,11 @@ public class MemoryToolAccessPolicy {
      * @return 长期记忆工具白名单
      */
     public List<String> allowedTools(ExecutionToolAccessRole role) {
-        if (role == ExecutionToolAccessRole.MAIN_WRITE) {
-            return MAIN_WRITE_TOOLS;
+        if (role == ExecutionToolAccessRole.MAIN_WRITE || role == ExecutionToolAccessRole.MEMORY) {
+            return READ_WRITE_TOOLS;
         }
-        if (role == ExecutionToolAccessRole.MEMORY) {
-            return MEMORY_WORKER_TOOLS;
+        if (role == ExecutionToolAccessRole.REVIEW) {
+            return REVIEW_TOOLS;
         }
         return List.of();
     }
