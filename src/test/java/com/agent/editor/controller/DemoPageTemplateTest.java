@@ -56,6 +56,11 @@ class DemoPageTemplateTest {
         assertTrue(template.contains("response.status !== 202"));
         assertTrue(template.contains("startTaskStatusPolling"));
         assertTrue(template.contains("finalizeTask"));
+        assertTrue(template.contains("const hasPendingDiff = await loadPendingDiff(currentTaskDocumentId);"));
+        assertTrue(template.contains("if (hasPendingDiff === true)"));
+        assertTrue(template.contains("PENDING_DIFF_READY_MESSAGE"));
+        assertTrue(template.contains("NO_DOCUMENT_CHANGE_MESSAGE"));
+        assertTrue(template.contains("Agent 未生成文档改动。"));
         assertTrue(template.contains("currentTaskDocumentId"));
         assertTrue(template.contains("pendingDiffActions"));
         assertTrue(template.contains("pendingDiffStatus"));

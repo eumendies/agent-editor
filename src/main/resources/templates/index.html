@@ -961,6 +961,8 @@
     let userProfilesMutating = false;
     let editingProfileId = null;
     let editingProfileDraft = "";
+    const PENDING_DIFF_READY_MESSAGE = "Agent 已生成候选修改，请先确认是否应用到文档。";
+    const NO_DOCUMENT_CHANGE_MESSAGE = "Agent 未生成文档改动。";
 
     function syncModeUI(mode) {
         currentMode = mode;
@@ -1527,8 +1529,17 @@
         }
 
         await loadTaskStatus(taskId).catch(() => null);
-        await loadPendingDiff(currentTaskDocumentId);
-        renderSaveStatus("success", "Agent 已生成候选修改，请先确认是否应用到文档。");
+        const hasPendingDiff = await loadPendingDiff(currentTaskDocumentId);
+        if (hasPendingDiff === true) {
+            renderSaveStatus("success", PENDING_DIFF_READY_MESSAGE);
+            return;
+        }
+        if (hasPendingDiff === false) {
+            renderSaveStatus("success", NO_DOCUMENT_CHANGE_MESSAGE);
+            return;
+        }
+
+        renderSaveStatus("error", "候选修改状态加载失败，请稍后重试。");
     }
 
     async function ensureDocumentSavedBeforeRun() {
@@ -1699,13 +1710,13 @@
     async function loadPendingDiff(documentId) {
         if (!documentId) {
             renderDiffEmptyState("当前没有可用文档。", "当前没有待确认改动。");
-            return;
+            return false;
         }
         try {
             const response = await fetch(`/api/v1/diff/document/${encodeURIComponent(documentId)}/pending`);
             if (response.status === 404) {
                 await loadDiffHistory(documentId);
-                return;
+                return false;
             }
             if (!response.ok) {
                 throw new Error("Pending diff request failed");
@@ -1717,9 +1728,11 @@
                 "Agent 已生成候选修改，等待你确认应用或放弃。",
                 true
             );
+            return true;
         } catch (error) {
             console.error("Error loading pending diff:", error);
             renderDiffEmptyState(`加载待确认 diff 失败: ${escapeHtml(error.message)}`, "待确认 diff 加载失败。");
+            return null;
         }
     }
 
