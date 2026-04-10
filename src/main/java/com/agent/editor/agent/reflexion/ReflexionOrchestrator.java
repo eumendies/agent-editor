@@ -13,7 +13,6 @@ import com.agent.editor.agent.task.TaskResult;
 import com.agent.editor.agent.tool.ExecutionToolAccessPolicy;
 import com.agent.editor.agent.tool.ExecutionToolAccessRole;
 import com.agent.editor.agent.tool.document.DocumentToolAccessPolicy;
-import com.agent.editor.agent.tool.document.DocumentToolAccessRole;
 import com.agent.editor.agent.tool.document.DocumentToolMode;
 
 public class ReflexionOrchestrator implements TaskOrchestrator {
@@ -115,7 +114,7 @@ public class ReflexionOrchestrator implements TaskOrchestrator {
                 currentDocument,
                 "critic current content",
                 request.getMaxIterations(),
-                documentToolAccessPolicy.allowedTools(documentToolMode, DocumentToolAccessRole.REVIEW)
+                executionToolAccessPolicy.allowedTools(documentToolMode, ExecutionToolAccessRole.REVIEW)
         );
         executionRequest.setUserProfileGuidance(request.getUserProfileGuidance());
         executionRequest.setDocumentToolMode(documentToolMode);

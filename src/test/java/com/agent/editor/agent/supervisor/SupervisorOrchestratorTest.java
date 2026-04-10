@@ -93,14 +93,16 @@ class SupervisorOrchestratorTest {
                 List.of(
                         DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
                         DocumentToolNames.SEARCH_CONTENT,
-                        DocumentToolNames.ANALYZE_DOCUMENT
+                        DocumentToolNames.ANALYZE_DOCUMENT,
+                        MemoryToolNames.SEARCH_MEMORY
                 ),
                 List.of(
                         DocumentToolNames.EDIT_DOCUMENT,
                         DocumentToolNames.APPEND_TO_DOCUMENT,
                         DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
                         DocumentToolNames.SEARCH_CONTENT,
-                        MemoryToolNames.SEARCH_MEMORY
+                        MemoryToolNames.SEARCH_MEMORY,
+                        MemoryToolNames.UPSERT_MEMORY
                 )
         ), runtime.allowedTools());
         assertEquals(EventType.WORKER_SELECTED, eventPublisher.events().get(0).getType());
@@ -426,12 +428,14 @@ class SupervisorOrchestratorTest {
                 DocumentToolNames.READ_DOCUMENT_NODE,
                 DocumentToolNames.PATCH_DOCUMENT_NODE,
                 DocumentToolNames.SEARCH_CONTENT,
-                MemoryToolNames.SEARCH_MEMORY
+                MemoryToolNames.SEARCH_MEMORY,
+                MemoryToolNames.UPSERT_MEMORY
         ), runtime.allowedTools().get(0));
         assertEquals(List.of(
                 DocumentToolNames.READ_DOCUMENT_NODE,
                 DocumentToolNames.SEARCH_CONTENT,
-                DocumentToolNames.ANALYZE_DOCUMENT
+                DocumentToolNames.ANALYZE_DOCUMENT,
+                MemoryToolNames.SEARCH_MEMORY
         ), runtime.allowedTools().get(1));
     }
 
@@ -482,7 +486,8 @@ class SupervisorOrchestratorTest {
                 DocumentToolNames.APPEND_TO_DOCUMENT,
                 DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
                 DocumentToolNames.SEARCH_CONTENT,
-                MemoryToolNames.SEARCH_MEMORY
+                MemoryToolNames.SEARCH_MEMORY,
+                MemoryToolNames.UPSERT_MEMORY
         ), runtime.allowedTools().get(1));
     }
 

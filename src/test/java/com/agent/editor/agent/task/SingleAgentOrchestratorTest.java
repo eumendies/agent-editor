@@ -95,7 +95,8 @@ class SingleAgentOrchestratorTest {
                 DocumentToolNames.READ_DOCUMENT_NODE,
                 DocumentToolNames.PATCH_DOCUMENT_NODE,
                 DocumentToolNames.SEARCH_CONTENT,
-                MemoryToolNames.SEARCH_MEMORY
+                MemoryToolNames.SEARCH_MEMORY,
+                MemoryToolNames.UPSERT_MEMORY
         ), runtime.requests().get(0).getAllowedTools());
         assertEquals(DocumentToolMode.INCREMENTAL, runtime.requests().get(0).getDocumentToolMode());
     }
