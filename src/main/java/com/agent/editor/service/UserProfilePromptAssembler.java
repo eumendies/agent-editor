@@ -23,6 +23,6 @@ public class UserProfilePromptAssembler {
         if (lines.isEmpty()) {
             return "";
         }
-        return "Confirmed user profile:\n" + String.join("\n", lines);
+        return String.join("\n", lines);
     }
 }
