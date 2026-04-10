@@ -15,11 +15,14 @@ class DemoPageTemplateTest {
     void shouldExposeOrchestrationDemoCopy() throws IOException {
         String template = Files.readString(Path.of("src/main/resources/templates/index.html"));
 
-        assertTrue(template.contains("AI Document Editor UI Design"));
+        assertTrue(template.contains("Agent Editor"));
         assertTrue(template.contains("figma-topbar"));
         assertTrue(template.contains("app-workspace"));
         assertTrue(template.contains("document-column"));
+        assertTrue(template.contains("workspace-resizer"));
+        assertTrue(template.contains("initWorkspaceResizer"));
         assertTrue(template.contains("assistant-panel"));
+        assertTrue(template.contains("--assistant-width"));
         assertTrue(template.contains("display: flex;"));
         assertTrue(template.contains("documentEditor"));
         assertTrue(template.contains("saveDocumentBtn"));
@@ -28,6 +31,12 @@ class DemoPageTemplateTest {
         assertTrue(template.contains("chatComposer"));
         assertTrue(template.contains("sendButton"));
         assertTrue(template.contains("sendCurrentMessage"));
+        assertTrue(template.contains("autoResizeInstructionInput"));
+        assertTrue(template.contains("max-height: 140px;"));
+        assertTrue(template.contains("<option value=\"REACT\">ReAct</option>"));
+        assertTrue(template.contains("<option value=\"PLANNING\">Planning</option>"));
+        assertTrue(template.contains("<option value=\"REFLEXION\">Reflexion</option>"));
+        assertTrue(template.contains("<option value=\"SUPERVISOR\">Supervisor</option>"));
         assertTrue(template.contains("assistant-message system"));
         assertTrue(template.contains("assistant-message user"));
         assertTrue(template.contains("composer-shell"));
@@ -58,6 +67,11 @@ class DemoPageTemplateTest {
         assertTrue(template.contains("确认应用"));
         assertTrue(template.contains("放弃修改"));
         assertFalse(template.contains("await refreshDocument(currentTaskDocumentId);"));
+        assertFalse(template.contains("AI Document Editor UI Design"));
+        assertFalse(template.contains("brand-dot"));
+        assertFalse(template.contains("ai-badge"));
+        assertFalse(template.contains("share-button"));
+        assertFalse(template.contains("<option value=\"REACT\">Editor</option>"));
         assertFalse(template.contains("Document Workspace"));
         assertFalse(template.contains("Chat Workspace"));
         assertFalse(template.contains("radial-gradient(circle"));

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Document Editor UI Design</title>
+    <title>Agent Editor</title>
     <style>
         :root {
             --topbar: #242424;
@@ -79,82 +79,16 @@
             flex: 0 0 48px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             padding: 0 12px;
             color: var(--topbar-text);
             background: var(--topbar);
             border-bottom: 1px solid #1d1d1f;
         }
 
-        .topbar-left,
-        .topbar-center,
-        .topbar-right {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .brand-dot {
-            width: 18px;
-            height: 18px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: #cfd2d8;
-            font-size: 13px;
-            font-weight: 700;
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            border-radius: 5px;
-        }
-
-        .ai-badge {
-            height: 22px;
-            display: inline-flex;
-            align-items: center;
-            padding: 0 8px;
-            color: #c9ccd1;
-            background: #303033;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 5px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
         .topbar-title {
             color: #d7d9dd;
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        .topbar-caret {
-            color: #9da1a8;
-            font-size: 12px;
-        }
-
-        .topbar-icon {
-            width: 26px;
-            height: 26px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: #c8ccd2;
-            background: transparent;
-            border: 1px solid transparent;
-            border-radius: 6px;
-        }
-
-        .topbar-icon:hover {
-            border-color: rgba(255, 255, 255, 0.16);
-            background: rgba(255, 255, 255, 0.06);
-        }
-
-        .share-button {
-            height: 32px;
-            padding: 0 14px;
-            color: #fff;
-            background: #4f46e5;
-            border-radius: 7px;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 700;
         }
 
@@ -172,6 +106,36 @@
             flex-direction: column;
             border-right: 1px solid var(--border);
             background: var(--surface);
+        }
+
+        .workspace-resizer {
+            width: 8px;
+            flex: 0 0 8px;
+            position: relative;
+            cursor: col-resize;
+            background: #f2f3f5;
+            border-right: 1px solid var(--border);
+        }
+
+        .workspace-resizer::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 3px;
+            width: 2px;
+            background: transparent;
+            border-radius: 2px;
+        }
+
+        .workspace-resizer:hover::before,
+        .workspace-resizer.is-dragging::before {
+            background: #c5cad3;
+        }
+
+        body.is-resizing {
+            cursor: col-resize;
+            user-select: none;
         }
 
         .document-toolbar {
@@ -680,14 +644,15 @@
         .composer-input {
             flex: 1 1 auto;
             min-width: 0;
-            height: 34px;
-            max-height: 110px;
+            min-height: 34px;
+            max-height: 140px;
             padding: 7px 2px;
             color: var(--text-strong);
             background: transparent;
             border: 0;
             outline: none;
             resize: none;
+            overflow-y: hidden;
             font-size: 13px;
             line-height: 1.45;
         }
@@ -788,6 +753,10 @@
                 flex: 0 0 auto;
             }
 
+            .workspace-resizer {
+                display: none;
+            }
+
             .document-column {
                 min-height: 760px;
                 border-right: 0;
@@ -800,10 +769,6 @@
         }
 
         @media (max-width: 760px) {
-            .topbar-center {
-                display: none;
-            }
-
             .figma-topbar {
                 padding: 0 8px;
             }
@@ -862,19 +827,7 @@
 <body>
 <div class="figma-page">
     <header class="figma-topbar">
-        <div class="topbar-left">
-            <span class="brand-dot" aria-hidden="true">F</span>
-            <span class="ai-badge">AI</span>
-        </div>
-        <div class="topbar-center">
-            <span class="topbar-title">AI Document Editor UI Design</span>
-            <span class="topbar-caret">⌄</span>
-        </div>
-        <div class="topbar-right">
-            <button class="topbar-icon" type="button" aria-label="Comments">○</button>
-            <button class="topbar-icon" type="button" aria-label="Present">▱</button>
-            <button class="share-button" type="button">Share</button>
-        </div>
+        <span class="topbar-title">Agent Editor</span>
     </header>
 
     <main class="app-workspace">
@@ -948,6 +901,8 @@
             </div>
         </section>
 
+        <div id="workspaceResizer" class="workspace-resizer" role="separator" aria-orientation="vertical" aria-label="Resize editor and assistant panels"></div>
+
         <aside class="assistant-panel" aria-label="AI assistant">
             <div class="assistant-top">
                 <div class="assistant-title">AI Assistant</div>
@@ -981,10 +936,10 @@
                 <div class="composer-shell">
                     <label class="visually-hidden" for="agentMode">Agent Mode</label>
                     <select id="agentMode" class="mode-select" onchange="syncModeUI(this.value)">
-                        <option value="REACT">Editor</option>
+                        <option value="REACT">ReAct</option>
                         <option value="PLANNING">Planning</option>
-                        <option value="SUPERVISOR">Supervisor</option>
                         <option value="REFLEXION">Reflexion</option>
+                        <option value="SUPERVISOR">Supervisor</option>
                     </select>
                     <label class="visually-hidden" for="instructionInput">Ask AI assistant</label>
                     <textarea id="instructionInput" class="composer-input" rows="1" placeholder="Ask AI assistant...">Improve the sample document by clarifying the structure, strengthening the intro, and giving it a more confident closing.</textarea>
@@ -1651,6 +1606,7 @@
             const result = await response.json();
             currentTaskId = result.taskId;
             instructionInput.value = "";
+            autoResizeInstructionInput();
             startTaskStatusPolling(result.taskId);
         } catch (error) {
             stopTaskStatusPolling();
@@ -1846,6 +1802,67 @@
         button.textContent = uploading ? "Uploading..." : "Upload";
     }
 
+    function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+    }
+
+    function initWorkspaceResizer() {
+        const workspace = document.querySelector(".app-workspace");
+        const resizer = document.getElementById("workspaceResizer");
+        if (!workspace || !resizer) {
+            return;
+        }
+
+        const minAssistantWidth = 320;
+        const maxAssistantWidth = 560;
+        const minDocumentWidth = 520;
+
+        resizer.addEventListener("pointerdown", function(event) {
+            if (window.matchMedia("(max-width: 1100px)").matches) {
+                return;
+            }
+
+            event.preventDefault();
+            resizer.setPointerCapture(event.pointerId);
+            resizer.classList.add("is-dragging");
+            document.body.classList.add("is-resizing");
+
+            const updateWidth = (moveEvent) => {
+                const bounds = workspace.getBoundingClientRect();
+                const availableWidth = bounds.width - resizer.offsetWidth;
+                const maxWidth = Math.min(maxAssistantWidth, availableWidth - minDocumentWidth);
+                const nextWidth = clamp(bounds.right - moveEvent.clientX, minAssistantWidth, Math.max(minAssistantWidth, maxWidth));
+                document.documentElement.style.setProperty("--assistant-width", `${nextWidth}px`);
+            };
+
+            const stopDragging = () => {
+                resizer.classList.remove("is-dragging");
+                document.body.classList.remove("is-resizing");
+                window.removeEventListener("pointermove", updateWidth);
+                window.removeEventListener("pointerup", stopDragging);
+                window.removeEventListener("pointercancel", stopDragging);
+            };
+
+            window.addEventListener("pointermove", updateWidth);
+            window.addEventListener("pointerup", stopDragging);
+            window.addEventListener("pointercancel", stopDragging);
+        });
+    }
+
+    function autoResizeInstructionInput() {
+        const input = document.getElementById("instructionInput");
+        if (!input) {
+            return;
+        }
+
+        const minHeight = 34;
+        const maxHeight = 140;
+        input.style.height = "auto";
+        const nextHeight = clamp(input.scrollHeight, minHeight, maxHeight);
+        input.style.height = `${nextHeight}px`;
+        input.style.overflowY = input.scrollHeight > maxHeight ? "auto" : "hidden";
+    }
+
     function renderKnowledgeUploadResult(type, title, lines) {
         const result = document.getElementById("knowledgeUploadResult");
         result.className = `result-card ${type}`;
@@ -1938,6 +1955,8 @@
                 await loadPendingDiff(this.value);
             });
         document.getElementById("instructionInput")
+            .addEventListener("input", autoResizeInstructionInput);
+        document.getElementById("instructionInput")
             .addEventListener("keydown", async function(event) {
                 if ((event.metaKey || event.ctrlKey) && event.key === "Enter" && !isTaskRunning) {
                     event.preventDefault();
@@ -1946,6 +1965,8 @@
             });
 
         syncModeUI("REACT");
+        initWorkspaceResizer();
+        autoResizeInstructionInput();
         initWebSocket();
         const documentId = await loadDocumentOptions();
         await refreshDocument(documentId);
