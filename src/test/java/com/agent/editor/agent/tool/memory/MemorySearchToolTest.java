@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class MemorySearchToolTest {
@@ -44,6 +45,36 @@ class MemorySearchToolTest {
         assertTrue(result.getMessage().contains("\"relevanceReason\":\"Matched the current editing direction for doc-1\""));
         assertFalse(result.getMessage().contains("\"details\""));
         assertFalse(result.getMessage().contains("\"scopeKey\""));
+    }
+
+    @Test
+    void shouldUseToolContextDocumentIdWhenModelOmitsDocumentId() {
+        LongTermMemoryRetrievalService retrievalService = mock(LongTermMemoryRetrievalService.class);
+        when(retrievalService.searchConfirmedDocumentDecisions("previous choices", "doc-from-context", 2))
+                .thenReturn(List.of());
+        MemorySearchTool tool = new MemorySearchTool(retrievalService);
+
+        tool.execute(
+                new ToolInvocation(MemoryToolNames.SEARCH_MEMORY, "{\"query\":\"previous choices\",\"topK\":2}"),
+                new ToolContext("task-1", "doc-from-context", "title", "body")
+        );
+
+        verify(retrievalService).searchConfirmedDocumentDecisions("previous choices", "doc-from-context", 2);
+    }
+
+    @Test
+    void shouldPreferToolContextDocumentIdOverModelSuppliedDocumentId() {
+        LongTermMemoryRetrievalService retrievalService = mock(LongTermMemoryRetrievalService.class);
+        when(retrievalService.searchConfirmedDocumentDecisions("previous choices", "doc-from-context", 2))
+                .thenReturn(List.of());
+        MemorySearchTool tool = new MemorySearchTool(retrievalService);
+
+        tool.execute(
+                new ToolInvocation(MemoryToolNames.SEARCH_MEMORY, "{\"query\":\"previous choices\",\"documentId\":\"wrong-doc\",\"topK\":2}"),
+                new ToolContext("task-1", "doc-from-context", "title", "body")
+        );
+
+        verify(retrievalService).searchConfirmedDocumentDecisions("previous choices", "doc-from-context", 2);
     }
 
     @Test

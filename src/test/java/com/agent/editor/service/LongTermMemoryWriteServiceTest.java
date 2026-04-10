@@ -170,6 +170,54 @@ class LongTermMemoryWriteServiceTest {
         verify(repository).deleteMemory("memory-3");
     }
 
+    @Test
+    void shouldRejectDeletingWhenMemoryTypeDoesNotMatchExistingMemory() {
+        LongTermMemoryRepository repository = mock(LongTermMemoryRepository.class);
+        KnowledgeEmbeddingService embeddingService = mock(KnowledgeEmbeddingService.class);
+        when(repository.findById("memory-3")).thenReturn(Optional.of(existingMemory("memory-3")));
+        LongTermMemoryWriteService service = new LongTermMemoryWriteService(
+                repository,
+                embeddingService,
+                () -> "memory-unused"
+        );
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> service.upsert(
+                MemoryUpsertAction.DELETE,
+                LongTermMemoryType.DOCUMENT_DECISION,
+                "memory-3",
+                "doc-1",
+                null
+        ));
+
+        assertEquals("memoryType does not match existing memory", exception.getMessage());
+        verify(repository).findById("memory-3");
+        verify(repository, never()).deleteMemory("memory-3");
+    }
+
+    @Test
+    void shouldRejectDeletingDocumentDecisionAcrossDocuments() {
+        LongTermMemoryRepository repository = mock(LongTermMemoryRepository.class);
+        KnowledgeEmbeddingService embeddingService = mock(KnowledgeEmbeddingService.class);
+        when(repository.findById("memory-4")).thenReturn(Optional.of(existingDocumentDecision("memory-4", "doc-1")));
+        LongTermMemoryWriteService service = new LongTermMemoryWriteService(
+                repository,
+                embeddingService,
+                () -> "memory-unused"
+        );
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> service.upsert(
+                MemoryUpsertAction.DELETE,
+                LongTermMemoryType.DOCUMENT_DECISION,
+                "memory-4",
+                "doc-2",
+                null
+        ));
+
+        assertEquals("documentId does not match existing document decision", exception.getMessage());
+        verify(repository).findById("memory-4");
+        verify(repository, never()).deleteMemory("memory-4");
+    }
+
     private LongTermMemoryItem existingMemory(String memoryId) {
         return new LongTermMemoryItem(
                 memoryId,

@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class MemoryUpsertToolTest {
@@ -45,6 +46,75 @@ class MemoryUpsertToolTest {
         assertTrue(result.getMessage().contains("\"memoryId\":\"memory-2\""));
         assertTrue(result.getMessage().contains("\"memoryType\":\"DOCUMENT_DECISION\""));
         assertTrue(result.getMessage().contains("\"summary\":\"Keep the current outline\""));
+    }
+
+    @Test
+    void shouldUseToolContextDocumentIdWhenModelOmitsDocumentId() {
+        LongTermMemoryWriteService writeService = mock(LongTermMemoryWriteService.class);
+        when(writeService.upsertResult(
+                MemoryUpsertAction.CREATE,
+                "DOCUMENT_DECISION",
+                null,
+                "doc-from-context",
+                "Keep the current outline"
+        )).thenReturn(new MemoryUpsertResult(
+                "CREATE",
+                "memory-3",
+                "DOCUMENT_DECISION",
+                "doc-from-context",
+                "Keep the current outline"
+        ));
+        MemoryUpsertTool tool = new MemoryUpsertTool(writeService);
+
+        ToolResult result = tool.execute(
+                new ToolInvocation(MemoryToolNames.UPSERT_MEMORY, """
+                        {"action":"CREATE","memoryType":"DOCUMENT_DECISION","summary":"Keep the current outline"}
+                        """),
+                new ToolContext("task-1", "doc-from-context", "title", "body")
+        );
+
+        assertTrue(result.getMessage().contains("\"documentId\":\"doc-from-context\""));
+        verify(writeService).upsertResult(
+                MemoryUpsertAction.CREATE,
+                "DOCUMENT_DECISION",
+                null,
+                "doc-from-context",
+                "Keep the current outline"
+        );
+    }
+
+    @Test
+    void shouldPreferToolContextDocumentIdOverModelSuppliedDocumentId() {
+        LongTermMemoryWriteService writeService = mock(LongTermMemoryWriteService.class);
+        when(writeService.upsertResult(
+                MemoryUpsertAction.REPLACE,
+                "DOCUMENT_DECISION",
+                "memory-2",
+                "doc-from-context",
+                "Keep the current outline"
+        )).thenReturn(new MemoryUpsertResult(
+                "REPLACE",
+                "memory-2",
+                "DOCUMENT_DECISION",
+                "doc-from-context",
+                "Keep the current outline"
+        ));
+        MemoryUpsertTool tool = new MemoryUpsertTool(writeService);
+
+        tool.execute(
+                new ToolInvocation(MemoryToolNames.UPSERT_MEMORY, """
+                        {"action":"REPLACE","memoryType":"DOCUMENT_DECISION","memoryId":"memory-2","documentId":"wrong-doc","summary":"Keep the current outline"}
+                        """),
+                new ToolContext("task-1", "doc-from-context", "title", "body")
+        );
+
+        verify(writeService).upsertResult(
+                MemoryUpsertAction.REPLACE,
+                "DOCUMENT_DECISION",
+                "memory-2",
+                "doc-from-context",
+                "Keep the current outline"
+        );
     }
 
     @Test

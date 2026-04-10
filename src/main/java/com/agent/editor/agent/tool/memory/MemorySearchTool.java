@@ -36,7 +36,6 @@ public class MemorySearchTool implements ToolHandler {
                 .description("Search confirmed prior document decisions when continuing earlier work or avoiding rejected directions")
                 .parameters(JsonObjectSchema.builder()
                         .addStringProperty("query", "Natural language query for prior document decisions")
-                        .addStringProperty("documentId", "Optional document scope for the decision search")
                         .addIntegerProperty("topK", "Optional maximum number of memories to return")
                         .required("query")
                         .build())
@@ -49,7 +48,7 @@ public class MemorySearchTool implements ToolHandler {
         try {
             List<RetrievedLongTermMemory> memories = retrievalService.searchConfirmedDocumentDecisions(
                     arguments.getQuery(),
-                    arguments.getDocumentId(),
+                    resolveDocumentId(arguments, context),
                     arguments.getTopK()
             );
             return new ToolResult(serialize(memories));
@@ -65,6 +64,15 @@ public class MemorySearchTool implements ToolHandler {
         } catch (Exception exception) {
             throw new RecoverableToolException("Failed to parse tool arguments for " + name(), exception);
         }
+    }
+
+    private String resolveDocumentId(MemorySearchArguments arguments, ToolContext context) {
+        String contextDocumentId = context == null ? null : context.getDocumentId();
+        if (contextDocumentId != null && !contextDocumentId.isBlank()) {
+            // 当前文档范围由 runtime 提供；参数里的 documentId 只作为旧调用点缺少上下文时的兼容兜底。
+            return contextDocumentId;
+        }
+        return arguments.getDocumentId();
     }
 
     private String serialize(Object value) {

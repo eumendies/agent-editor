@@ -45,7 +45,7 @@ public class LongTermMemoryWriteService {
      * @param action create / replace / delete 动作
      * @param memoryType 长期记忆类型
      * @param memoryId 目标记忆 ID；replace/delete 必填
-     * @param documentId 文档作用域；document decision create 必填
+     * @param documentId 文档作用域；document decision create 必填，replace/delete 传入时必须与既有记忆一致
      * @param summary 记忆摘要；create/replace 必填
      * @return 持久化后的记忆对象；delete 返回被删除的旧对象
      */
@@ -73,7 +73,9 @@ public class LongTermMemoryWriteService {
         }
         LongTermMemoryItem existing = repository.findById(memoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Long-term memory not found: " + memoryId));
+        validateExistingMemoryType(memoryType, existing);
         if (action == MemoryUpsertAction.DELETE) {
+            validateDocumentDecisionScope(memoryType, existing, documentId);
             repository.deleteMemory(memoryId);
             return existing;
         }
@@ -120,18 +122,31 @@ public class LongTermMemoryWriteService {
         if (summary == null || summary.isBlank()) {
             throw new IllegalArgumentException("summary is required for create/replace");
         }
+        validateExistingMemoryType(memoryType, existing);
+        if (memoryType == LongTermMemoryType.DOCUMENT_DECISION) {
+            validateDocumentDecisionScope(memoryType, existing, documentId);
+        }
+    }
+
+    private void validateExistingMemoryType(LongTermMemoryType memoryType, LongTermMemoryItem existing) {
         if (existing.getMemoryType() != memoryType) {
             throw new IllegalArgumentException("memoryType does not match existing memory");
         }
-        if (memoryType == LongTermMemoryType.DOCUMENT_DECISION) {
-            String existingDocumentId = existing.getDocumentId();
-            if (existingDocumentId == null || existingDocumentId.isBlank()) {
-                throw new IllegalArgumentException("documentId is required for document decisions");
-            }
-            // 文档决策记忆只能在原文档内重写，不能借 replace 把记忆迁移到别的文档。
-            if (documentId != null && !documentId.isBlank() && !existingDocumentId.equals(documentId)) {
-                throw new IllegalArgumentException("documentId does not match existing document decision");
-            }
+    }
+
+    private void validateDocumentDecisionScope(LongTermMemoryType memoryType,
+                                               LongTermMemoryItem existing,
+                                               String documentId) {
+        if (memoryType != LongTermMemoryType.DOCUMENT_DECISION) {
+            return;
+        }
+        String existingDocumentId = existing.getDocumentId();
+        if (existingDocumentId == null || existingDocumentId.isBlank()) {
+            throw new IllegalArgumentException("documentId is required for document decisions");
+        }
+        // 文档决策记忆只能在原文档内改写或删除；传入当前文档时必须严格匹配。
+        if (documentId != null && !documentId.isBlank() && !existingDocumentId.equals(documentId)) {
+            throw new IllegalArgumentException("documentId does not match existing document decision");
         }
     }
 

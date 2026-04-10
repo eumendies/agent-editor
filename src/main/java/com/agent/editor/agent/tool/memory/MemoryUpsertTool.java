@@ -39,7 +39,6 @@ public class MemoryUpsertTool implements ToolHandler {
                         .addStringProperty("action", "One of CREATE, REPLACE, DELETE")
                         .addStringProperty("memoryType", "One of USER_PROFILE or DOCUMENT_DECISION")
                         .addStringProperty("memoryId", "Existing memory id for replace/delete")
-                        .addStringProperty("documentId", "Required when creating document decisions")
                         .addStringProperty("summary", "Required for create/replace")
                         .required("action", "memoryType")
                         .build())
@@ -52,11 +51,12 @@ public class MemoryUpsertTool implements ToolHandler {
         try {
             MemoryUpsertAction action = MemoryUpsertAction.valueOf(arguments.getAction());
             validateAutonomousWrite(arguments);
+            String documentId = requireContextDocumentId(context);
             MemoryUpsertResult result = writeService.upsertResult(
                     action,
                     arguments.getMemoryType(),
                     arguments.getMemoryId(),
-                    arguments.getDocumentId(),
+                    documentId,
                     arguments.getSummary()
             );
             return new ToolResult(serialize(result));
@@ -73,6 +73,15 @@ public class MemoryUpsertTool implements ToolHandler {
         if (!"DOCUMENT_DECISION".equals(arguments.getMemoryType())) {
             throw new IllegalArgumentException("Autonomous memory writes may only target DOCUMENT_DECISION");
         }
+    }
+
+    private String requireContextDocumentId(ToolContext context) {
+        String documentId = context == null ? null : context.getDocumentId();
+        if (documentId == null || documentId.isBlank()) {
+            // 文档作用域只能来自 runtime，避免模型伪造 documentId 后污染或误删其他文档记忆。
+            throw new IllegalArgumentException("documentId is required in tool context for document decision memory writes");
+        }
+        return documentId;
     }
 
     private MemoryUpsertArguments decodeArguments(String arguments) {
