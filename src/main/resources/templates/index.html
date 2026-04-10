@@ -1,239 +1,341 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agent Editor Workbench</title>
+    <title>AI Document Editor UI Design</title>
     <style>
         :root {
-            --bg: #0d1321;
-            --panel: rgba(11, 20, 38, 0.82);
-            --panel-strong: #101b31;
-            --line: rgba(182, 198, 225, 0.15);
-            --text: #e8edf7;
-            --muted: #94a5c6;
-            --react: #ff9f1c;
-            --planning: #2ec4b6;
-            --supervisor: #e71d36;
-            --reflexion: #8b5cf6;
-            --accent: #7cc6fe;
-            --success: #4ade80;
-            --danger: #ff6b6b;
-            --shadow: 0 20px 60px rgba(2, 8, 22, 0.45);
+            --topbar: #242424;
+            --topbar-text: #f4f4f5;
+            --page-bg: #f7f8fa;
+            --surface: #ffffff;
+            --surface-soft: #f3f4f6;
+            --surface-muted: #eef0f3;
+            --border: #e5e7eb;
+            --border-strong: #d7dbe0;
+            --text: #343840;
+            --text-strong: #1f2329;
+            --muted: #8a929f;
+            --muted-strong: #687181;
+            --ink: #111827;
+            --success: #159947;
+            --success-bg: #dafbe8;
+            --danger: #d63b3b;
+            --danger-bg: #ffe1e1;
+            --shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+            --assistant-width: 400px;
         }
 
         * {
             box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+        }
+
+        html,
+        body {
+            height: 100%;
         }
 
         body {
-            min-height: 100vh;
-            font-family: "Avenir Next", "Segoe UI", sans-serif;
+            margin: 0;
             color: var(--text);
-            background:
-                radial-gradient(circle at top left, rgba(46, 196, 182, 0.15), transparent 30%),
-                radial-gradient(circle at top right, rgba(231, 29, 54, 0.12), transparent 28%),
-                linear-gradient(160deg, #08101d 0%, #0d1321 45%, #121f3b 100%);
+            background: var(--page-bg);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
         }
 
         button,
-        textarea,
+        input,
         select,
-        input[type="text"],
-        input[type="file"] {
+        textarea {
             font: inherit;
         }
 
-        .shell {
-            max-width: 1520px;
-            margin: 0 auto;
-            padding: 28px 22px 40px;
-        }
-
-        .workspace-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.9fr);
-            gap: 18px;
-            align-items: start;
-        }
-
-        .panel {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: 24px;
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(16px);
-        }
-
-        .document-panel,
-        .chat-panel,
-        .knowledge-section .panel {
-            padding: 22px;
-        }
-
-        .panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 16px;
-            margin-bottom: 18px;
-        }
-
-        .panel-subtitle {
-            color: var(--muted);
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .panel-title {
-            margin-top: 6px;
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: -0.03em;
-        }
-
-        .panel-copy {
-            margin-top: 8px;
-            color: var(--muted);
-            font-size: 14px;
-            line-height: 1.7;
-        }
-
-        .field-label {
-            display: block;
-            margin-bottom: 10px;
-            color: var(--muted);
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        textarea,
-        select,
-        input[type="text"],
-        input[type="file"] {
-            width: 100%;
-            border-radius: 18px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            background: rgba(5, 10, 20, 0.75);
-            color: var(--text);
-        }
-
-        textarea:focus,
-        select:focus,
-        input[type="text"]:focus,
-        input[type="file"]:focus {
-            outline: none;
-            border-color: rgba(124, 198, 254, 0.55);
-            box-shadow: 0 0 0 4px rgba(124, 198, 254, 0.1);
-        }
-
-        select,
-        input[type="text"],
-        input[type="file"] {
-            padding: 14px 16px;
-            font-size: 14px;
-        }
-
         button {
-            border: none;
-            border-radius: 18px;
-            padding: 14px 16px;
-            font-size: 14px;
-            font-weight: 700;
+            border: 0;
             cursor: pointer;
-            transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
         }
 
-        button:hover {
-            transform: translateY(-1px);
-        }
-
-        button:disabled {
+        button:disabled,
+        input:disabled,
+        select:disabled,
+        textarea:disabled {
             cursor: not-allowed;
-            opacity: 0.55;
-            transform: none;
+            opacity: 0.58;
         }
 
-        .primary-btn {
-            background: linear-gradient(135deg, #b6e2ff, #7cc6fe);
-            color: #041523;
-        }
-
-        .secondary-btn {
-            background: rgba(255, 255, 255, 0.08);
-            color: var(--text);
-        }
-
-        .run-btn.react {
-            background: linear-gradient(135deg, #ffbf69, #ff9f1c);
-            color: #251400;
-        }
-
-        .run-btn.planning {
-            background: linear-gradient(135deg, #8ef1e8, #2ec4b6);
-            color: #032d28;
-        }
-
-        .run-btn.supervisor {
-            background: linear-gradient(135deg, #ff96a5, #e71d36);
-            color: #2f0610;
-        }
-
-        .run-btn.reflexion {
-            background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
-            color: #1f1238;
-        }
-
-        .status-pill {
-            padding: 9px 14px;
-            border-radius: 999px;
-            font-weight: 700;
-            font-size: 13px;
-        }
-
-        .status-pill.connected {
-            color: #07140a;
-            background: linear-gradient(135deg, #b6f8c0, #4ade80);
-        }
-
-        .status-pill.disconnected {
-            color: #fff5f5;
-            background: linear-gradient(135deg, #ff8b8b, #e71d36);
-        }
-
-        .workspace-toolbar {
-            display: grid;
-            grid-template-columns: minmax(220px, 0.6fr) auto;
-            gap: 12px;
-            align-items: end;
-            margin-bottom: 16px;
-        }
-
-        .toolbar-actions {
+        .figma-page {
+            height: 100vh;
+            min-height: 720px;
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--page-bg);
         }
 
-        #documentEditor {
-            min-height: 560px;
-            padding: 20px;
-            resize: vertical;
-            line-height: 1.75;
-            font-size: 15px;
-            background: rgba(4, 8, 18, 0.86);
+        .figma-topbar {
+            height: 48px;
+            flex: 0 0 48px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            color: var(--topbar-text);
+            background: var(--topbar);
+            border-bottom: 1px solid #1d1d1f;
         }
 
-        .save-status {
-            min-height: 22px;
-            margin-top: 12px;
-            color: var(--muted);
+        .topbar-left,
+        .topbar-center,
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-dot {
+            width: 18px;
+            height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #cfd2d8;
             font-size: 13px;
-            line-height: 1.6;
+            font-weight: 700;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 5px;
+        }
+
+        .ai-badge {
+            height: 22px;
+            display: inline-flex;
+            align-items: center;
+            padding: 0 8px;
+            color: #c9ccd1;
+            background: #303033;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .topbar-title {
+            color: #d7d9dd;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .topbar-caret {
+            color: #9da1a8;
+            font-size: 12px;
+        }
+
+        .topbar-icon {
+            width: 26px;
+            height: 26px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #c8ccd2;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 6px;
+        }
+
+        .topbar-icon:hover {
+            border-color: rgba(255, 255, 255, 0.16);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .share-button {
+            height: 32px;
+            padding: 0 14px;
+            color: #fff;
+            background: #4f46e5;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .app-workspace {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            background: var(--page-bg);
+        }
+
+        .document-column {
+            min-width: 0;
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        .document-toolbar {
+            height: 56px;
+            flex: 0 0 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 0 26px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .toolbar-group,
+        .document-controls,
+        .knowledge-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .document-controls {
+            flex: 1 1 auto;
+        }
+
+        .knowledge-controls {
+            flex: 0 1 auto;
+            justify-content: flex-end;
+        }
+
+        .compact-label {
+            flex: 0 0 auto;
+            color: var(--muted-strong);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .document-select,
+        .mode-select,
+        .category-input,
+        .file-input,
+        .profile-input,
+        .profile-edit-input {
+            color: var(--text-strong);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            outline: none;
+        }
+
+        .document-select:focus,
+        .mode-select:focus,
+        .category-input:focus,
+        .file-input:focus,
+        .document-editor:focus,
+        .composer-input:focus,
+        .profile-input:focus,
+        .profile-edit-input:focus {
+            border-color: #c7ccd4;
+            box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.06);
+        }
+
+        .document-select {
+            width: min(260px, 100%);
+            min-width: 180px;
+            height: 34px;
+            padding: 0 32px 0 12px;
+            font-weight: 700;
+        }
+
+        .mode-select {
+            height: 30px;
+            min-width: 92px;
+            padding: 0 24px 0 10px;
+            color: var(--muted-strong);
+            background: #f8f9fb;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .category-input {
+            width: 150px;
+            height: 34px;
+            padding: 0 10px;
+            font-size: 13px;
+        }
+
+        .file-input {
+            width: 248px;
+            height: 34px;
+            padding: 5px 8px;
+            color: var(--muted-strong);
+            font-size: 13px;
+        }
+
+        .file-input::file-selector-button {
+            height: 24px;
+            margin-right: 10px;
+            padding: 0 10px;
+            color: var(--text-strong);
+            background: #f9fafb;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-weight: 700;
+        }
+
+        .action-button {
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 0 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .action-button.primary {
+            color: #ffffff;
+            background: var(--ink);
+        }
+
+        .action-button.secondary {
+            color: var(--text-strong);
+            background: #ffffff;
+            border: 1px solid var(--border);
+        }
+
+        .document-editor-shell {
+            flex: 1 1 auto;
+            min-height: 260px;
+            display: flex;
+            flex-direction: column;
+            background: var(--surface);
+        }
+
+        .document-editor {
+            flex: 1 1 auto;
+            width: 100%;
+            min-height: 260px;
+            padding: 36px 34px;
+            color: #3b4048;
+            background: var(--surface);
+            border: 0;
+            resize: none;
+            outline: none;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 18px;
+            line-height: 1.75;
+        }
+
+        .document-status-row {
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 0 26px 12px;
+            color: var(--muted);
+            font-size: 12px;
         }
 
         .save-status.success {
@@ -244,34 +346,42 @@
             color: var(--danger);
         }
 
-        .document-meta {
+        .diff-section {
+            flex: 0 0 190px;
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
+            padding: 16px 26px 18px;
+            background: var(--surface-soft);
+            border-top: 1px solid var(--border);
+        }
+
+        .section-kicker {
+            color: #98a0ad;
+            font-size: 11px;
+            font-weight: 800;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+
+        .diff-header,
+        .profile-header,
+        .assistant-header {
+            display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 12px;
-            margin-top: 14px;
-            color: var(--muted);
-            font-size: 13px;
         }
 
-        .diff-panel {
-            margin-top: 18px;
-            padding-top: 18px;
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
-        }
-
-        .pending-diff-status {
-            min-height: 22px;
-            margin-bottom: 12px;
+        .pending-diff-status,
+        .user-profile-status,
+        .knowledge-status-copy {
             color: var(--muted);
-            font-size: 13px;
-            line-height: 1.6;
+            font-size: 12px;
         }
 
         .pending-diff-actions {
             display: flex;
-            gap: 10px;
-            margin-bottom: 14px;
+            gap: 8px;
         }
 
         .pending-diff-actions[hidden] {
@@ -279,545 +389,610 @@
         }
 
         .diff-view {
-            min-height: 220px;
-            max-height: min(520px, 45vh);
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            background: rgba(5, 10, 20, 0.7);
-            padding: 16px;
-            font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
-            font-size: 13px;
+            flex: 1 1 auto;
+            min-height: 0;
+            margin-top: 12px;
+            padding: 0;
+            color: #687181;
             overflow: auto;
-            line-height: 1.7;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+            font-size: 14px;
+            line-height: 1.8;
+            white-space: normal;
+        }
+
+        .diff-view .empty-state {
+            min-height: 90px;
         }
 
         .diff-add {
-            color: #9ae6b4;
-            background: rgba(74, 222, 128, 0.08);
+            color: #07883b;
+            background: var(--success-bg);
+            border-radius: 5px;
+            padding: 1px 5px;
         }
 
         .diff-remove {
-            color: #feb2b2;
-            background: rgba(255, 107, 107, 0.08);
+            color: #b42318;
+            background: var(--danger-bg);
+            border-radius: 5px;
+            padding: 1px 5px;
+            text-decoration: line-through;
         }
 
         .diff-same {
-            color: #91a3c6;
+            color: #6b7280;
         }
 
-        .chat-panel {
-            display: grid;
-            gap: 16px;
-        }
-
-        .chat-meta {
+        .profile-section {
+            flex: 0 0 156px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            padding: 14px 16px;
-            border-radius: 18px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .chat-scroll-shell {
-            overflow: hidden;
-        }
-
-        .message-list {
-            min-height: 180px;
-            max-height: min(420px, 42vh);
-            overflow-y: auto;
-            display: grid;
-            gap: 12px;
-            padding-right: 4px;
-            align-content: start;
-        }
-
-        .chat-message {
-            justify-self: start;
-            width: min(100%, 520px);
-            border-radius: 20px;
-            padding: 16px 18px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            background: rgba(5, 10, 20, 0.72);
-            display: grid;
+            flex-direction: column;
             gap: 10px;
+            padding: 16px 26px 18px;
+            background: #fbfcfd;
+            border-top: 1px solid var(--border);
         }
 
-        .chat-message.user {
-            justify-self: end;
-            background: linear-gradient(180deg, rgba(124, 198, 254, 0.18), rgba(5, 10, 20, 0.72));
-            border-color: rgba(124, 198, 254, 0.22);
-        }
-
-        .chat-message.assistant {
-            border-color: rgba(46, 196, 182, 0.24);
-            background: linear-gradient(180deg, rgba(46, 196, 182, 0.12), rgba(5, 10, 20, 0.72));
-        }
-
-        .chat-message.system {
-            justify-self: start;
-            width: min(100%, 420px);
-            padding: 12px 14px;
-            border-radius: 14px;
-            border-color: rgba(255, 255, 255, 0.12);
-            border-style: dashed;
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        .chat-message.error {
-            border-color: rgba(255, 107, 107, 0.3);
-            background: linear-gradient(180deg, rgba(255, 107, 107, 0.1), rgba(5, 10, 20, 0.72));
-        }
-
-        .message-topline {
+        .profile-compose {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
+            gap: 8px;
         }
 
-        .message-role {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--muted);
-        }
-
-        .message-kind {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            padding: 5px 8px;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .message-body {
-            line-height: 1.75;
-            font-size: 14px;
-            word-break: break-word;
-        }
-
-        .message-meta {
-            color: var(--muted);
-            font-size: 12px;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
-
-        .chat-message.system .message-role,
-        .chat-message.system .message-meta {
-            color: #8192b4;
-        }
-
-        .chat-message.system .message-kind {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .chat-message.system .message-body {
+        .profile-input {
+            flex: 1 1 auto;
+            height: 34px;
+            min-width: 0;
+            padding: 0 10px;
             font-size: 13px;
-            line-height: 1.6;
-            color: #bfd0ee;
-        }
-
-        .chat-composer {
-            display: grid;
-            gap: 12px;
-            padding-top: 12px;
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
-        }
-
-        #instructionInput {
-            min-height: 84px;
-            padding: 18px;
-            resize: vertical;
-            line-height: 1.7;
-            font-size: 15px;
-        }
-
-        .composer-note {
-            color: var(--muted);
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .composer-row {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 12px;
-            align-items: end;
-        }
-
-        .user-profile-panel {
-            display: grid;
-            gap: 14px;
-            padding-top: 14px;
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
-        }
-
-        .user-profile-intro {
-            color: var(--muted);
-            font-size: 13px;
-            line-height: 1.7;
-        }
-
-        #newUserProfileInput,
-        .user-profile-edit-input {
-            min-height: 92px;
-            padding: 16px;
-            resize: vertical;
-            line-height: 1.7;
-            font-size: 14px;
-        }
-
-        .user-profile-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .user-profile-status {
-            min-height: 20px;
-            color: var(--muted);
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .user-profile-status.success {
-            color: var(--success);
-        }
-
-        .user-profile-status.error {
-            color: var(--danger);
         }
 
         .user-profile-list {
-            display: grid;
-            gap: 12px;
-            max-height: min(260px, 30vh);
-            overflow-y: auto;
-            padding-right: 4px;
+            min-height: 0;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 2px;
         }
 
         .user-profile-card {
-            display: grid;
-            gap: 12px;
-            padding: 16px;
-            border-radius: 18px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            background: rgba(5, 10, 20, 0.7);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 0 0 8px;
+            color: #4b5563;
+            border-bottom: 1px solid #edf0f2;
+            font-size: 13px;
         }
 
-        .user-profile-card-topline {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
+        .user-profile-card:last-child {
+            border-bottom: 0;
         }
 
         .user-profile-card-title {
-            color: var(--muted);
-            font-size: 12px;
+            color: #9aa2af;
+            font-size: 11px;
+            font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
         }
 
         .user-profile-card-body {
-            font-size: 14px;
-            line-height: 1.7;
-            color: var(--text);
+            margin-top: 4px;
             white-space: pre-wrap;
             word-break: break-word;
         }
 
         .user-profile-card-actions {
+            flex: 0 0 auto;
             display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+            gap: 6px;
         }
 
-        .knowledge-section {
-            margin-top: 18px;
+        .mini-button {
+            height: 26px;
+            padding: 0 8px;
+            color: var(--muted-strong);
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
         }
 
-        .knowledge-grid {
-            display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            gap: 16px;
-        }
-
-        .knowledge-form {
-            display: grid;
-            gap: 16px;
-        }
-
-        .knowledge-form-actions {
+        .profile-edit-wrap {
+            flex: 1 1 auto;
             display: flex;
-            justify-content: flex-start;
-            align-items: center;
-            gap: 12px;
+            flex-direction: column;
+            gap: 8px;
         }
 
-        .knowledge-status-copy {
-            color: var(--muted);
+        .profile-edit-input {
+            width: 100%;
+            min-height: 62px;
+            padding: 8px 10px;
+            resize: vertical;
             font-size: 13px;
-            line-height: 1.6;
+            line-height: 1.5;
         }
 
-        .result-card {
-            display: grid;
+        .assistant-panel {
+            width: var(--assistant-width);
+            flex: 0 0 var(--assistant-width);
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            background: #fbfbfc;
+        }
+
+        .assistant-top {
+            height: 56px;
+            flex: 0 0 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .assistant-title {
+            color: var(--text-strong);
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .assistant-user {
+            display: flex;
+            align-items: center;
             gap: 10px;
-            min-height: 100%;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            background: rgba(5, 10, 20, 0.7);
-            padding: 18px;
+            color: var(--muted-strong);
+            font-size: 13px;
+            font-weight: 700;
         }
 
-        .result-card.success {
-            border-color: rgba(74, 222, 128, 0.35);
-            background: linear-gradient(180deg, rgba(74, 222, 128, 0.08), rgba(5, 10, 20, 0.7));
+        .avatar {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #d9dde3;
         }
 
-        .result-card.error {
-            border-color: rgba(255, 107, 107, 0.35);
-            background: linear-gradient(180deg, rgba(255, 107, 107, 0.08), rgba(5, 10, 20, 0.7));
-        }
-
-        .result-label {
+        .assistant-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 18px 0;
             color: var(--muted);
             font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
         }
 
-        .result-title {
-            font-size: 18px;
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--muted-strong);
             font-weight: 700;
-            letter-spacing: -0.02em;
         }
 
-        .result-meta {
-            display: grid;
-            gap: 8px;
-            color: var(--muted);
+        .status-pill::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #b9c0ca;
+        }
+
+        .status-pill.connected::before {
+            background: var(--success);
+        }
+
+        .status-pill.disconnected::before {
+            background: var(--danger);
+        }
+
+        .message-list {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding: 22px 18px 20px;
+            overflow-y: auto;
+        }
+
+        .assistant-message {
+            max-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .assistant-message.user {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .assistant-message.assistant,
+        .assistant-message.system,
+        .assistant-message.error {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .message-role {
+            color: #98a0ad;
+            font-size: 10px;
+            font-weight: 800;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+
+        .message-bubble {
+            padding: 13px 16px;
+            border-radius: 8px;
+            color: #48505c;
+            background: #ffffff;
+            border: 1px solid #edf0f2;
+            box-shadow: var(--shadow);
             font-size: 14px;
-            line-height: 1.6;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .assistant-message.user .message-bubble {
+            color: #ffffff;
+            background: #101827;
+            border-color: #101827;
+        }
+
+        .assistant-message.error .message-bubble {
+            color: #b42318;
+            background: #fff5f5;
+            border-color: #ffd4d4;
+        }
+
+        .message-meta {
+            display: none;
+        }
+
+        .chat-composer {
+            flex: 0 0 auto;
+            padding: 14px 14px 16px;
+            background: #ffffff;
+            border-top: 1px solid var(--border);
+        }
+
+        .composer-shell {
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 6px 6px 6px 8px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(16, 24, 40, 0.05);
+        }
+
+        .composer-input {
+            flex: 1 1 auto;
+            min-width: 0;
+            height: 34px;
+            max-height: 110px;
+            padding: 7px 2px;
+            color: var(--text-strong);
+            background: transparent;
+            border: 0;
+            outline: none;
+            resize: none;
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .send-button {
+            width: 34px;
+            height: 34px;
+            flex: 0 0 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            background: #101827;
+            border-radius: 8px;
+            font-size: 16px;
         }
 
         .empty-state {
-            display: grid;
-            place-items: center;
-            min-height: 160px;
-            text-align: center;
+            min-height: 78px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: var(--muted);
-            border: 1px dashed rgba(255, 255, 255, 0.08);
-            border-radius: 20px;
-            padding: 24px;
-            line-height: 1.7;
+            text-align: center;
+            font-size: 13px;
+            line-height: 1.5;
         }
 
-        @media (max-width: 1200px) {
-            .workspace-grid,
-            .knowledge-grid,
-            .composer-row {
-                grid-template-columns: 1fr;
+        .result-card {
+            display: none;
+        }
+
+        .result-card.success,
+        .result-card.error {
+            display: block;
+            position: fixed;
+            left: 26px;
+            bottom: 18px;
+            z-index: 20;
+            width: min(360px, calc(100vw - 52px));
+            padding: 12px 14px;
+            color: var(--text);
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 10px 24px rgba(16, 24, 40, 0.12);
+            font-size: 13px;
+        }
+
+        .result-card.error {
+            border-color: #ffd4d4;
+        }
+
+        .result-label {
+            color: #98a0ad;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .result-title {
+            margin-top: 4px;
+            color: var(--text-strong);
+            font-weight: 800;
+        }
+
+        .result-meta {
+            margin-top: 5px;
+            color: var(--muted-strong);
+        }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        @media (max-width: 1100px) {
+            .figma-page {
+                min-height: 100vh;
+                overflow: auto;
+            }
+
+            .app-workspace {
+                flex-direction: column;
+                min-height: auto;
+            }
+
+            .document-column,
+            .assistant-panel {
+                width: 100%;
+                flex: 0 0 auto;
+            }
+
+            .document-column {
+                min-height: 760px;
+                border-right: 0;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .assistant-panel {
+                min-height: 620px;
             }
         }
 
         @media (max-width: 760px) {
-            .shell {
-                padding: 18px 14px 28px;
+            .topbar-center {
+                display: none;
             }
 
-            .panel,
-            .document-panel,
-            .chat-panel,
-            .knowledge-section .panel {
-                border-radius: 20px;
+            .figma-topbar {
+                padding: 0 8px;
             }
 
-            .workspace-toolbar,
-            .composer-row {
-                grid-template-columns: 1fr;
+            .document-toolbar,
+            .document-status-row,
+            .diff-section,
+            .profile-section {
+                padding-left: 16px;
+                padding-right: 16px;
             }
 
-            .toolbar-actions,
-            .knowledge-form-actions {
-                flex-direction: column;
+            .document-toolbar {
+                height: auto;
+                min-height: 56px;
+                flex-wrap: wrap;
+                align-items: flex-start;
+                padding-top: 10px;
+                padding-bottom: 10px;
+            }
+
+            .document-controls,
+            .knowledge-controls {
+                width: 100%;
+                flex-wrap: wrap;
+                justify-content: flex-start;
+            }
+
+            .document-select,
+            .file-input,
+            .category-input {
+                width: 100%;
+            }
+
+            .document-editor {
+                padding: 24px 18px;
+                font-size: 16px;
+            }
+
+            .profile-compose,
+            .composer-shell {
                 align-items: stretch;
+            }
+
+            .composer-shell {
+                flex-wrap: wrap;
+            }
+
+            .composer-input {
+                flex-basis: 100%;
+                order: -1;
             }
         }
     </style>
 </head>
 <body>
-<div class="shell">
-    <section class="workspace-grid">
-        <section class="panel document-panel">
-            <div class="panel-header">
-                <div>
-                    <div class="panel-subtitle">Editing Surface</div>
-                    <div class="panel-title">Document Workspace</div>
-                    <div class="panel-copy">在这里直接人工修改文档，保存后再让 agent 基于最新内容继续工作。</div>
-                </div>
-            </div>
+<div class="figma-page">
+    <header class="figma-topbar">
+        <div class="topbar-left">
+            <span class="brand-dot" aria-hidden="true">F</span>
+            <span class="ai-badge">AI</span>
+        </div>
+        <div class="topbar-center">
+            <span class="topbar-title">AI Document Editor UI Design</span>
+            <span class="topbar-caret">⌄</span>
+        </div>
+        <div class="topbar-right">
+            <button class="topbar-icon" type="button" aria-label="Comments">○</button>
+            <button class="topbar-icon" type="button" aria-label="Present">▱</button>
+            <button class="share-button" type="button">Share</button>
+        </div>
+    </header>
 
-            <div class="workspace-toolbar">
-                <div>
-                    <label class="field-label" for="documentSelect">Document</label>
-                    <select id="documentSelect" aria-label="Document selector">
+    <main class="app-workspace">
+        <section class="document-column" aria-label="Document editor">
+            <div class="document-toolbar">
+                <div class="document-controls">
+                    <label class="visually-hidden" for="documentSelect">Document</label>
+                    <select id="documentSelect" class="document-select" aria-label="Document selector">
                         <option value="">Loading documents...</option>
                     </select>
+                    <button id="saveDocumentBtn" class="action-button secondary" type="button" onclick="saveDocument()" disabled>Save</button>
+                    <button class="action-button secondary" type="button" onclick="refreshDocument()">Refresh</button>
                 </div>
-                <div class="toolbar-actions">
-                    <button id="saveDocumentBtn" class="primary-btn" onclick="saveDocument()" disabled>Save Document</button>
-                    <button class="secondary-btn" onclick="refreshDocument()">Refresh Document</button>
+
+                <form id="knowledgeUploadForm" class="knowledge-controls">
+                    <span class="compact-label">Knowledge Base:</span>
+                    <label class="visually-hidden" for="knowledgeFileInput">Knowledge File</label>
+                    <input id="knowledgeFileInput" class="file-input" name="file" type="file" accept=".md,.txt,text/markdown,text/plain">
+                    <label class="visually-hidden" for="knowledgeCategoryInput">Category</label>
+                    <input id="knowledgeCategoryInput" class="category-input" name="category" type="text" placeholder="category">
+                    <button id="knowledgeUploadBtn" class="action-button primary" type="submit">Upload</button>
+                </form>
+            </div>
+
+            <div class="document-editor-shell">
+                <label class="visually-hidden" for="documentEditor">Document Content</label>
+                <textarea id="documentEditor" class="document-editor" spellcheck="false" placeholder="Select a document to start editing."></textarea>
+                <div class="document-status-row">
+                    <span id="saveStatus" class="save-status">当前文档已同步到服务端。</span>
+                    <span id="documentDirtyState">Saved</span>
                 </div>
             </div>
 
-            <label class="field-label" for="documentEditor">Document Content</label>
-            <textarea id="documentEditor" spellcheck="false"></textarea>
-            <div id="saveStatus" class="save-status">当前文档已同步到服务端。</div>
-
-            <div class="document-meta">
-                <span id="documentDirtyState">Saved</span>
-                <span>保存接口: <code>PUT /api/v1/documents/{id}</code></span>
-            </div>
-
-            <div class="diff-panel">
-                <div class="panel-header">
+            <section class="diff-section" aria-label="Document diff">
+                <div class="diff-header">
                     <div>
-                        <div class="panel-subtitle">Result Delta</div>
-                        <div class="panel-title">Diff View</div>
+                        <div class="section-kicker">Document Diff</div>
+                        <div id="pendingDiffStatus" class="pending-diff-status">当前没有待确认改动。</div>
+                    </div>
+                    <div id="pendingDiffActions" class="pending-diff-actions" hidden>
+                        <button class="action-button primary" type="button" onclick="applyPendingDiff()">确认应用</button>
+                        <button class="action-button secondary" type="button" onclick="discardPendingDiff()">放弃修改</button>
                     </div>
                 </div>
-                <div id="pendingDiffStatus" class="pending-diff-status">当前没有待确认改动。</div>
-                <div id="pendingDiffActions" class="pending-diff-actions" hidden>
-                    <button class="primary-btn" onclick="applyPendingDiff()">确认应用</button>
-                    <button class="secondary-btn" onclick="discardPendingDiff()">放弃修改</button>
+                <div id="diffView" class="diff-view" aria-live="polite">
+                    <div class="empty-state">运行任务后，这里会展示不可编辑的文档变更对比。</div>
                 </div>
-                <div id="diffView" class="diff-view">
-                    <div class="empty-state">运行任意模式后，这里会展示文档变更对比。</div>
-                </div>
-            </div>
-        </section>
+            </section>
 
-        <aside class="panel chat-panel">
-            <div class="panel-header" style="margin-bottom: 0;">
-                <div>
-                    <div class="panel-subtitle">Runtime Console</div>
-                    <div class="panel-title">Chat Workspace</div>
-                    <div class="panel-copy">只保留消息流和一个发送区，像聊天软件一样直接交互。</div>
-                </div>
-            </div>
-
-            <div class="chat-meta">
-                <span id="wsStatus" class="status-pill disconnected">Disconnected</span>
-                <span id="stepCount">0 messages</span>
-            </div>
-
-            <div class="chat-scroll-shell">
-                <div id="messageList" class="message-list">
-                    <div class="empty-state">输入任务后，事件流和回答会按聊天消息的方式出现在这里。</div>
-                </div>
-            </div>
-
-            <div id="chatComposer" class="chat-composer">
-                <div>
-                    <label class="field-label" for="instructionInput">Message</label>
-                    <textarea id="instructionInput">Improve the sample document by clarifying the structure, strengthening the intro, and giving it a more confident closing.</textarea>
-                </div>
-
-                <div class="composer-note">
-                    发送前会优先保存左侧文档，确保 agent 读取的是你刚刚手工修改后的版本。
-                </div>
-
-                <div class="composer-row">
-                    <div>
-                        <label class="field-label" for="agentMode">Agent Mode</label>
-                        <select id="agentMode" onchange="syncModeUI(this.value)">
-                            <option value="REACT">REACT</option>
-                            <option value="PLANNING">PLANNING</option>
-                            <option value="SUPERVISOR">SUPERVISOR</option>
-                            <option value="REFLEXION">REFLEXION</option>
-                        </select>
-                    </div>
-                    <button id="sendButton" class="primary-btn" onclick="sendCurrentMessage()">Send</button>
-                </div>
-            </div>
-
-            <!-- user profile 是长期生效的用户偏好，需要在主工作台中显式展示，避免用户只能被动依赖后端注入却无法查看或维护。 -->
-            <section id="userProfilePanel" class="user-profile-panel">
-                <div>
-                    <div class="panel-subtitle">Long-Term Memory</div>
-                    <div class="panel-title" style="font-size: 20px;">User Profile Memory</div>
-                    <div class="user-profile-intro">
-                        这些条目会作为长期用户偏好注入后续任务。这里的内容应由你手工维护，AI 只会读取，不会自动替你写入。
-                    </div>
-                </div>
-
-                <div>
-                    <label class="field-label" for="newUserProfileInput">Add Profile</label>
-                    <textarea id="newUserProfileInput" placeholder="例如：默认使用中文回答；偏好简洁总结；避免营销化措辞。"></textarea>
-                </div>
-
-                <div class="user-profile-actions">
-                    <button id="addUserProfileBtn" class="secondary-btn" type="button" onclick="createUserProfile()">Add Profile</button>
+            <section id="userProfilePanel" class="profile-section" aria-label="User profile memory">
+                <div class="profile-header">
+                    <div class="section-kicker">User Profile (Long-Term Memory)</div>
                     <div id="userProfileStatus" class="user-profile-status">正在等待加载 user profile。</div>
                 </div>
-
+                <div class="profile-compose">
+                    <label class="visually-hidden" for="newUserProfileInput">Add Profile</label>
+                    <input id="newUserProfileInput" class="profile-input" type="text" placeholder="+ Add new long-term memory...">
+                    <button id="addUserProfileBtn" class="action-button secondary" type="button" onclick="createUserProfile()">Add</button>
+                </div>
                 <div id="userProfileList" class="user-profile-list">
                     <div class="empty-state">当前还没有 user profile。新增后，这些偏好会在后续任务里持续生效。</div>
                 </div>
             </section>
+
+            <div id="knowledgeUploadResult" class="result-card">
+                <div class="result-label">Upload Result</div>
+                <div class="result-title">No Upload Yet</div>
+                <div class="result-meta">
+                    <div>Choose a knowledge file and upload it.</div>
+                </div>
+            </div>
+        </section>
+
+        <aside class="assistant-panel" aria-label="AI assistant">
+            <div class="assistant-top">
+                <div class="assistant-title">AI Assistant</div>
+                <div class="assistant-user">
+                    <span>Jane Doe</span>
+                    <img class="avatar" alt="Jane Doe" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&amp;fit=crop&amp;w=80&amp;h=80&amp;q=80">
+                </div>
+            </div>
+            <div class="assistant-meta">
+                <span id="wsStatus" class="status-pill disconnected">Disconnected</span>
+                <span aria-hidden="true">·</span>
+                <span id="stepCount">0 messages</span>
+            </div>
+
+            <div id="messageList" class="message-list">
+                <div class="assistant-message system">
+                    <div class="message-role">SYSTEM</div>
+                    <div class="message-bubble">I've reviewed your document and suggested a few changes to improve clarity. You can review the diff below.</div>
+                </div>
+                <div class="assistant-message user">
+                    <div class="message-role">YOU</div>
+                    <div class="message-bubble">Thanks. Can you make it sound a bit more professional?</div>
+                </div>
+                <div class="assistant-message assistant">
+                    <div class="message-role">SYSTEM</div>
+                    <div class="message-bubble">Sure, I have updated the tone to be more professional. The changes are reflected in the diff view.</div>
+                </div>
+            </div>
+
+            <div id="chatComposer" class="chat-composer">
+                <div class="composer-shell">
+                    <label class="visually-hidden" for="agentMode">Agent Mode</label>
+                    <select id="agentMode" class="mode-select" onchange="syncModeUI(this.value)">
+                        <option value="REACT">Editor</option>
+                        <option value="PLANNING">Planning</option>
+                        <option value="SUPERVISOR">Supervisor</option>
+                        <option value="REFLEXION">Reflexion</option>
+                    </select>
+                    <label class="visually-hidden" for="instructionInput">Ask AI assistant</label>
+                    <textarea id="instructionInput" class="composer-input" rows="1" placeholder="Ask AI assistant...">Improve the sample document by clarifying the structure, strengthening the intro, and giving it a more confident closing.</textarea>
+                    <button id="sendButton" class="send-button" type="button" onclick="sendCurrentMessage()" aria-label="Send">➤</button>
+                </div>
+            </div>
         </aside>
-    </section>
-
-    <section class="knowledge-section">
-        <div class="panel">
-            <div class="panel-header">
-                <div>
-                    <div class="panel-subtitle">Knowledge Base</div>
-                    <div class="panel-title" style="font-size: 22px;">Knowledge Base Upload</div>
-                </div>
-            </div>
-
-            <div class="knowledge-grid">
-                <form id="knowledgeUploadForm" class="knowledge-form">
-                    <div>
-                        <label class="field-label" for="knowledgeFileInput">Knowledge File</label>
-                        <input id="knowledgeFileInput" name="file" type="file" accept=".md,.txt,text/markdown,text/plain">
-                    </div>
-
-                    <div>
-                        <label class="field-label" for="knowledgeCategoryInput">Category</label>
-                        <input id="knowledgeCategoryInput" name="category" type="text" placeholder="resume, notes, projects">
-                    </div>
-
-                    <div class="knowledge-form-actions">
-                        <button id="knowledgeUploadBtn" class="secondary-btn" type="submit">Upload to Knowledge Base</button>
-                        <span class="knowledge-status-copy">支持 Markdown 和 TXT，成功后会在右侧显示最新上传结果。</span>
-                    </div>
-                </form>
-
-                <div id="knowledgeUploadResult" class="result-card">
-                    <div class="result-label">Upload Result</div>
-                    <div class="result-title">No Upload Yet</div>
-                    <div class="result-meta">
-                        <div>选择文件并填写分类后，这里会显示最新一次上传结果。</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+    </main>
 </div>
 
 <script>
@@ -889,23 +1064,25 @@
 
         list.innerHTML = userProfiles.map((profile, index) => `
             <article class="user-profile-card">
-                <div class="user-profile-card-topline">
-                    <div class="user-profile-card-title">Profile ${index + 1}</div>
-                </div>
                 ${editingProfileId === profile.memoryId ? `
-                    <textarea
-                        class="user-profile-edit-input"
-                        oninput="syncEditingUserProfileDraft(this.value)"
-                    >${escapeHtml(editingProfileDraft)}</textarea>
-                    <div class="user-profile-card-actions">
-                        <button class="primary-btn" type="button" onclick='saveUserProfile(${JSON.stringify(profile.memoryId || "")})' ${userProfilesMutating ? "disabled" : ""}>Save</button>
-                        <button class="secondary-btn" type="button" onclick="cancelEditingUserProfile()" ${userProfilesMutating ? "disabled" : ""}>Cancel</button>
+                    <div class="profile-edit-wrap">
+                        <textarea
+                            class="profile-edit-input"
+                            oninput="syncEditingUserProfileDraft(this.value)"
+                        >${escapeHtml(editingProfileDraft)}</textarea>
+                        <div class="user-profile-card-actions">
+                            <button class="mini-button" type="button" onclick='saveUserProfile(${JSON.stringify(profile.memoryId || "")})' ${userProfilesMutating ? "disabled" : ""}>Save</button>
+                            <button class="mini-button" type="button" onclick="cancelEditingUserProfile()" ${userProfilesMutating ? "disabled" : ""}>Cancel</button>
+                        </div>
                     </div>
                 ` : `
-                    <div class="user-profile-card-body">${escapeHtml(profile.summary || "").replace(/\n/g, "<br>")}</div>
+                    <div>
+                        <div class="user-profile-card-title">Profile ${index + 1}</div>
+                        <div class="user-profile-card-body">${escapeHtml(profile.summary || "").replace(/\n/g, "<br>")}</div>
+                    </div>
                     <div class="user-profile-card-actions">
-                        <button class="secondary-btn" type="button" onclick='startEditingUserProfile(${JSON.stringify(profile.memoryId || "")})' ${userProfilesMutating ? "disabled" : ""}>Edit</button>
-                        <button class="secondary-btn" type="button" onclick='deleteUserProfile(${JSON.stringify(profile.memoryId || "")})' ${userProfilesMutating ? "disabled" : ""}>Delete</button>
+                        <button class="mini-button" type="button" onclick='startEditingUserProfile(${JSON.stringify(profile.memoryId || "")})' ${userProfilesMutating ? "disabled" : ""}>Edit</button>
+                        <button class="mini-button" type="button" onclick='deleteUserProfile(${JSON.stringify(profile.memoryId || "")})' ${userProfilesMutating ? "disabled" : ""}>Delete</button>
                     </div>
                 `}
             </article>
@@ -1008,7 +1185,7 @@
             return;
         }
 
-        // 编辑态始终以当前选中的 memoryId 为准，保存成功后重新从服务端拉取，避免前端本地列表和后端状态漂移。
+        // 编辑态保存后重新拉取服务端列表，避免本地 profile 顺序或内容和持久化状态不一致。
         setUserProfileMutationState(true, "正在保存 user profile...");
         try {
             const response = await fetch(`/api/memory/profiles/${encodeURIComponent(memoryId)}`, {
@@ -1036,7 +1213,7 @@
             return;
         }
 
-        // 删除成功后统一重新加载列表，保证当前编辑态、空状态和服务端真实数据一起收敛。
+        // 删除和编辑共用一个服务端刷新入口，保证空态、编辑态和真实列表一起收敛。
         setUserProfileMutationState(true, "正在删除 user profile...");
         try {
             const response = await fetch(`/api/memory/profiles/${encodeURIComponent(memoryId)}`, {
@@ -1086,6 +1263,11 @@
         const saveButton = document.getElementById("saveDocumentBtn");
         const originalLabel = saveButton.textContent;
 
+        if (!documentId) {
+            renderSaveStatus("error", "当前没有可保存的文档。");
+            return null;
+        }
+
         saveButton.disabled = true;
         saveButton.textContent = "Saving...";
         if (!options.silent) {
@@ -1093,7 +1275,7 @@
         }
 
         try {
-            const response = await fetch(`/api/v1/documents/${documentId}`, {
+            const response = await fetch(`/api/v1/documents/${encodeURIComponent(documentId)}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
@@ -1117,7 +1299,7 @@
             throw error;
         } finally {
             saveButton.textContent = originalLabel;
-            saveButton.disabled = isDocumentDirty || isTaskRunning;
+            saveButton.disabled = !isDocumentDirty || isTaskRunning;
         }
     }
 
@@ -1160,7 +1342,6 @@
             case "TEXT_STREAM_STARTED":
             case "TEXT_STREAM_DELTA":
             case "TEXT_STREAM_COMPLETED":
-                return "ASSISTANT";
             case "TASK_COMPLETED":
             case "SUPERVISOR_COMPLETED":
                 return "ASSISTANT";
@@ -1251,20 +1432,17 @@
     }
 
     function updateMessageCount() {
-        const count = document.querySelectorAll("#messageList .chat-message").length;
+        const count = document.querySelectorAll("#messageList .assistant-message").length;
         document.getElementById("stepCount").textContent = `${count} messages`;
     }
 
     function appendChatMessage(role, kind, content, meta) {
         const container = ensureMessageListReady();
         const messageDiv = document.createElement("div");
-        messageDiv.className = `chat-message ${role}`;
+        messageDiv.className = `assistant-message ${role}`;
         messageDiv.innerHTML = `
-            <div class="message-topline">
-                <span class="message-role">${escapeHtml(role)}</span>
-                <span class="message-kind">${escapeHtml(kind)}</span>
-            </div>
-            <div class="message-body">${escapeHtml(content || "").replace(/\n/g, "<br>")}</div>
+            <div class="message-role">${escapeHtml(role === "user" ? "YOU" : kind)}</div>
+            <div class="message-bubble">${escapeHtml(content || "").replace(/\n/g, "<br>")}</div>
             <div class="message-meta">${escapeHtml(meta || "")}</div>
         `;
 
@@ -1279,14 +1457,14 @@
             return activeStreamStep;
         }
         currentStreamText = "";
-        activeStreamStep = appendChatMessage("assistant", "Streaming", "", `Mode ${currentMode}`);
+        activeStreamStep = appendChatMessage("assistant", "SYSTEM", "", `Mode ${currentMode}`);
         activeStreamStep.dataset.streaming = "true";
         return activeStreamStep;
     }
 
     function appendStreamDelta(content) {
         const stepDiv = ensureActiveStreamStep();
-        const contentNode = stepDiv.querySelector(".message-body");
+        const contentNode = stepDiv.querySelector(".message-bubble");
         currentStreamText += content || "";
         contentNode.innerHTML = `${contentNode.innerHTML}${escapeHtml(content || "").replace(/\n/g, "<br>")}`;
         scrollMessageListToBottom();
@@ -1346,7 +1524,7 @@
             return null;
         }
 
-        const response = await fetch(`/api/agent/task/${taskId}`);
+        const response = await fetch(`/api/agent/task/${encodeURIComponent(taskId)}`);
         if (response.status === 404) {
             return null;
         }
@@ -1420,7 +1598,7 @@
             renderSaveStatus("success", "已在运行前自动保存文档。");
             return true;
         } catch (error) {
-            appendChatMessage("error", "Save Failed", error.message || "Document save failed", "Document Workspace");
+            appendChatMessage("error", "Save Failed", error.message || "Document save failed", "Document");
             return false;
         }
     }
@@ -1506,7 +1684,7 @@
 
             documentSelect.disabled = false;
             documentSelect.innerHTML = documents.map((doc) => `
-                <option value="${escapeHtml(doc.id || "")}">${escapeHtml(doc.title || doc.id || "Untitled Document")}</option>
+                <option value="${escapeAttribute(doc.id || "")}">${escapeHtml(doc.title || doc.id || "Untitled Document")}</option>
             `).join("");
 
             // 优先保留当前选中项，避免刷新列表后把用户切回第一个文档。
@@ -1535,7 +1713,7 @@
             return;
         }
         try {
-            const response = await fetch(`/api/v1/documents/${documentId}`);
+            const response = await fetch(`/api/v1/documents/${encodeURIComponent(documentId)}`);
             if (!response.ok) {
                 return;
             }
@@ -1555,7 +1733,7 @@
 
     async function loadDiffHistory(documentId) {
         try {
-            const response = await fetch(`/api/v1/diff/document/${documentId}`);
+            const response = await fetch(`/api/v1/diff/document/${encodeURIComponent(documentId)}`);
             if (!response.ok) {
                 return;
             }
@@ -1579,7 +1757,7 @@
             return;
         }
         try {
-            const response = await fetch(`/api/v1/diff/document/${documentId}/pending`);
+            const response = await fetch(`/api/v1/diff/document/${encodeURIComponent(documentId)}/pending`);
             if (response.status === 404) {
                 await loadDiffHistory(documentId);
                 return;
@@ -1604,7 +1782,7 @@
         const documentId = currentTaskDocumentId || document.getElementById("documentSelect").value;
 
         try {
-            const response = await fetch(`/api/v1/diff/document/${documentId}/apply`, {
+            const response = await fetch(`/api/v1/diff/document/${encodeURIComponent(documentId)}/apply`, {
                 method: "POST"
             });
             if (!response.ok) {
@@ -1624,7 +1802,7 @@
         const documentId = currentTaskDocumentId || document.getElementById("documentSelect").value;
 
         try {
-            const response = await fetch(`/api/v1/diff/document/${documentId}/pending`, {
+            const response = await fetch(`/api/v1/diff/document/${encodeURIComponent(documentId)}/pending`, {
                 method: "DELETE"
             });
             if (!response.ok) {
@@ -1650,16 +1828,22 @@
     }
 
     function escapeHtml(text) {
-        return (text || "")
+        return String(text || "")
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function escapeAttribute(text) {
+        return escapeHtml(text);
     }
 
     function setKnowledgeUploadState(uploading) {
         const button = document.getElementById("knowledgeUploadBtn");
         button.disabled = uploading;
-        button.textContent = uploading ? "Uploading..." : "Upload to Knowledge Base";
+        button.textContent = uploading ? "Uploading..." : "Upload";
     }
 
     function renderKnowledgeUploadResult(type, title, lines) {

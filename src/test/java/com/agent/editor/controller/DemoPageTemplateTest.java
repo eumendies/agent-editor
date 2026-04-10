@@ -15,8 +15,12 @@ class DemoPageTemplateTest {
     void shouldExposeOrchestrationDemoCopy() throws IOException {
         String template = Files.readString(Path.of("src/main/resources/templates/index.html"));
 
-        assertTrue(template.contains("Document Workspace"));
-        assertTrue(template.contains("Chat Workspace"));
+        assertTrue(template.contains("AI Document Editor UI Design"));
+        assertTrue(template.contains("figma-topbar"));
+        assertTrue(template.contains("app-workspace"));
+        assertTrue(template.contains("document-column"));
+        assertTrue(template.contains("assistant-panel"));
+        assertTrue(template.contains("display: flex;"));
         assertTrue(template.contains("documentEditor"));
         assertTrue(template.contains("saveDocumentBtn"));
         assertTrue(template.contains("saveStatus"));
@@ -24,14 +28,16 @@ class DemoPageTemplateTest {
         assertTrue(template.contains("chatComposer"));
         assertTrue(template.contains("sendButton"));
         assertTrue(template.contains("sendCurrentMessage"));
-        assertTrue(template.contains("width: min(100%, 520px);"));
-        assertTrue(template.contains("width: min(100%, 420px);"));
-        assertTrue(template.contains("border-style: dashed;"));
-        assertTrue(template.contains("Knowledge Base Upload"));
+        assertTrue(template.contains("assistant-message system"));
+        assertTrue(template.contains("assistant-message user"));
+        assertTrue(template.contains("composer-shell"));
         assertTrue(template.contains("knowledgeUploadForm"));
         assertTrue(template.contains("knowledgeFileInput"));
         assertTrue(template.contains("knowledgeCategoryInput"));
         assertTrue(template.contains("knowledgeUploadResult"));
+        assertTrue(template.contains("userProfilePanel"));
+        assertTrue(template.contains("newUserProfileInput"));
+        assertTrue(template.contains("userProfileList"));
         assertTrue(template.contains("saveDocument"));
         assertTrue(template.contains("lastCompletedStreamText"));
         assertTrue(template.contains("shouldSuppressCompletedMessage"));
@@ -52,6 +58,10 @@ class DemoPageTemplateTest {
         assertTrue(template.contains("确认应用"));
         assertTrue(template.contains("放弃修改"));
         assertFalse(template.contains("await refreshDocument(currentTaskDocumentId);"));
+        assertFalse(template.contains("Document Workspace"));
+        assertFalse(template.contains("Chat Workspace"));
+        assertFalse(template.contains("radial-gradient(circle"));
+        assertFalse(template.contains("border-radius: 24px;"));
         assertFalse(template.contains("Scenario Bar"));
         assertFalse(template.contains("Mode Lens"));
         assertFalse(template.contains("Final Result"));
