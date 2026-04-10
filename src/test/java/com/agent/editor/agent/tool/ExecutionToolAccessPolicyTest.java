@@ -32,7 +32,8 @@ class ExecutionToolAccessPolicyTest {
                         DocumentToolNames.APPEND_TO_DOCUMENT,
                         DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
                         DocumentToolNames.SEARCH_CONTENT,
-                        MemoryToolNames.SEARCH_MEMORY
+                        MemoryToolNames.SEARCH_MEMORY,
+                        MemoryToolNames.UPSERT_MEMORY
                 ),
                 policy.allowedTools(
                         new DocumentSnapshot("doc-1", "Title", "small body"),
@@ -61,7 +62,7 @@ class ExecutionToolAccessPolicyTest {
     }
 
     @Test
-    void shouldKeepReviewRoleOnDocumentReviewToolsOnly() {
+    void shouldCombineDocumentReviewAndMemoryReadToolsForReviewRole() {
         ExecutionToolAccessPolicy policy = new ExecutionToolAccessPolicy(
                 new DocumentToolAccessPolicy(structuredDocumentService, com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(10)),
                 new MemoryToolAccessPolicy()
@@ -71,7 +72,8 @@ class ExecutionToolAccessPolicyTest {
                 List.of(
                         DocumentToolNames.READ_DOCUMENT_NODE,
                         DocumentToolNames.SEARCH_CONTENT,
-                        DocumentToolNames.ANALYZE_DOCUMENT
+                        DocumentToolNames.ANALYZE_DOCUMENT,
+                        MemoryToolNames.SEARCH_MEMORY
                 ),
                 policy.allowedTools(
                         new DocumentSnapshot("doc-2", "Title", "x".repeat(80)),
