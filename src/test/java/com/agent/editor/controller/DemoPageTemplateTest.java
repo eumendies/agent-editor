@@ -28,6 +28,7 @@ class DemoPageTemplateTest {
         assertTrue(template.contains("saveDocumentBtn"));
         assertTrue(template.contains("saveStatus"));
         assertTrue(template.contains("messageList"));
+        assertTrue(template.contains("输入任务后，事件流和回答会按聊天消息的方式出现在这里。"));
         assertTrue(template.contains("chatComposer"));
         assertTrue(template.contains("sendButton"));
         assertTrue(template.contains("sendCurrentMessage"));
@@ -37,8 +38,8 @@ class DemoPageTemplateTest {
         assertTrue(template.contains("<option value=\"PLANNING\">Planning</option>"));
         assertTrue(template.contains("<option value=\"REFLEXION\">Reflexion</option>"));
         assertTrue(template.contains("<option value=\"SUPERVISOR\">Supervisor</option>"));
-        assertTrue(template.contains("assistant-message system"));
-        assertTrue(template.contains("assistant-message user"));
+        assertTrue(template.contains(".assistant-message.system"));
+        assertTrue(template.contains(".assistant-message.user"));
         assertTrue(template.contains("composer-shell"));
         assertTrue(template.contains("knowledgeUploadForm"));
         assertTrue(template.contains("knowledgeFileInput"));
@@ -72,6 +73,9 @@ class DemoPageTemplateTest {
         assertFalse(template.contains("ai-badge"));
         assertFalse(template.contains("share-button"));
         assertFalse(template.contains("<option value=\"REACT\">Editor</option>"));
+        assertFalse(template.contains("I've reviewed your document"));
+        assertFalse(template.contains("Thanks. Can you make it sound a bit more professional?"));
+        assertFalse(template.contains("Sure, I have updated the tone"));
         assertFalse(template.contains("Document Workspace"));
         assertFalse(template.contains("Chat Workspace"));
         assertFalse(template.contains("radial-gradient(circle"));

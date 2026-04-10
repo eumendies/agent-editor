@@ -200,6 +200,38 @@ class TaskApplicationServiceTest {
     }
 
     @Test
+    void shouldNotCreatePendingChangeWhenAgentReturnsUnchangedDocument() {
+        DocumentService documentService = new DocumentService();
+        TaskQueryService queryService = new TaskQueryService();
+        DiffService diffService = new DiffService();
+        PendingDocumentChangeService pendingChangeService = new PendingDocumentChangeService(diffService);
+        String originalContent = documentService.getDocument("doc-001").getContent();
+        pendingChangeService.savePendingChange("doc-001", "old-task", originalContent, "stale pending draft");
+        TaskApplicationService service = newTaskApplicationService(
+                documentService,
+                queryService,
+                diffService,
+                pendingChangeService,
+                request -> new TaskResult(TaskStatus.COMPLETED, originalContent),
+                mock(WebSocketService.class),
+                mock(EventPublisher.class),
+                directTaskExecutor()
+        );
+
+        AgentTaskRequest request = new AgentTaskRequest();
+        request.setDocumentId("doc-001");
+        request.setInstruction("review without changing");
+        request.setMode(AgentMode.REACT);
+
+        AgentTaskResponse response = service.execute(request);
+
+        assertEquals("COMPLETED", response.getStatus());
+        assertEquals(originalContent, response.getFinalResult());
+        assertNull(pendingChangeService.getPendingChange("doc-001"));
+        assertEquals(0, diffService.getDiffHistory("doc-001").size());
+    }
+
+    @Test
     void shouldApplyPendingChangeOnlyAfterExplicitConfirmation() {
         DocumentService documentService = new DocumentService();
         TaskQueryService queryService = new TaskQueryService();

@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -164,16 +165,24 @@ public class TaskApplicationService {
         taskRequest.setUserProfileGuidance(loadUserProfileGuidance());
         TaskResult result = taskOrchestrator.execute(taskRequest);
 
-        // agent 完成后先落待确认候选稿，只有用户确认应用时才真正改写文档正文。
+        // agent 完成后只有在正文确实变化时才落候选稿；无变化时清掉旧 pending，避免用户看到伪 diff。
         if (result.getFinalContent() != null) {
-            pendingDocumentChangeService.savePendingChange(
-                    context.getDocumentId(),
-                    context.getTaskId(),
-                    context.getOriginalContent(),
-                    result.getFinalContent()
-            );
+            if (hasDocumentChanged(context.getOriginalContent(), result.getFinalContent())) {
+                pendingDocumentChangeService.savePendingChange(
+                        context.getDocumentId(),
+                        context.getTaskId(),
+                        context.getOriginalContent(),
+                        result.getFinalContent()
+                );
+            } else {
+                pendingDocumentChangeService.discardPendingChange(context.getDocumentId());
+            }
         }
         return result;
+    }
+
+    private boolean hasDocumentChanged(String originalContent, String finalContent) {
+        return !Objects.equals(originalContent, finalContent);
     }
 
     private String loadUserProfileGuidance() {
