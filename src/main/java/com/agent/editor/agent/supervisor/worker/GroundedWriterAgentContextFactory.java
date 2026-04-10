@@ -14,6 +14,7 @@ import com.agent.editor.agent.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.task.TaskRequest;
 import com.agent.editor.agent.tool.document.DocumentToolMode;
 import com.agent.editor.agent.tool.document.DocumentToolNames;
+import com.agent.editor.agent.tool.memory.MemoryToolNames;
 import com.agent.editor.service.StructuredDocumentService;
 import dev.langchain4j.data.message.SystemMessage;
 
@@ -115,6 +116,9 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
                 ## Tool Rules
                 %s
 
+                ## Long-Term Memory Rules
+                %s
+
                 ## Forbidden Actions
                 Do not output draft document content directly in chat when the document should be updated.
                 Do not modify a node or block that you have not inspected in the current context.
@@ -125,8 +129,19 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
                 documentGuidanceSection,
                 profileGuidanceSection(context),
                 workflow,
-                toolRules
+                toolRules,
+                writeMemoryRules()
         );
+    }
+
+    private String writeMemoryRules() {
+        return """
+                Use %s before writing when prior durable document decisions may affect the edit.
+                Use %s only for durable DOCUMENT_DECISION memories that should constrain future work on this document.
+                Do not write USER_PROFILE memories from autonomous document-writing agents.
+                Do not store execution logs, one-off edits, temporary plans, or tool traces as long-term memory.
+                When a decision changes, prefer updating or deleting the existing memory instead of creating duplicates.
+                """.formatted(MemoryToolNames.SEARCH_MEMORY, MemoryToolNames.UPSERT_MEMORY);
     }
 
     private String structureJson(AgentRunContext context) {

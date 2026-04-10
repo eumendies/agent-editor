@@ -12,6 +12,7 @@ import com.agent.editor.agent.support.NoOpMemoryCompressors;
 import com.agent.editor.agent.task.TaskRequest;
 import com.agent.editor.agent.tool.document.DocumentToolMode;
 import com.agent.editor.agent.tool.document.DocumentToolNames;
+import com.agent.editor.agent.tool.memory.MemoryToolNames;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -136,6 +137,11 @@ class ReflexionCriticContextFactoryTest {
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains("## Role"));
         assertTrue(systemMessage.text().contains("## Workflow"));
+        assertTrue(systemMessage.text().contains("## Long-Term Memory Rules"));
+        assertTrue(systemMessage.text().contains(MemoryToolNames.SEARCH_MEMORY));
+        assertTrue(systemMessage.text().contains("DOCUMENT_DECISION"));
+        assertTrue(systemMessage.text().contains("treat retrieved"));
+        assertTrue(!systemMessage.text().contains(MemoryToolNames.UPSERT_MEMORY));
         assertTrue(systemMessage.text().contains("## Output Rules"));
         assertTrue(invocationContext.getMessages().stream().anyMatch(message -> message.toString().contains("intro is too long")));
     }

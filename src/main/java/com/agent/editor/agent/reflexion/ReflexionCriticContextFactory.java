@@ -15,6 +15,7 @@ import com.agent.editor.agent.task.TaskRequest;
 import com.agent.editor.service.StructuredDocumentService;
 import com.agent.editor.agent.tool.document.DocumentToolMode;
 import com.agent.editor.agent.tool.document.DocumentToolNames;
+import com.agent.editor.agent.tool.memory.MemoryToolNames;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ResponseFormat;
@@ -162,6 +163,9 @@ public class ReflexionCriticContextFactory implements AgentContextFactory, Memor
                 Base your judgement on the instruction, the current draft, and the evidence already present in memory.
                 Use tools only when they provide additional evidence you do not already have.
 
+                ## Long-Term Memory Rules
+                %s
+
                 ## Output Rules
                 When you are ready to finish, return critique JSON with:
                 - verdict: PASS or REVISE
@@ -169,8 +173,18 @@ public class ReflexionCriticContextFactory implements AgentContextFactory, Memor
                 - reasoning: concise explanation
                 """.formatted(
                 documentGuidanceSection,
-                reviewWorkflow
+                reviewWorkflow,
+                reviewMemoryRules()
         );
+    }
+
+    private String reviewMemoryRules() {
+                return """
+                Use %s when prior durable document decisions may affect the critique.
+                Always treat retrieved DOCUMENT_DECISION memories as constraints when judging the draft.
+                Do not write long-term memory from critic agents.
+                Use retrieved memory as evidence, but verify against the current instruction and document.
+                """.formatted(MemoryToolNames.SEARCH_MEMORY);
     }
 
     private String finalizationSystemPrompt() {

@@ -14,6 +14,7 @@ import com.agent.editor.agent.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.task.TaskRequest;
 import com.agent.editor.agent.tool.document.DocumentToolMode;
 import com.agent.editor.agent.tool.document.DocumentToolNames;
+import com.agent.editor.agent.tool.memory.MemoryToolNames;
 import com.agent.editor.service.StructuredDocumentService;
 import dev.langchain4j.data.message.SystemMessage;
 
@@ -89,6 +90,9 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
                 If you need more local inspection, use the available analysis tools before finalizing your review.
                 Base your verdict on the instruction, the latest content, and the evidence available in memory.
 
+                ## Long-Term Memory Rules
+                %s
+
                 ## Output Rules
                 Finish by returning exactly one raw JSON object that matches the ReviewerFeedback format.
                 Return only raw JSON with no prose before or after it.
@@ -115,8 +119,18 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
                 {"verdict":"REVISE","instructionSatisfied":false,"evidenceGrounded":true,"unsupportedClaims":[],"missingRequirements":["Explain project value"],"feedback":"The draft misses a required point.","reasoning":"The answer is grounded but does not fully satisfy the instruction."}
                 """.formatted(
                 documentGuidanceSection,
-                reviewWorkflow
+                reviewWorkflow,
+                reviewMemoryRules()
         );
+    }
+
+    private String reviewMemoryRules() {
+                return """
+                Use %s when prior durable document decisions may affect the review.
+                Always treat retrieved DOCUMENT_DECISION memories as constraints when judging the draft.
+                Do not write long-term memory from review agents.
+                Use retrieved memory as evidence, but verify against the current instruction and document.
+                """.formatted(MemoryToolNames.SEARCH_MEMORY);
     }
 
     private String structureJson(AgentRunContext context) {
