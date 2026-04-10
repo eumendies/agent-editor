@@ -21,7 +21,7 @@ class UserProfilePromptAssemblerTest {
                 profile("Prefer concise edits")
         ));
 
-        assertTrue(guidance.contains("Confirmed user profile"));
+        assertEquals("- Always answer in Chinese\n- Prefer concise edits", guidance);
         assertTrue(guidance.contains("- Always answer in Chinese"));
         assertTrue(guidance.contains("- Prefer concise edits"));
     }
