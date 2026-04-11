@@ -1,168 +1,191 @@
-# AI Editor Agent 流程文档
+# AI Agent Editor 流程文档
 
-本文档描述当前默认执行链 `agent.v2` 的真实运行流程。旧 `agent` 包仅作为 legacy 参考，不再作为主流程说明对象。
+本文档描述当前仓库里真实存在的 agent 执行流程、状态流转和文档落盘边界，不再使用已经过时的旧包层级叙述。
 
 ## 1. 总体流程
 
+当前主链可以概括为：
+
 ```text
-Browser
-  -> REST API
+Browser / API Client
+  -> AgentController
   -> TaskApplicationService
   -> TaskOrchestrator
-  -> ExecutionRuntime
-  -> ToolRegistry
-  -> DocumentService / DiffService
+     -> ReActAgentOrchestrator
+     -> PlanningThenExecutionOrchestrator
+     -> SupervisorOrchestrator
+     -> ReflexionOrchestrator
+  -> runtime / tools / memory
+  -> PendingDocumentChangeService
+  -> DiffService / DocumentService
 
-并行观测：
+并行输出：
   -> EventPublisher -> TaskQueryService / WebSocket
   -> TraceCollector -> TraceStore / Trace API
 ```
 
 流程说明：
 
-1. 前端发起 `POST /api/v1/agent/execute`
-2. `TaskApplicationService` 读取文档、创建任务、映射 mode
-3. `TaskOrchestrator` 根据模式选择具体工作流
-4. 运行过程中产生 `ExecutionEvent` 和 `TraceRecord`
-5. 完成后应用层统一持久化文档结果并记录 diff
-6. 查询接口和 WebSocket 都基于同一条事件链工作
+1. 客户端调用 `POST /api/agent/execute`
+2. `TaskApplicationService` 校验文档、创建任务 ID、映射 mode
+3. 任务被异步提交到专用执行线程
+4. `TaskOrchestrator` 按 `AgentType` 路由到具体 orchestrator
+5. orchestrator 通过 runtime、tools、memory 完成任务
+6. 如果最终正文发生变化，结果先写入 pending change，而不是直接覆盖文档
+7. 用户后续通过 diff 接口决定应用或丢弃改动
 
-## 2. REACT 执行流程
+## 2. TaskApplicationService 的职责
 
-`REACT` 模式走 `SingleAgentOrchestrator -> DefaultExecutionRuntime -> ReactAgentDefinition`。
+`TaskApplicationService` 是当前应用层入口，主要负责：
 
-```text
-TaskRequest
-  -> SingleAgentOrchestrator
-  -> DefaultExecutionRuntime.run(...)
-     -> ReactAgentDefinition.decide(...)
-     -> if ToolCalls:
-          ToolRegistry + ToolHandler.execute(...)
-          更新 ExecutionState
-          继续下一轮 decide
-     -> if Complete/Respond:
-          返回 ExecutionResult
-```
+- 校验 `documentId`
+- 生成 `taskId` 和 `sessionId`
+- 将外部 `AgentMode` 映射到内部 `AgentType`
+- 创建 `TaskState`
+- 异步提交任务执行
+- 在执行结束后更新任务终态
+- 当正文实际变化时保存 pending change
 
-关键点：
+几个关键边界：
 
-- 循环控制在 `DefaultExecutionRuntime`
-- `ReactAgentDefinition` 只负责单轮决策
-- 当前文档内容和历史工具结果会回灌到下一轮 prompt
-- worker 场景下只暴露白名单工具，避免越权调用
+- controller 不直接驱动 orchestrator
+- orchestrator 不直接落正式文档
+- 应用层负责把 agent 输出转换成“待确认改动”
 
-## 3. PLANNING 执行流程
+## 3. REACT 流程
 
-`PLANNING` 模式走 `PlanningThenExecutionOrchestrator`。
+`REACT` 模式走 `ReActAgentOrchestrator`。
 
 ```text
 TaskRequest
-  -> PlanningAgentDefinition.createPlan(...)
-  -> PlanResult(step1, step2, ...)
-  -> for each step:
-       ExecutionRuntime.run(executionAgent, currentDocumentSnapshot)
-       currentContent = 上一步输出
+  -> ReactAgentContextFactory.prepareInitialContext(...)
+  -> resolve document tool mode
+  -> build ExecutionRequest
+  -> ToolLoopExecutionRuntime.run(...)
   -> TaskResult
 ```
 
 关键点：
 
-- planner 只生成计划，不直接调用工具
-- 每个步骤都基于上一步输出的文档内容继续执行
-- `PLAN_CREATED` 和 `planning.step.dispatch` 会进入 event/trace
+- 单个 agent 完成整个任务
+- 工具权限由 `ExecutionToolAccessPolicy` 决定
+- runtime 驱动工具循环，orchestrator 只负责准备上下文和请求
 
-## 4. SUPERVISOR 执行流程
+## 4. PLANNING 流程
+
+`PLANNING` 模式走 `PlanningThenExecutionOrchestrator`。
+
+```text
+TaskRequest
+  -> Planning runtime
+  -> PlanResult(step1, step2, ...)
+  -> for each step:
+       build current document snapshot
+       run execution agent
+       currentContent = previous step output
+  -> TaskResult
+```
+
+关键点：
+
+- planner 负责生成结构化计划
+- 每个计划步骤仍由执行 agent 落地
+- 上一步文档输出会成为下一步输入
+
+## 5. SUPERVISOR 流程
 
 `SUPERVISOR` 模式走 `SupervisorOrchestrator`。
 
 ```text
 TaskRequest
-  -> SupervisorAgentDefinition.decide(...)
+  -> build SupervisorContext
+  -> SupervisorExecutionRuntime.run(...)
      -> AssignWorker / Complete
   -> if AssignWorker:
-       WorkerRegistry.get(workerId)
-       ExecutionRuntime.run(worker.agent, worker-scoped request)
-       记录 WorkerResult
-       回灌给下一轮 supervisor
+       worker runtime executes selected worker
+       summarize worker result
+       rebuild SupervisorContext for next round
   -> if Complete:
-       返回最终 TaskResult
+       TaskResult
 ```
 
 关键点：
 
-- supervisor 只做调度和收口
-- worker 仍然复用统一 `ExecutionRuntime`
-- 每个 worker 都有自己的 `allowedTools`
-- 第一版 supervisor 策略是顺序串行调度，后续可替换成更智能的实现
+- supervisor 只做分派和收口，不直接执行工具编辑
+- worker 仍通过统一 execution runtime 执行
+- 当前 `WorkerRegistry` 提供可选 worker，具体是否分派由 supervisor 决策
+- worker 输出的正文会成为下一轮 supervisor 看到的最新内容
 
-## 5. WebSocket 与步骤流
+## 6. REFLEXION 流程
 
-当前步骤展示链是：
+`REFLEXION` 模式走 `ReflexionOrchestrator`。
+
+```text
+TaskRequest
+  -> actor run
+  -> critic run
+  -> if verdict == PASS:
+       complete
+     else:
+       critique feeds back into actor context
+       next round
+```
+
+关键点：
+
+- actor 状态跨轮保留
+- critic 每轮 fresh，避免把上轮评审过程本身继续污染下一轮判定
+- critic 的反馈会回灌给 actor，形成修订闭环
+
+## 7. Event Flow
+
+当前事件流由 `WebSocketEventPublisher` 统一发布：
 
 ```text
 ExecutionEvent
-  -> WebSocketEventPublisher
-  -> LegacyEventAdapter
-  -> WebSocketMessage / AgentStep
+  -> TaskQueryService.appendEvent(...)
+  -> WebSocketService.sendEventToTask(...)
 ```
 
-这条链是兼容层，不是内部主模型。
+这意味着：
 
-当前真实行为：
+- 查询接口和实时推送共用同一条 `ExecutionEvent` 流
+- `/api/agent/task/{taskId}/events` 与 WebSocket 不是两套独立状态源
+- 如果请求携带 `sessionId`，应用层会先绑定 session，再启动任务，避免首批事件丢失
 
-- WebSocket 建立后服务端返回 `CONNECTED`
-- 可以通过查询参数 `taskId` 或消息 `SUBSCRIBE` 绑定任务
-- `/execute` 是同步调用，因此如果请求里已带 `sessionId`，服务端会在执行前预绑定 `taskId`
-- 这样即使前端不额外发 `SUBSCRIBE`，运行期间的 event 也不会丢
+## 8. Trace Flow
 
-## 6. Trace 调试链
-
-当前 trace 是独立于步骤流的高保真调试链：
+当前 trace 链仍然存在，并通过 `TraceStore` 暴露 HTTP 查询接口：
 
 ```text
-ReactAgentDefinition
-  -> MODEL_REQUEST / MODEL_RESPONSE
-
-DefaultExecutionRuntime
-  -> STATE_SNAPSHOT / TOOL_INVOCATION / TOOL_RESULT
-
-PlanningThenExecutionOrchestrator
-  -> ORCHESTRATION_DECISION
-
-SupervisorOrchestrator
-  -> ORCHESTRATION_DECISION
+orchestrator / runtime / model interaction
+  -> TraceCollector
+  -> TraceStore
+  -> /api/agent/task/{taskId}/trace
 ```
 
-trace 存储目前是：
+当前适用场景：
 
-- `DefaultTraceCollector`
-- `InMemoryTraceStore`
+- 本地调试
+- 任务执行回放
+- 分类汇总和阶段观察
 
-当前适合本地调试和演示，不是持久化方案。
+当前不应把它理解为持久化审计系统。
 
-## 7. 文档更新与 Diff
+## 9. 文档变更落盘流程
 
-`TaskApplicationService` 在 orchestrator 返回后统一处理结果：
+当前文档改动不是“执行完立即写回”。
 
-1. 读取原始文档内容
-2. 执行任务并得到 `TaskResult`
-3. 如果有 `finalContent`，更新文档
-4. 调用 `DiffService` 记录前后差异
-5. 更新 `TaskState`
+实际边界是：
 
-这个边界很重要：
+1. orchestrator 返回 `TaskResult`
+2. 应用层比较 `originalContent` 和 `finalContent`
+3. 如果内容无变化，清掉旧 pending change
+4. 如果内容有变化，保存 pending change
+5. 用户通过 diff 接口决定应用或丢弃
 
-- orchestrator 负责“任务怎么跑”
-- runtime 负责“单 agent 怎么循环”
-- 应用层负责“结果怎么落文档、怎么生成 diff”
+只有 `POST /api/v1/diff/document/{documentId}/apply` 才会同时：
 
-## 8. Legacy 运行时
-
-旧 `agent` 包仍然保留：
-
-- `BaseAgent`
-- `ReActAgent`
-- `AgentFactory`
-- `EditorAgentTools`
-
-但它不再是当前主链的一部分。阅读和扩展新功能时，应该优先以 `agent.v2` 为准。
+- 更新正式文档正文
+- 记录 diff 历史
+- 清除 pending change

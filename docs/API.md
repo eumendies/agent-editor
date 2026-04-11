@@ -1,14 +1,14 @@
-# AI Editor Agent API 文档
+# AI Agent Editor API 文档
 
-本文档以当前默认执行链 `agent.v2` 为准。旧 `agent` 包仍保留，但接口默认行为已经切换到 `TaskApplicationService + agent.v2`。
+本文档只描述当前源码中可以直接验证的 HTTP 与 WebSocket 入口，不再沿用已经过时的旧包层级、旧接口前缀或同步执行描述。
 
 ## 基础信息
 
-- 基础地址：`http://localhost:8080`
-- Swagger：`/swagger-ui.html`
-- WebSocket：`ws://localhost:8080/ws/agent`
+- Base URL: `http://localhost:8080`
+- Swagger UI: `/swagger-ui.html`
+- WebSocket: `ws://localhost:8080/ws/agent`
 
-## 1. 文档接口
+## 1. Document API
 
 ### 1.1 创建文档
 
@@ -31,7 +31,7 @@
 }
 ```
 
-### 1.2 获取文档
+### 1.2 获取单个文档
 
 `GET /api/v1/documents/{id}`
 
@@ -39,7 +39,7 @@
 
 `GET /api/v1/documents`
 
-### 1.4 更新文档
+### 1.4 更新文档正文
 
 `PUT /api/v1/documents/{id}`
 
@@ -51,13 +51,13 @@
 
 `DELETE /api/v1/documents/{id}`
 
-## 2. Agent 任务接口
+## 2. Agent Task API
 
-### 2.1 执行任务
+### 2.1 提交任务
 
-`POST /api/v1/agent/execute`
+`POST /api/agent/execute`
 
-请求体：
+请求体示例：
 
 ```json
 {
@@ -74,11 +74,17 @@
 
 - `documentId`：文档 ID，必填
 - `instruction`：用户指令，必填
-- `mode`：`REACT`、`PLANNING`、`SUPERVISOR`
-- `sessionId`：已有 WebSocket 会话 ID，可选
-- `maxSteps`：最大步数，可选，默认 10
-- `streaming`：保留字段，当前控制器不依赖这个字段控制执行链
-- `documentType`：保留字段，当前默认文本文档路径未使用
+- `sessionId`：已有 session ID，可选
+- `mode`：`REACT`、`PLANNING`、`SUPERVISOR`、`REFLEXION`
+- `documentType`：保留字段，当前控制器未依赖这个字段决定执行链
+- `maxSteps`：最大步数，可选，默认 `10`
+- `streaming`：保留字段，当前控制器不依赖这个字段切换执行方式
+
+响应语义：
+
+- 当前接口为异步提交
+- 成功时返回 `202 Accepted`
+- 响应中的 `status` 初始通常为 `RUNNING`
 
 响应示例：
 
@@ -86,21 +92,22 @@
 {
   "taskId": "cbe1fef4-8d7e-4ad1-9be5-5f258a2d2f7f",
   "documentId": "doc-001",
-  "status": "COMPLETED",
-  "finalResult": "updated document content",
-  "startTime": "2026-03-15T14:20:00",
-  "endTime": "2026-03-15T14:20:00"
+  "status": "RUNNING",
+  "finalResult": null,
+  "totalSteps": 0,
+  "startTime": "2026-04-11T10:00:00",
+  "endTime": null
 }
 ```
 
-说明：
+补充说明：
 
-- 当前 `/execute` 是同步接口
-- 如果请求中带了 `sessionId`，服务端会在任务执行前预绑定 WebSocket 会话，确保 event 不会在 HTTP 返回前丢失
+- 如果请求携带 `sessionId`，服务端会在任务启动前预绑定该 session，避免首批执行事件丢失
+- 异步执行失败时可能返回 `400` 或 `503`
 
-### 2.2 获取任务状态
+### 2.2 查询任务状态
 
-`GET /api/v1/agent/task/{taskId}`
+`GET /api/agent/task/{taskId}`
 
 响应示例：
 
@@ -112,75 +119,42 @@
 }
 ```
 
-### 2.3 获取任务步骤
+### 2.3 查询任务原生事件
 
-`GET /api/v1/agent/task/{taskId}/steps`
+`GET /api/agent/task/{taskId}/events`
 
-说明：
+返回值为 `ExecutionEvent` 列表，数据来源与 WebSocket 推送共用同一条事件流。
 
-- 返回的仍然是旧 `AgentStep` 结构
-- 但当前数据来源已经是 `ExecutionEvent -> LegacyEventAdapter -> AgentStep`
-- 它属于兼容展示层，不是新的内部主模型
+### 2.4 查询 session memory
 
-响应示例：
+`GET /api/agent/session/{sessionId}/memory`
 
-```json
-[
-  {
-    "taskId": "task-1",
-    "stepNumber": 1,
-    "type": "THINKING",
-    "thought": "iteration 0"
-  },
-  {
-    "taskId": "task-1",
-    "stepNumber": 2,
-    "type": "ACTION",
-    "action": "editDocument"
-  },
-  {
-    "taskId": "task-1",
-    "stepNumber": 3,
-    "type": "COMPLETED",
-    "result": "final output",
-    "final": true
-  }
-]
-```
+返回结构化会话记忆，包括：
 
-### 2.4 获取支持模式
+- user message
+- AI message
+- AI tool call
+- tool result
 
-`GET /api/v1/agent/modes`
+### 2.5 查询支持模式
+
+`GET /api/agent/modes`
 
 响应示例：
 
 ```json
-["REACT", "PLANNING", "SUPERVISOR"]
+["REACT", "PLANNING", "SUPERVISOR", "REFLEXION"]
 ```
 
-### 2.5 创建 WebSocket 会话
-
-`POST /api/v1/agent/connect`
-
-响应示例：
-
-```json
-{
-  "type": "SESSION_CREATED",
-  "sessionId": "session-abc123",
-  "content": "WebSocket session created. Connect to /ws/agent?sessionId=session-abc123"
-}
-```
-
-## 3. Trace 接口
+## 3. Trace API
 
 ### 3.1 获取完整 trace
 
-`GET /api/v1/agent/task/{taskId}/trace`
+`GET /api/agent/task/{taskId}/trace`
 
-返回值为 `TraceRecord` 列表，适合开发调试。
+返回值为 `TraceRecord` 列表。
 
-每条记录包含：
+每条记录包含当前代码里可见的核心字段：
 
 - `traceId`
 - `taskId`
@@ -194,7 +168,7 @@
 
 ### 3.2 获取 trace 摘要
 
-`GET /api/v1/agent/task/{taskId}/trace/summary`
+`GET /api/agent/task/{taskId}/trace/summary`
 
 响应示例：
 
@@ -216,13 +190,33 @@
 }
 ```
 
-## 4. Diff 接口
+## 4. Diff API
 
-### 4.1 获取文档 diff 历史
+### 4.1 查询文档 diff 历史
 
 `GET /api/v1/diff/document/{documentId}`
 
-### 4.2 比较两段文本
+### 4.2 查询待确认改动
+
+`GET /api/v1/diff/document/{documentId}/pending`
+
+如果当前没有 pending change，返回 `404`
+
+### 4.3 应用待确认改动
+
+`POST /api/v1/diff/document/{documentId}/apply`
+
+成功时会：
+
+- 更新正式文档正文
+- 写入 diff 历史
+- 清除 pending change
+
+### 4.4 丢弃待确认改动
+
+`DELETE /api/v1/diff/document/{documentId}/pending`
+
+### 4.5 比较两段文本
 
 `POST /api/v1/diff/compare`
 
@@ -231,77 +225,48 @@
 - `original`，query 参数
 - `modified`，query 参数
 
-## 5. WebSocket 消息
+## 5. Long-Term Memory API
+
+### 5.1 列出用户画像记忆
+
+`GET /api/memory/profiles`
+
+### 5.2 创建用户画像记忆
+
+`POST /api/memory/profiles`
+
+### 5.3 更新用户画像记忆
+
+`PUT /api/memory/profiles/{memoryId}`
+
+### 5.4 删除用户画像记忆
+
+`DELETE /api/memory/profiles/{memoryId}`
+
+## 6. Knowledge Upload API
+
+### 6.1 上传知识文档
+
+`POST /api/v1/knowledge/documents`
+
+表单参数：
+
+- `file`
+- `category`
+
+## 7. WebSocket
 
 连接地址：
 
 - `ws://localhost:8080/ws/agent`
 
-连接成功后，服务端会发送：
+当前服务端推送建立在 `ExecutionEvent` 流之上。对外如果只关心 API 调试，优先使用 `/api/agent/task/{taskId}/events`；如果需要实时订阅，再使用 WebSocket。
 
-```json
-{
-  "type": "CONNECTED",
-  "sessionId": "current-websocket-session-id",
-  "content": "Connected to AI Editor Agent"
-}
-```
+## 8. 当前接口分层
 
-客户端可选发送：
+为避免继续误读，这里明确当前接口分层：
 
-```json
-{
-  "type": "SUBSCRIBE",
-  "taskId": "task-1"
-}
-```
-
-也可以在连接 URL 上直接带 `taskId` 查询参数。
-
-当前常见服务端消息：
-
-- `STEP`
-- `COMPLETED`
-- `ERROR`
-- `PONG`
-
-`STEP` 示例：
-
-```json
-{
-  "type": "STEP",
-  "taskId": "task-1",
-  "stepType": "ACTION",
-  "content": "editDocument",
-  "timestamp": 1742019480000
-}
-```
-
-`COMPLETED` 示例：
-
-```json
-{
-  "type": "COMPLETED",
-  "taskId": "task-1",
-  "content": "final output",
-  "timestamp": 1742019485000
-}
-```
-
-## 6. 模式语义
-
-### REACT
-
-单 agent 直接运行，适合快速编辑和工具驱动场景。
-
-### PLANNING
-
-先规划，再顺序执行每个计划步骤。
-
-### SUPERVISOR
-
-supervisor 分派异构 worker，再统一汇总结果。
-
-## 7. Legacy 说明
-
-旧 `agent` 包仍然存在，但不再是默认执行实现。API 对外行为应以本文档描述的 `agent.v2` 主链为准。
+- Agent 任务与 trace：`/api/agent/...`
+- 文档与 diff：`/api/v1/documents`、`/api/v1/diff/...`
+- 长期记忆：`/api/memory/...`
+- 知识库上传：`/api/v1/knowledge/...`
