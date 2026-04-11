@@ -104,4 +104,38 @@ class DemoPageTemplateTest {
         assertTrue(template.contains("await loadDocumentOptions();"));
         assertFalse(template.contains("<option value=\"doc-001\">Sample Document</option>"));
     }
+
+    @Test
+    void shouldKeepDiffPanelScrollableAndClearDiffAfterApplyingPendingChange() throws IOException {
+        String template = Files.readString(Path.of("src/main/resources/templates/index.html"));
+
+        assertTrue(template.contains(".diff-section {"));
+        assertTrue(template.contains("min-height: 0;"));
+        assertTrue(template.contains("overflow: hidden;"));
+        assertTrue(template.contains("renderDiffEmptyState(\"当前没有待确认改动。\", \"已将候选修改应用到文档。\")"));
+        assertFalse(template.contains("""
+            await refreshDocument(documentId);
+            await loadPendingDiff(documentId);
+            renderSaveStatus("success", "已将候选修改应用到文档。");
+            """));
+    }
+
+    @Test
+    void shouldKeepUserProfilePanelScrollableWhenMemoriesGrow() throws IOException {
+        String template = Files.readString(Path.of("src/main/resources/templates/index.html"));
+        String profileSectionBlock = cssBlock(template, ".profile-section");
+        String profileListBlock = cssBlock(template, ".user-profile-list");
+
+        assertTrue(profileSectionBlock.contains("flex: 0 0 156px;"));
+        assertTrue(profileSectionBlock.contains("min-height: 0;"));
+        assertTrue(profileSectionBlock.contains("overflow: hidden;"));
+        assertTrue(profileListBlock.contains("min-height: 0;"));
+        assertTrue(profileListBlock.contains("overflow: auto;"));
+    }
+
+    private String cssBlock(String template, String selector) {
+        int start = template.indexOf(selector + " {");
+        int end = template.indexOf("\n        }", start);
+        return template.substring(start, end);
+    }
 }

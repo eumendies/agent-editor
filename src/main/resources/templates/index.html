@@ -312,9 +312,11 @@
 
         .diff-section {
             flex: 0 0 190px;
+            min-height: 0;
             display: flex;
             flex-direction: column;
             padding: 16px 26px 18px;
+            overflow: hidden;
             background: var(--surface-soft);
             border-top: 1px solid var(--border);
         }
@@ -390,10 +392,12 @@
 
         .profile-section {
             flex: 0 0 156px;
+            min-height: 0;
             display: flex;
             flex-direction: column;
             gap: 10px;
             padding: 16px 26px 18px;
+            overflow: hidden;
             background: #fbfcfd;
             border-top: 1px solid var(--border);
         }
@@ -1748,7 +1752,7 @@
             }
 
             await refreshDocument(documentId);
-            await loadPendingDiff(documentId);
+            renderDiffEmptyState("当前没有待确认改动。", "已将候选修改应用到文档。");
             renderSaveStatus("success", "已将候选修改应用到文档。");
         } catch (error) {
             console.error("Error applying pending diff:", error);
