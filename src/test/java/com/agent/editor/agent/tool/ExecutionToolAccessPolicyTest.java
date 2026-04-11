@@ -1,6 +1,7 @@
 package com.agent.editor.agent.tool;
 
 import com.agent.editor.agent.core.state.DocumentSnapshot;
+import com.agent.editor.agent.tool.external.ExternalToolAccessPolicy;
 import com.agent.editor.agent.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.tool.document.DocumentToolNames;
 import com.agent.editor.agent.tool.memory.MemoryToolAccessPolicy;
@@ -23,7 +24,8 @@ class ExecutionToolAccessPolicyTest {
     void shouldCombineDocumentWriteAndMemoryToolsForMainWriteRole() {
         ExecutionToolAccessPolicy policy = new ExecutionToolAccessPolicy(
                 new DocumentToolAccessPolicy(structuredDocumentService, com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(50)),
-                new MemoryToolAccessPolicy()
+                new MemoryToolAccessPolicy(),
+                new ExternalToolAccessPolicy()
         );
 
         assertEquals(
@@ -32,6 +34,7 @@ class ExecutionToolAccessPolicyTest {
                         DocumentToolNames.APPEND_TO_DOCUMENT,
                         DocumentToolNames.GET_DOCUMENT_SNAPSHOT,
                         DocumentToolNames.SEARCH_CONTENT,
+                        DocumentToolNames.WEB_SEARCH,
                         MemoryToolNames.SEARCH_MEMORY,
                         MemoryToolNames.UPSERT_MEMORY
                 ),
@@ -46,7 +49,8 @@ class ExecutionToolAccessPolicyTest {
     void shouldExposeMemoryToolsOnlyForMemoryRole() {
         ExecutionToolAccessPolicy policy = new ExecutionToolAccessPolicy(
                 new DocumentToolAccessPolicy(structuredDocumentService, com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(50)),
-                new MemoryToolAccessPolicy()
+                new MemoryToolAccessPolicy(),
+                new ExternalToolAccessPolicy()
         );
 
         assertEquals(
@@ -65,7 +69,8 @@ class ExecutionToolAccessPolicyTest {
     void shouldCombineDocumentReviewAndMemoryReadToolsForReviewRole() {
         ExecutionToolAccessPolicy policy = new ExecutionToolAccessPolicy(
                 new DocumentToolAccessPolicy(structuredDocumentService, com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(10)),
-                new MemoryToolAccessPolicy()
+                new MemoryToolAccessPolicy(),
+                new ExternalToolAccessPolicy()
         );
 
         assertEquals(
@@ -86,11 +91,15 @@ class ExecutionToolAccessPolicyTest {
     void shouldKeepResearchRoleOnRetrievalOnly() {
         ExecutionToolAccessPolicy policy = new ExecutionToolAccessPolicy(
                 new DocumentToolAccessPolicy(structuredDocumentService, com.agent.editor.testsupport.ConfigurationTestFixtures.documentToolModeProperties(10)),
-                new MemoryToolAccessPolicy()
+                new MemoryToolAccessPolicy(),
+                new ExternalToolAccessPolicy()
         );
 
         assertEquals(
-                List.of(DocumentToolNames.RETRIEVE_KNOWLEDGE),
+                List.of(
+                        DocumentToolNames.RETRIEVE_KNOWLEDGE,
+                        DocumentToolNames.WEB_SEARCH
+                ),
                 policy.allowedTools(
                         new DocumentSnapshot("doc-3", "Title", "x".repeat(80)),
                         ExecutionToolAccessRole.RESEARCH

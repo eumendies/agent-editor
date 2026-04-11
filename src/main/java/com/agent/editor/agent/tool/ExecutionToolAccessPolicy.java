@@ -1,6 +1,7 @@
 package com.agent.editor.agent.tool;
 
 import com.agent.editor.agent.core.state.DocumentSnapshot;
+import com.agent.editor.agent.tool.external.ExternalToolAccessPolicy;
 import com.agent.editor.agent.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.tool.document.DocumentToolAccessRole;
 import com.agent.editor.agent.tool.document.DocumentToolMode;
@@ -17,11 +18,24 @@ public class ExecutionToolAccessPolicy {
 
     private final DocumentToolAccessPolicy documentToolAccessPolicy;
     private final MemoryToolAccessPolicy memoryToolAccessPolicy;
+    private final ExternalToolAccessPolicy externalToolAccessPolicy;
 
     public ExecutionToolAccessPolicy(DocumentToolAccessPolicy documentToolAccessPolicy,
                                      MemoryToolAccessPolicy memoryToolAccessPolicy) {
+        this(documentToolAccessPolicy, memoryToolAccessPolicy, new ExternalToolAccessPolicy() {
+            @Override
+            public List<String> allowedTools(ExecutionToolAccessRole role) {
+                return List.of();
+            }
+        });
+    }
+
+    public ExecutionToolAccessPolicy(DocumentToolAccessPolicy documentToolAccessPolicy,
+                                     MemoryToolAccessPolicy memoryToolAccessPolicy,
+                                     ExternalToolAccessPolicy externalToolAccessPolicy) {
         this.documentToolAccessPolicy = documentToolAccessPolicy;
         this.memoryToolAccessPolicy = memoryToolAccessPolicy;
+        this.externalToolAccessPolicy = externalToolAccessPolicy;
     }
 
     /**
@@ -54,6 +68,12 @@ public class ExecutionToolAccessPolicy {
      */
     public List<String> allowedTools(DocumentToolMode mode, ExecutionToolAccessRole role) {
         List<String> tools = new ArrayList<>(documentToolAccessPolicy.allowedTools(mode, toDocumentRole(role)));
+        // 外部工具权限在组合层统一拼接，避免 document policy 被网络或第三方能力污染。
+        for (String tool : externalToolAccessPolicy.allowedTools(role)) {
+            if (!tools.contains(tool)) {
+                tools.add(tool);
+            }
+        }
         // 组合层统一做去重和顺序控制，后续新增工具域时 orchestrator 不需要再参与拼接。
         for (String tool : memoryToolAccessPolicy.allowedTools(role)) {
             if (!tools.contains(tool)) {

@@ -33,6 +33,7 @@ import com.agent.editor.agent.task.SessionMemoryTaskOrchestrator;
 import com.agent.editor.agent.tool.ToolRegistry;
 import com.agent.editor.agent.tool.ExecutionToolAccessPolicy;
 import com.agent.editor.agent.mcp.config.McpProperties;
+import com.agent.editor.agent.tool.external.ExternalToolAccessPolicy;
 import com.agent.editor.agent.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.tool.memory.MemoryToolAccessPolicy;
 import com.agent.editor.service.StructuredDocumentService;
@@ -135,9 +136,15 @@ public class TaskOrchestratorConfig {
     }
 
     @Bean
+    public ExternalToolAccessPolicy externalToolAccessPolicy() {
+        return new ExternalToolAccessPolicy();
+    }
+
+    @Bean
     public ExecutionToolAccessPolicy executionToolAccessPolicy(DocumentToolAccessPolicy documentToolAccessPolicy,
-                                                               MemoryToolAccessPolicy memoryToolAccessPolicy) {
-        return new ExecutionToolAccessPolicy(documentToolAccessPolicy, memoryToolAccessPolicy);
+                                                               MemoryToolAccessPolicy memoryToolAccessPolicy,
+                                                               ExternalToolAccessPolicy externalToolAccessPolicy) {
+        return new ExecutionToolAccessPolicy(documentToolAccessPolicy, memoryToolAccessPolicy, externalToolAccessPolicy);
     }
 
     @Bean
