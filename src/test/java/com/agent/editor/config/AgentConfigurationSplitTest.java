@@ -15,6 +15,7 @@ import com.agent.editor.agent.supervisor.routing.HybridSupervisorAgent;
 import com.agent.editor.agent.supervisor.worker.*;
 import com.agent.editor.agent.tool.ExecutionToolAccessPolicy;
 import com.agent.editor.agent.tool.ExecutionToolAccessRole;
+import com.agent.editor.agent.mcp.config.McpProperties;
 import com.agent.editor.agent.tool.document.DocumentToolNames;
 import com.agent.editor.agent.tool.memory.MemoryToolAccessPolicy;
 import com.agent.editor.agent.task.TaskOrchestrator;
@@ -73,6 +74,7 @@ class AgentConfigurationSplitTest {
             assertThat(context).hasSingleBean(MemoryAgentContextFactory.class);
             assertThat(context).hasSingleBean(MemoryCompressionProperties.class);
             assertThat(context).hasSingleBean(DocumentToolModeProperties.class);
+            assertThat(context).hasSingleBean(McpProperties.class);
             assertThat(context).hasSingleBean(com.agent.editor.agent.tool.document.DocumentToolAccessPolicy.class);
             assertThat(context).hasSingleBean(MemoryToolAccessPolicy.class);
             assertThat(context).hasSingleBean(ExecutionToolAccessPolicy.class);

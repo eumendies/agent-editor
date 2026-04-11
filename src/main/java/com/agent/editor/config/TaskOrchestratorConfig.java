@@ -32,6 +32,7 @@ import com.agent.editor.agent.task.TaskOrchestrator;
 import com.agent.editor.agent.task.SessionMemoryTaskOrchestrator;
 import com.agent.editor.agent.tool.ToolRegistry;
 import com.agent.editor.agent.tool.ExecutionToolAccessPolicy;
+import com.agent.editor.agent.mcp.config.McpProperties;
 import com.agent.editor.agent.tool.document.DocumentToolAccessPolicy;
 import com.agent.editor.agent.tool.memory.MemoryToolAccessPolicy;
 import com.agent.editor.service.StructuredDocumentService;
@@ -44,7 +45,11 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Map;
 
 @Configuration
-@EnableConfigurationProperties({MemoryCompressionProperties.class, DocumentToolModeProperties.class})
+@EnableConfigurationProperties({
+        MemoryCompressionProperties.class,
+        DocumentToolModeProperties.class,
+        McpProperties.class
+})
 public class TaskOrchestratorConfig {
 
     @Bean

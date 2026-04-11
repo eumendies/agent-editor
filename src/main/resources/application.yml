@@ -48,6 +48,20 @@ rag:
 agent:
   document-tool-mode:
     long-document-threshold-tokens: 4000
+  mcp:
+    servers:
+      web-search:
+        type: streamableHttp
+        description: Aliyun Bailian WebSearch MCP server
+        active: false
+        name: AliyunBailianMCP_WebSearch
+        base-url: https://dashscope.aliyuncs.com/api/v1/mcps/WebSearch/mcp
+        headers:
+          Authorization: Bearer ${DASHSCOPE_API_KEY:}
+        tools:
+          - tool-name: webSearch
+            remote-tool-name: webSearch
+            description: Search real-time information from the public web
   memory-compression:
     trigger-total-tokens: 128000
     preserve-latest-message-count: 6
