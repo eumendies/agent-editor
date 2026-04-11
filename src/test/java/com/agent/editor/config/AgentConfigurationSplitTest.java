@@ -47,6 +47,7 @@ class AgentConfigurationSplitTest {
                     TraceConfig.class,
                     ReactAgentConfig.class,
                     PlanningAgentConfig.class,
+                    McpConfig.class,
                     SupervisorAgentConfig.class,
                     ReflexionAgentConfig.class,
                     TaskOrchestratorConfig.class,
@@ -57,6 +58,7 @@ class AgentConfigurationSplitTest {
     void shouldWireAgentBeansAfterConfigurationSplit() {
         contextRunner.run(context -> {
             assertThat(context).hasSingleBean(ToolRegistry.class);
+            assertThat(context).hasSingleBean(McpConfig.class);
             assertThat(context).hasSingleBean(TraceStore.class);
             assertThat(context).hasSingleBean(TraceCollector.class);
             assertThat(context).hasSingleBean(WorkerRegistry.class);

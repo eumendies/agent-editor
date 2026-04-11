@@ -1,6 +1,7 @@
 package com.agent.editor.config;
 
 import com.agent.editor.agent.tool.ToolRegistry;
+import com.agent.editor.agent.tool.ToolHandler;
 import com.agent.editor.agent.tool.document.AnalyzeDocumentTool;
 import com.agent.editor.agent.tool.document.AppendToDocumentTool;
 import com.agent.editor.agent.tool.document.EditDocumentTool;
@@ -20,6 +21,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.ObjectProvider;
 
+import java.util.List;
+
 @Configuration
 public class ToolConfig {
 
@@ -32,6 +35,7 @@ public class ToolConfig {
     public ToolRegistry toolRegistry(ObjectProvider<KnowledgeRetrievalService> retrievalServiceProvider,
                                      ObjectProvider<LongTermMemoryRetrievalService> longTermMemoryRetrievalServiceProvider,
                                      ObjectProvider<LongTermMemoryWriteService> longTermMemoryWriteServiceProvider,
+                                     ObjectProvider<List<ToolHandler>> mcpToolHandlersProvider,
                                      StructuredDocumentService structuredDocumentService) {
         ToolRegistry toolRegistry = new ToolRegistry();
         toolRegistry.register(new EditDocumentTool());
@@ -44,6 +48,7 @@ public class ToolConfig {
         retrievalServiceProvider.ifAvailable(service -> toolRegistry.register(new RetrieveKnowledgeTool(service)));
         longTermMemoryRetrievalServiceProvider.ifAvailable(service -> toolRegistry.register(new MemorySearchTool(service)));
         longTermMemoryWriteServiceProvider.ifAvailable(service -> toolRegistry.register(new MemoryUpsertTool(service)));
+        mcpToolHandlersProvider.ifAvailable(handlers -> handlers.forEach(toolRegistry::register));
         return toolRegistry;
     }
 }
