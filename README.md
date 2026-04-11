@@ -21,6 +21,7 @@
 - 工具层按执行角色做权限控制，区分写作、评审、研究和记忆职责
 - 具备 session memory、long-term memory、knowledge retrieval 三层辅助能力
 - 支持基于 Milvus 的知识检索，用于文档编辑相关的上下文补充
+- 仅需安装milvus，其他数据均存储在内存中，不依赖其他数据库配置，搭建简单
 
 ## Agent Modes
 
