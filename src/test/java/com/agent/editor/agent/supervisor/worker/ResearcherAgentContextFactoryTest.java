@@ -46,6 +46,8 @@ class ResearcherAgentContextFactoryTest {
         assertTrue(systemMessage.text().contains("## Output Rules"));
         assertTrue(systemMessage.text().contains("researcher worker"));
         assertTrue(systemMessage.text().contains("Use " + DocumentToolNames.RETRIEVE_KNOWLEDGE));
+        assertTrue(systemMessage.text().contains(DocumentToolNames.WEB_SEARCH));
+        assertTrue(systemMessage.text().contains("real-time"));
         assertTrue(systemMessage.text().contains("rewrite the query"));
         assertTrue(systemMessage.text().contains("multiple " + DocumentToolNames.RETRIEVE_KNOWLEDGE + " tool calls"));
         assertTrue(systemMessage.text().contains("ResearcherSummary"));

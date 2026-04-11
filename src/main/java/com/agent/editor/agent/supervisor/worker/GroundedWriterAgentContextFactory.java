@@ -111,7 +111,8 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
 
                 ## Evidence Constraints
                 Do not introduce claims that are not supported by the evidence already present in the conversation.
-                If searchContent is available, use it only to inspect the current draft before editing.
+                Use %s only when the task depends on real-time external facts.
+                If %s is available, use it only to inspect the current draft before editing.
 
                 ## Tool Rules
                 %s
@@ -128,6 +129,8 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
                 """.formatted(
                 profileGuidanceSection(context),
                 workflow,
+                DocumentToolNames.WEB_SEARCH,
+                DocumentToolNames.SEARCH_CONTENT,
                 toolRules,
                 writeMemoryRules()
         );

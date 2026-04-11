@@ -74,6 +74,7 @@ public class ResearcherAgentContextFactory implements AgentContextFactory, Memor
                 The runtime already performs the first %s call with the user's original instruction.
                 Review the current retrieval results before deciding whether more retrieval is needed.
                 Use %s to gather additional evidence for the user's task.
+                Use %s when the task depends on real-time public internet information that is unlikely to be in the local knowledge base.
                 If major information points remain uncovered, you may rewrite the query and retrieve again.
                 If the task benefits from exploring multiple angles, you may emit multiple %s tool calls in one turn.
 
@@ -88,6 +89,7 @@ public class ResearcherAgentContextFactory implements AgentContextFactory, Memor
                 """.formatted(
                 com.agent.editor.agent.tool.document.DocumentToolNames.RETRIEVE_KNOWLEDGE,
                 com.agent.editor.agent.tool.document.DocumentToolNames.RETRIEVE_KNOWLEDGE,
+                com.agent.editor.agent.tool.document.DocumentToolNames.WEB_SEARCH,
                 com.agent.editor.agent.tool.document.DocumentToolNames.RETRIEVE_KNOWLEDGE
         );
     }

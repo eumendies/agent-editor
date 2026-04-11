@@ -62,6 +62,9 @@ class GroundedWriterAgentContextFactoryTest {
         assertTrue(systemMessage.text().contains("## Workflow"));
         assertTrue(systemMessage.text().contains("## Tool Rules"));
         assertTrue(systemMessage.text().contains("## Long-Term Memory Rules"));
+        assertTrue(systemMessage.text().contains(DocumentToolNames.WEB_SEARCH));
+        assertTrue(systemMessage.text().contains("real-time external facts"));
+        assertTrue(systemMessage.text().contains(DocumentToolNames.SEARCH_CONTENT));
         assertTrue(systemMessage.text().contains(MemoryToolNames.SEARCH_MEMORY));
         assertTrue(systemMessage.text().contains(MemoryToolNames.UPSERT_MEMORY));
         assertTrue(systemMessage.text().contains("DOCUMENT_DECISION"));
