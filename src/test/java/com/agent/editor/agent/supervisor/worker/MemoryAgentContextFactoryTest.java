@@ -40,7 +40,7 @@ class MemoryAgentContextFactoryTest {
 
         var invocationContext = factory.buildModelInvocationContext(context());
 
-        assertEquals(3, invocationContext.getMessages().size());
+        assertEquals(4, invocationContext.getMessages().size());
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains("memory worker"));
         assertTrue(systemMessage.text().contains("DOCUMENT_DECISION"));
@@ -50,12 +50,14 @@ class MemoryAgentContextFactoryTest {
         assertTrue(systemMessage.text().contains(MemoryToolNames.SEARCH_MEMORY));
         assertTrue(systemMessage.text().contains(MemoryToolNames.UPSERT_MEMORY));
         assertTrue(systemMessage.text().contains("MemoryWorkerSummary"));
-        assertTrue(systemMessage.text().contains("doc-1"));
-        assertTrue(systemMessage.text().contains("title"));
-        assertTrue(systemMessage.text().contains("body"));
-        UserMessage historyMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertTrue(!systemMessage.text().contains("currentContent:"));
+        UserMessage stateMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertTrue(stateMessage.singleText().contains("doc-1"));
+        assertTrue(stateMessage.singleText().contains("title"));
+        assertTrue(stateMessage.singleText().contains("body"));
+        UserMessage historyMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));
         assertEquals("older memory turn", historyMessage.singleText());
-        UserMessage currentTurnMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));
+        UserMessage currentTurnMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(3));
         assertEquals("retrieve prior document constraints and update durable decisions", currentTurnMessage.singleText());
         assertEquals(0, compressionCalls.get());
     }

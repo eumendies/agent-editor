@@ -96,7 +96,7 @@ class ReactAgentContextFactoryTest {
         var invocationContext = factory.buildModelInvocationContext(context);
 
         assertEquals(List.of(readToolSpecification, patchToolSpecification), invocationContext.getToolSpecifications());
-        assertEquals(4, invocationContext.getMessages().size());
+        assertEquals(5, invocationContext.getMessages().size());
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains("ReAct-style document editing agent"));
         assertTrue(systemMessage.text().contains(DocumentToolNames.READ_DOCUMENT_NODE));
@@ -110,17 +110,20 @@ class ReactAgentContextFactoryTest {
         assertTrue(systemMessage.text().contains("USER_PROFILE"));
         assertTrue(systemMessage.text().contains("Do not store execution logs"));
         assertTrue(systemMessage.text().contains("## Forbidden Actions"));
-        assertTrue(systemMessage.text().contains("## Document Structure JSON"));
-        assertTrue(systemMessage.text().contains("\"nodeId\":\"node-1\""));
-        assertTrue(systemMessage.text().contains("\"headingText\":\"Intro\""));
-        UserMessage previousTurn = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertTrue(!systemMessage.text().contains("## Document Structure JSON"));
+        assertTrue(!systemMessage.text().contains("\"nodeId\":\"node-1\""));
+        UserMessage stateMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertTrue(stateMessage.singleText().contains("## Document Structure JSON"));
+        assertTrue(stateMessage.singleText().contains("\"nodeId\":\"node-1\""));
+        assertTrue(stateMessage.singleText().contains("\"headingText\":\"Intro\""));
+        UserMessage previousTurn = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));
         assertEquals("previous turn", previousTurn.singleText());
         ToolExecutionResultMessage toolMessage = assertInstanceOf(
                 ToolExecutionResultMessage.class,
-                invocationContext.getMessages().get(2)
+                invocationContext.getMessages().get(3)
         );
         assertEquals("tool-1", toolMessage.id());
-        UserMessage currentTurn = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(3));
+        UserMessage currentTurn = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(4));
         assertEquals("rewrite this", currentTurn.singleText());
     }
 
@@ -153,13 +156,16 @@ class ReactAgentContextFactoryTest {
 
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains(DocumentToolNames.GET_DOCUMENT_SNAPSHOT));
-        assertTrue(systemMessage.text().contains("## Current Document Content"));
-        assertTrue(systemMessage.text().contains("# Intro\n\nbody"));
+        assertTrue(!systemMessage.text().contains("## Current Document Content"));
+        assertTrue(!systemMessage.text().contains("# Intro\n\nbody"));
         assertTrue(!systemMessage.text().contains("## Document Model"));
         assertTrue(!systemMessage.text().contains("## Document Structure JSON"));
         assertTrue(!systemMessage.text().contains("nodeId"));
         assertTrue(!systemMessage.text().contains("Prefer " + DocumentToolNames.READ_DOCUMENT_NODE + " for targeted reads."));
         assertTrue(!systemMessage.text().contains("Prefer " + DocumentToolNames.PATCH_DOCUMENT_NODE + " for targeted writes."));
+        UserMessage stateMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertTrue(stateMessage.singleText().contains("## Current Document Content"));
+        assertTrue(stateMessage.singleText().contains("# Intro\n\nbody"));
     }
 
     @Test
@@ -226,15 +232,18 @@ class ReactAgentContextFactoryTest {
                 List.of()
         ));
 
-        assertEquals(3, invocationContext.getMessages().size());
+        assertEquals(4, invocationContext.getMessages().size());
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains("ReAct-style document editing agent"));
+        UserMessage stateMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertTrue(stateMessage.singleText().contains("## Current Document Content"));
+        assertTrue(stateMessage.singleText().contains("# Intro\n\nbody"));
         dev.langchain4j.data.message.AiMessage summaryMessage = assertInstanceOf(
                 dev.langchain4j.data.message.AiMessage.class,
-                invocationContext.getMessages().get(1)
+                invocationContext.getMessages().get(2)
         );
         assertEquals("already compressed summary", summaryMessage.text());
-        UserMessage currentTurn = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));
+        UserMessage currentTurn = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(3));
         assertEquals("rewrite this", currentTurn.singleText());
         assertEquals(0, compressionCalls.get());
     }

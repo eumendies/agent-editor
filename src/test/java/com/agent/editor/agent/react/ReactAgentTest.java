@@ -55,9 +55,12 @@ class ReactAgentTest {
         ChatTranscriptMemory transcriptMemory = assertInstanceOf(ChatTranscriptMemory.class, context.getMemory());
         assertEquals(15, transcriptMemory.getLastObservedTotalTokens());
         assertNotNull(chatModel.lastRequest);
-        assertEquals(2, chatModel.lastRequest.messages().size());
+        assertEquals(3, chatModel.lastRequest.messages().size());
         assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
-        UserMessage userMessage = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
+        UserMessage stateMessage = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
+        assertTrue(stateMessage.singleText().contains("## Current Document Content"));
+        assertTrue(stateMessage.singleText().contains("body"));
+        UserMessage userMessage = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(2));
         assertEquals("rewrite this", userMessage.singleText());
         assertTrue(userMessage.singleText().contains("rewrite this"));
     }
@@ -115,17 +118,15 @@ class ReactAgentTest {
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, chatModel.lastRequest.messages().get(0));
         String prompt = systemMessage.text();
         assertTrue(prompt.contains("## Role"));
-        assertTrue(prompt.contains("## Document Model"));
         assertTrue(prompt.contains("## Workflow"));
         assertTrue(prompt.contains("## Tool Rules"));
         assertTrue(prompt.contains("## Forbidden Actions"));
         assertTrue(prompt.contains("## Output Rules"));
-        assertTrue(prompt.contains("The document structure is provided as JSON."));
-        assertTrue(prompt.contains("must use the nodeId values from the JSON structure"));
-        assertTrue(prompt.contains("## Document Structure JSON"));
         assertTrue(prompt.contains("readDocumentNode"));
         assertTrue(prompt.contains("patchDocumentNode"));
-        assertTrue(prompt.contains("\"nodeId\":\"node-1\""));
+        assertTrue(!prompt.contains("## Document Model"));
+        assertTrue(!prompt.contains("## Document Structure JSON"));
+        assertTrue(!prompt.contains("\"nodeId\":\"node-1\""));
         assertTrue(!prompt.contains("must call editDocument"));
         assertTrue(!prompt.contains("appendToDocument when you only need to append"));
         assertTrue(!prompt.contains("getDocumentSnapshot when you need the latest full document content"));
@@ -133,6 +134,12 @@ class ReactAgentTest {
         assertTrue(prompt.contains("Think step by step"));
         assertTrue(prompt.contains("Take ONE action at a time"));
         assertTrue(prompt.contains("Observe the result"));
+        UserMessage stateMessage = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
+        assertTrue(stateMessage.singleText().contains("## Document Model"));
+        assertTrue(stateMessage.singleText().contains("The document structure is provided as JSON."));
+        assertTrue(stateMessage.singleText().contains("must use the nodeId values from the JSON structure"));
+        assertTrue(stateMessage.singleText().contains("## Document Structure JSON"));
+        assertTrue(stateMessage.singleText().contains("\"nodeId\":\"node-1\""));
     }
 
     @Test
@@ -171,18 +178,21 @@ class ReactAgentTest {
 
         ToolLoopDecision.Complete complete = assertInstanceOf(ToolLoopDecision.Complete.class, toolLoopDecision);
         assertEquals("final answer", complete.getResult());
-        assertEquals(5, chatModel.lastRequest.messages().size());
-        UserMessage transcriptStep = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
+        assertEquals(6, chatModel.lastRequest.messages().size());
+        UserMessage stateMessage = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
+        assertTrue(stateMessage.singleText().contains("## Current Document Content"));
+        assertTrue(stateMessage.singleText().contains("revised body"));
+        UserMessage transcriptStep = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(2));
         assertTrue(transcriptStep.singleText().contains("inspect headings"));
         ToolExecutionResultMessage transcriptToolResult = assertInstanceOf(
                 ToolExecutionResultMessage.class,
-                chatModel.lastRequest.messages().get(2)
+                chatModel.lastRequest.messages().get(3)
         );
         assertEquals("tool-call-1", transcriptToolResult.id());
         assertEquals("searchContent", transcriptToolResult.toolName());
         assertTrue(transcriptToolResult.text().contains("Search for 'heading': Found"));
-        assertInstanceOf(AiMessage.class, chatModel.lastRequest.messages().get(3));
-        UserMessage currentTurn = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(4));
+        assertInstanceOf(AiMessage.class, chatModel.lastRequest.messages().get(4));
+        UserMessage currentTurn = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(5));
         assertEquals("rewrite this", currentTurn.singleText());
     }
 

@@ -143,6 +143,10 @@ class ReflexionCriticContextFactoryTest {
         assertTrue(systemMessage.text().contains("treat retrieved"));
         assertTrue(!systemMessage.text().contains(MemoryToolNames.UPSERT_MEMORY));
         assertTrue(systemMessage.text().contains("## Output Rules"));
+        assertTrue(!systemMessage.text().contains("## Current Document Content"));
+        UserMessage stateMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertTrue(stateMessage.singleText().contains("## Current Document Content"));
+        assertTrue(stateMessage.singleText().contains("Draft body"));
         assertTrue(invocationContext.getMessages().stream().anyMatch(message -> message.toString().contains("intro is too long")));
     }
 
@@ -176,6 +180,9 @@ class ReflexionCriticContextFactoryTest {
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains(DocumentToolNames.READ_DOCUMENT_NODE));
         assertTrue(!systemMessage.text().contains(DocumentToolNames.GET_DOCUMENT_SNAPSHOT));
+        assertTrue(!systemMessage.text().contains("## Document Structure JSON"));
+        UserMessage stateMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertTrue(stateMessage.singleText().contains("## Document Structure JSON"));
     }
 
     @Test
@@ -206,10 +213,13 @@ class ReflexionCriticContextFactoryTest {
         ));
 
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
-        assertTrue(systemMessage.text().contains("## Current Document Content"));
-        assertTrue(systemMessage.text().contains("Draft body"));
+        assertTrue(!systemMessage.text().contains("## Current Document Content"));
+        assertTrue(!systemMessage.text().contains("Draft body"));
         assertTrue(!systemMessage.text().contains("## Document Structure JSON"));
         assertTrue(!systemMessage.text().contains("nodeId"));
+        UserMessage stateMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertTrue(stateMessage.singleText().contains("## Current Document Content"));
+        assertTrue(stateMessage.singleText().contains("Draft body"));
     }
 
     @Test
@@ -280,10 +290,13 @@ class ReflexionCriticContextFactoryTest {
                 List.of()
         ));
 
-        assertEquals(2, invocationContext.getMessages().size());
+        assertEquals(3, invocationContext.getMessages().size());
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains("critic for a document editing reflexion workflow"));
-        AiMessage message = assertInstanceOf(AiMessage.class, invocationContext.getMessages().get(1));
+        UserMessage stateMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertTrue(stateMessage.singleText().contains("## Current Document Content"));
+        assertTrue(stateMessage.singleText().contains("Draft body"));
+        AiMessage message = assertInstanceOf(AiMessage.class, invocationContext.getMessages().get(2));
         assertEquals("existing compressed critic memory", message.text());
         assertEquals(0, compressionCalls.get());
     }

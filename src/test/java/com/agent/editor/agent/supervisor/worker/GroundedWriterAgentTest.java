@@ -65,7 +65,10 @@ class GroundedWriterAgentTest {
         assertTrue(systemMessage.text().contains("## Tool Rules"));
         assertTrue(!systemMessage.text().contains("Use appendToDocument when you only need to add content to the end of the current document."));
         assertTrue(!systemMessage.text().contains("Use getDocumentSnapshot when you need the latest current document before deciding the next write."));
-        UserMessage currentTurn = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
+        UserMessage stateMessage = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(1));
+        assertTrue(stateMessage.singleText().contains("## Document Model"));
+        assertTrue(stateMessage.singleText().contains("## Document Structure JSON"));
+        UserMessage currentTurn = assertInstanceOf(UserMessage.class, chatModel.lastRequest.messages().get(2));
         assertEquals("rewrite the answer using available evidence", currentTurn.singleText());
     }
 

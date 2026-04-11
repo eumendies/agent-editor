@@ -104,6 +104,7 @@ public class ReflexionCriticContextFactory implements AgentContextFactory, Memor
     public ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {
         List<dev.langchain4j.data.message.ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(analysisSystemPrompt(context)));
+        messages.add(UserMessage.from(documentStateMessage(context)));
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.getMemory()));
         return new ModelInvocationContext(messages, context.getToolSpecifications(), null);
     }
@@ -148,13 +149,11 @@ public class ReflexionCriticContextFactory implements AgentContextFactory, Memor
     private String analysisSystemPrompt(AgentRunContext context) {
         DocumentToolMode documentToolMode = documentToolMode(context);
         String reviewWorkflow = reviewWorkflow(documentToolMode);
-        String documentGuidanceSection = documentGuidanceSection(context, documentToolMode);
         return """
                 ## Role
                 You are a critic for a document editing reflexion workflow.
                 Review the current draft against the instruction and decide whether the actor can pass or must revise.
 
-                %s
                 ## Workflow
                 %s
                 You may call tools multiple times until you have enough evidence.
@@ -172,7 +171,6 @@ public class ReflexionCriticContextFactory implements AgentContextFactory, Memor
                 - feedback: concise actionable feedback
                 - reasoning: concise explanation
                 """.formatted(
-                documentGuidanceSection,
                 reviewWorkflow,
                 reviewMemoryRules()
         );
@@ -208,10 +206,10 @@ public class ReflexionCriticContextFactory implements AgentContextFactory, Memor
     private String reviewWorkflow(DocumentToolMode documentToolMode) {
         if (documentToolMode == DocumentToolMode.INCREMENTAL) {
             return "Use " + DocumentToolNames.READ_DOCUMENT_NODE
-                    + " for targeted inspection when the document is too large for a full snapshot.";
+                    + " for targeted inspection when the separate structure message shows the document is too large for a full snapshot.";
         }
         return "Use " + DocumentToolNames.GET_DOCUMENT_SNAPSHOT
-                + " when you need the latest whole-document snapshot for review. The current prompt already includes the latest full draft.";
+                + " when you need the latest whole-document snapshot for review. The latest full draft is provided in a separate context message.";
     }
 
     private String structureJson(AgentRunContext context) {
@@ -224,9 +222,13 @@ public class ReflexionCriticContextFactory implements AgentContextFactory, Memor
         );
     }
 
-    private String documentGuidanceSection(AgentRunContext context, DocumentToolMode documentToolMode) {
+    private String documentStateMessage(AgentRunContext context) {
+        DocumentToolMode documentToolMode = documentToolMode(context);
         if (documentToolMode == DocumentToolMode.INCREMENTAL) {
             return """
+                    ## Document Model
+                    The document structure is provided as JSON.
+
                     ## Document Structure JSON
                     %s
 

@@ -54,7 +54,7 @@ class GroundedWriterAgentContextFactoryTest {
                         .build()
         )));
 
-        assertEquals(3, invocationContext.getMessages().size());
+        assertEquals(4, invocationContext.getMessages().size());
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains("grounded writer worker"));
         assertTrue(systemMessage.text().contains(DocumentToolNames.READ_DOCUMENT_NODE));
@@ -69,12 +69,15 @@ class GroundedWriterAgentContextFactoryTest {
         assertTrue(systemMessage.text().contains("prefer updating or deleting"));
         assertTrue(systemMessage.text().contains("## Evidence Constraints"));
         assertTrue(!systemMessage.text().contains("Use editDocument when you need to replace the document content."));
-        assertTrue(systemMessage.text().contains("## Document Structure JSON"));
-        assertTrue(systemMessage.text().contains("must use the nodeId values from the JSON structure"));
-        assertTrue(systemMessage.text().contains("\"headingText\":\"Intro\""));
-        UserMessage historyMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertTrue(!systemMessage.text().contains("## Document Structure JSON"));
+        assertTrue(!systemMessage.text().contains("must use the nodeId values from the JSON structure"));
+        UserMessage stateMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertTrue(stateMessage.singleText().contains("## Document Structure JSON"));
+        assertTrue(stateMessage.singleText().contains("must use the nodeId values from the JSON structure"));
+        assertTrue(stateMessage.singleText().contains("\"headingText\":\"Intro\""));
+        UserMessage historyMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));
         assertEquals("older writer turn", historyMessage.singleText());
-        UserMessage currentTurnMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));
+        UserMessage currentTurnMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(3));
         assertEquals("rewrite the answer using available evidence", currentTurnMessage.singleText());
         assertEquals(0, compressionCalls.get());
     }
@@ -116,13 +119,16 @@ class GroundedWriterAgentContextFactoryTest {
 
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains(DocumentToolNames.GET_DOCUMENT_SNAPSHOT));
-        assertTrue(systemMessage.text().contains("## Current Document Content"));
-        assertTrue(systemMessage.text().contains("# Intro\n\nbody"));
+        assertTrue(!systemMessage.text().contains("## Current Document Content"));
+        assertTrue(!systemMessage.text().contains("# Intro\n\nbody"));
         assertTrue(!systemMessage.text().contains("## Document Model"));
         assertTrue(!systemMessage.text().contains("## Document Structure JSON"));
         assertTrue(!systemMessage.text().contains("nodeId"));
         assertTrue(!systemMessage.text().contains("Use " + DocumentToolNames.READ_DOCUMENT_NODE + " to read the relevant node or block before editing."));
         assertTrue(!systemMessage.text().contains("Use " + DocumentToolNames.PATCH_DOCUMENT_NODE + " to update only the sections you inspected."));
+        UserMessage stateMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertTrue(stateMessage.singleText().contains("## Current Document Content"));
+        assertTrue(stateMessage.singleText().contains("# Intro\n\nbody"));
     }
 
     private AgentRunContext context() {

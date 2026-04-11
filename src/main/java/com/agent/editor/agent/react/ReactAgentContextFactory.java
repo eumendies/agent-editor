@@ -17,6 +17,7 @@ import com.agent.editor.agent.tool.document.DocumentToolNames;
 import com.agent.editor.agent.tool.memory.MemoryToolNames;
 import com.agent.editor.service.StructuredDocumentService;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -59,6 +60,7 @@ public class ReactAgentContextFactory implements AgentContextFactory, MemoryComp
     public ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {
         List<dev.langchain4j.data.message.ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt(context)));
+        messages.add(UserMessage.from(documentStateMessage(context)));
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.getMemory()));
         return new ModelInvocationContext(messages, context.getToolSpecifications(), null);
     }
@@ -79,18 +81,17 @@ public class ReactAgentContextFactory implements AgentContextFactory, MemoryComp
 
     private String systemPrompt(AgentRunContext context) {
         DocumentToolMode documentToolMode = documentToolMode(context);
-        String documentGuidanceSection = documentGuidanceSection(context, documentToolMode);
         String workflow = documentToolMode == DocumentToolMode.INCREMENTAL
                 ? """
                 1. Analyze the user's instruction.
-                2. Inspect the structure JSON and identify the target section by nodeId before reading content.
+                2. Inspect the separate document structure message and identify the target section by nodeId before reading content.
                 3. Take ONE action at a time using the available tools when an action is needed.
                 4. Observe the result of that action.
                 5. Decide whether to continue with another action or finish.
                 """
                 : """
                 1. Analyze the user's instruction.
-                2. Inspect the current document with the available whole-document tools before making broad edits.
+                2. Inspect the separate current-document message and the available whole-document tools before making broad edits.
                 3. Take ONE action at a time using the available tools when an action is needed.
                 4. Observe the result of that action.
                 5. Decide whether to continue with another action or finish.
@@ -100,7 +101,7 @@ public class ReactAgentContextFactory implements AgentContextFactory, MemoryComp
                 Prefer %s for targeted reads.
                 Prefer %s for targeted writes.
                 Read the relevant node or block before modifying it.
-                If the requested location is unclear, inspect the structure JSON first and then choose the smallest affected section.
+                If the requested location is unclear, inspect the separate structure message first and then choose the smallest affected section.
                 """
                 .formatted(
                         DocumentToolNames.READ_DOCUMENT_NODE,
@@ -117,7 +118,6 @@ public class ReactAgentContextFactory implements AgentContextFactory, MemoryComp
                 You are a ReAct-style document editing agent.
                 Your primary job is to update the current document when the user asks you to write.
 
-                %s
                 %s
                 ## Workflow
                 Think step by step:
@@ -138,7 +138,6 @@ public class ReactAgentContextFactory implements AgentContextFactory, MemoryComp
                 Only reply directly in chat when the user explicitly wants you to explain, analyze, answer questions, or discuss options without editing the document.
                 After completing a document-writing task, keep your final text concise and only confirm that the document was updated.
                 """.formatted(
-                documentGuidanceSection,
                 profileGuidanceSection(context),
                 workflow,
                 toolRules,
@@ -166,7 +165,8 @@ public class ReactAgentContextFactory implements AgentContextFactory, MemoryComp
         );
     }
 
-    private String documentGuidanceSection(AgentRunContext context, DocumentToolMode documentToolMode) {
+    private String documentStateMessage(AgentRunContext context) {
+        DocumentToolMode documentToolMode = documentToolMode(context);
         if (documentToolMode == DocumentToolMode.INCREMENTAL) {
             return """
                     ## Document Model

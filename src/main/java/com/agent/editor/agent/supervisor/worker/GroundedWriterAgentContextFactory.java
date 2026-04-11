@@ -17,6 +17,7 @@ import com.agent.editor.agent.tool.document.DocumentToolNames;
 import com.agent.editor.agent.tool.memory.MemoryToolNames;
 import com.agent.editor.service.StructuredDocumentService;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +54,7 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
     public ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {
         List<dev.langchain4j.data.message.ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt(context)));
+        messages.add(UserMessage.from(documentStateMessage(context)));
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.getMemory()));
         return new ModelInvocationContext(messages, context.getToolSpecifications(), null);
     }
@@ -73,10 +75,9 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
 
     private String systemPrompt(AgentRunContext context) {
         DocumentToolMode documentToolMode = documentToolMode(context);
-        String documentGuidanceSection = documentGuidanceSection(context, documentToolMode);
         String workflow = documentToolMode == DocumentToolMode.INCREMENTAL
                 ? """
-                1. Inspect the structure JSON and locate the smallest section that needs changes.
+                1. Inspect the separate structure message and locate the smallest section that needs changes.
                 2. Use %s to read the relevant node or block before editing.
                 3. Use %s to update only the sections you inspected.
                 4. Stop once the requested update is complete.
@@ -92,7 +93,7 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
         String toolRules = documentToolMode == DocumentToolMode.INCREMENTAL
                 ? """
                 Prefer targeted node reads and targeted node patches over whole-document rewrites.
-                If the target location is ambiguous, inspect the structure JSON first and then choose the smallest affected section.
+                If the target location is ambiguous, inspect the separate structure message first and then choose the smallest affected section.
                 """
                 : """
                 Prefer focused changes even when whole-document tools are visible.
@@ -104,7 +105,6 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
                 You are a grounded writer worker in a hybrid supervisor workflow.
                 Write or revise the document using only the available context and retrieved evidence in memory.
 
-                %s
                 %s
                 ## Workflow
                 %s
@@ -126,7 +126,6 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
                 ## Output Rules
                 Keep your final text concise once the document update is complete.
                 """.formatted(
-                documentGuidanceSection,
                 profileGuidanceSection(context),
                 workflow,
                 toolRules,
@@ -154,7 +153,8 @@ public class GroundedWriterAgentContextFactory implements AgentContextFactory, M
         );
     }
 
-    private String documentGuidanceSection(AgentRunContext context, DocumentToolMode documentToolMode) {
+    private String documentStateMessage(AgentRunContext context) {
+        DocumentToolMode documentToolMode = documentToolMode(context);
         if (documentToolMode == DocumentToolMode.INCREMENTAL) {
             return """
                     ## Document Model

@@ -17,6 +17,7 @@ import com.agent.editor.agent.tool.document.DocumentToolNames;
 import com.agent.editor.agent.tool.memory.MemoryToolNames;
 import com.agent.editor.service.StructuredDocumentService;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +54,7 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
     public ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {
         List<dev.langchain4j.data.message.ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt(context)));
+        messages.add(UserMessage.from(documentStateMessage(context)));
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.getMemory()));
         return new ModelInvocationContext(messages, context.getToolSpecifications(), null);
     }
@@ -73,7 +75,6 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
 
     private String systemPrompt(AgentRunContext context) {
         DocumentToolMode documentToolMode = documentToolMode(context);
-        String documentGuidanceSection = documentGuidanceSection(context, documentToolMode);
         String reviewWorkflow = documentToolMode == DocumentToolMode.INCREMENTAL
                 ? "Use %s for targeted reads when the document is too large for a full snapshot."
                         .formatted(DocumentToolNames.READ_DOCUMENT_NODE)
@@ -84,7 +85,6 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
                 You are a reviewer worker in a hybrid supervisor workflow.
                 Review whether the latest answer follows the user instruction and stays grounded in the available evidence.
 
-                %s
                 ## Workflow
                 %s
                 If you need more local inspection, use the available analysis tools before finalizing your review.
@@ -118,7 +118,6 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
                 Valid output example:
                 {"verdict":"REVISE","instructionSatisfied":false,"evidenceGrounded":true,"unsupportedClaims":[],"missingRequirements":["Explain project value"],"feedback":"The draft misses a required point.","reasoning":"The answer is grounded but does not fully satisfy the instruction."}
                 """.formatted(
-                documentGuidanceSection,
                 reviewWorkflow,
                 reviewMemoryRules()
         );
@@ -143,7 +142,8 @@ public class EvidenceReviewerAgentContextFactory implements AgentContextFactory,
         );
     }
 
-    private String documentGuidanceSection(AgentRunContext context, DocumentToolMode documentToolMode) {
+    private String documentStateMessage(AgentRunContext context) {
+        DocumentToolMode documentToolMode = documentToolMode(context);
         if (documentToolMode == DocumentToolMode.INCREMENTAL) {
             return """
                     ## Document Model

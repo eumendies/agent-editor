@@ -14,6 +14,7 @@ import com.agent.editor.agent.mapper.ExecutionMemoryChatMessageMapper;
 import com.agent.editor.agent.task.TaskRequest;
 import com.agent.editor.agent.tool.memory.MemoryToolNames;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,6 +66,7 @@ public class MemoryAgentContextFactory implements AgentContextFactory, MemoryCom
     public ModelInvocationContext buildModelInvocationContext(AgentRunContext context) {
         List<dev.langchain4j.data.message.ChatMessage> messages = new ArrayList<>();
         messages.add(SystemMessage.from(systemPrompt(context)));
+        messages.add(UserMessage.from(currentDocumentStateMessage(context)));
         messages.addAll(memoryChatMessageMapper.toChatMessages(context.getMemory()));
         return new ModelInvocationContext(messages, context.getToolSpecifications(), null);
     }
@@ -90,12 +92,6 @@ public class MemoryAgentContextFactory implements AgentContextFactory, MemoryCom
                 You are a memory worker in a hybrid supervisor workflow.
                 Your job is to retrieve and maintain durable document constraints for the current document.
 
-                ## Current Document
-                documentId: %s
-                title: %s
-                currentContent:
-                %s
-
                 ## Allowed Memory Scope
                 Manage only DOCUMENT_DECISION memory.
                 Never write USER_PROFILE memory.
@@ -120,15 +116,22 @@ public class MemoryAgentContextFactory implements AgentContextFactory, MemoryCom
                 }
                 Return only raw JSON with no prose before or after it.
                 """.formatted(
-                context.getDocumentIdOrEmpty(),
-                context.getDocumentTitleOrEmpty(),
-                currentDocumentContent(context),
                 MemoryToolNames.SEARCH_MEMORY,
                 MemoryToolNames.UPSERT_MEMORY
         );
     }
 
-    private String currentDocumentContent(AgentRunContext context) {
-        return context.getCurrentContent() == null ? "" : context.getCurrentContent();
+    private String currentDocumentStateMessage(AgentRunContext context) {
+        return """
+                ## Current Document
+                documentId: %s
+                title: %s
+                currentContent:
+                %s
+                """.formatted(
+                context.getDocumentIdOrEmpty(),
+                context.getDocumentTitleOrEmpty(),
+                context.getCurrentContent() == null ? "" : context.getCurrentContent()
+        );
     }
 }

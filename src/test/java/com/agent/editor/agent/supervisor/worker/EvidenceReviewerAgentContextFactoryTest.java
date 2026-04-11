@@ -45,7 +45,7 @@ class EvidenceReviewerAgentContextFactoryTest {
 
         var invocationContext = factory.buildModelInvocationContext(context());
 
-        assertEquals(3, invocationContext.getMessages().size());
+        assertEquals(4, invocationContext.getMessages().size());
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains("reviewer worker"));
         assertTrue(systemMessage.text().contains("## Long-Term Memory Rules"));
@@ -62,9 +62,13 @@ class EvidenceReviewerAgentContextFactoryTest {
         assertTrue(systemMessage.text().contains("\"missingRequirements\": []"));
         assertTrue(systemMessage.text().contains("Do not omit any field."));
         assertTrue(systemMessage.text().contains("Valid output example:"));
-        UserMessage historyMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertTrue(!systemMessage.text().contains("## Current Document Content"));
+        UserMessage stateMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertTrue(stateMessage.singleText().contains("## Current Document Content"));
+        assertTrue(stateMessage.singleText().contains("body"));
+        UserMessage historyMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));
         assertEquals("older reviewer turn", historyMessage.singleText());
-        UserMessage currentTurnMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(2));
+        UserMessage currentTurnMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(3));
         assertEquals("review whether the answer follows the instruction and evidence", currentTurnMessage.singleText());
         assertEquals(0, compressionCalls.get());
     }
@@ -102,12 +106,15 @@ class EvidenceReviewerAgentContextFactoryTest {
 
         SystemMessage systemMessage = assertInstanceOf(SystemMessage.class, invocationContext.getMessages().get(0));
         assertTrue(systemMessage.text().contains(DocumentToolNames.GET_DOCUMENT_SNAPSHOT));
-        assertTrue(systemMessage.text().contains("## Current Document Content"));
-        assertTrue(systemMessage.text().contains("body"));
+        assertTrue(!systemMessage.text().contains("## Current Document Content"));
+        assertTrue(!systemMessage.text().contains("body"));
         assertTrue(!systemMessage.text().contains("## Document Model"));
         assertTrue(!systemMessage.text().contains("## Document Structure JSON"));
         assertTrue(!systemMessage.text().contains("nodeId"));
         assertTrue(!systemMessage.text().contains("Use " + DocumentToolNames.READ_DOCUMENT_NODE + " for targeted reads when the document is too large for a full snapshot."));
+        UserMessage stateMessage = assertInstanceOf(UserMessage.class, invocationContext.getMessages().get(1));
+        assertTrue(stateMessage.singleText().contains("## Current Document Content"));
+        assertTrue(stateMessage.singleText().contains("body"));
     }
 
     private AgentRunContext context() {
