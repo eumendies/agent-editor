@@ -24,17 +24,35 @@ import dev.langchain4j.service.tool.ToolExecutionResult;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Bridges LangChain4j's MCP SDK client to the project's lightweight
+ * {@link McpClient} abstraction.
+ * <p>
+ * The adapter keeps protocol handling inside the SDK while normalizing tool
+ * schemas and results into structures already understood by the existing
+ * registry and tool loop runtime.
+ */
 public class SdkMcpClientAdapter implements McpClient {
 
     private final dev.langchain4j.mcp.client.McpClient sdkClient;
     private final ObjectMapper objectMapper;
 
+    /**
+     * @param sdkClient SDK-managed MCP client responsible for transport/session handling
+     * @param objectMapper mapper used to normalize SDK schemas and results
+     */
     public SdkMcpClientAdapter(dev.langchain4j.mcp.client.McpClient sdkClient,
                                ObjectMapper objectMapper) {
         this.sdkClient = sdkClient;
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * Converts SDK-listed tools into local descriptors while preserving the
+     * original {@link ToolSpecification} for downstream reuse.
+     *
+     * @return normalized remote tool descriptors
+     */
     @Override
     public List<McpToolDescriptor> listTools() {
         try {
@@ -46,6 +64,14 @@ public class SdkMcpClientAdapter implements McpClient {
         }
     }
 
+    /**
+     * Executes a remote MCP tool through the SDK and normalizes the result into
+     * the project's existing result contract.
+     *
+     * @param toolName remote MCP tool name
+     * @param argumentsJson serialized JSON arguments
+     * @return normalized tool call result
+     */
     @Override
     public McpToolCallResult callTool(String toolName, String argumentsJson) {
         try {
@@ -78,6 +104,7 @@ public class SdkMcpClientAdapter implements McpClient {
     }
 
     private JsonNode toJsonSchema(JsonSchemaElement schemaElement) {
+        // SDK schema对象不会被Jackson直接序列化，这里显式降成兼容旧handler的JSON Schema视图。
         if (schemaElement == null) {
             return null;
         }

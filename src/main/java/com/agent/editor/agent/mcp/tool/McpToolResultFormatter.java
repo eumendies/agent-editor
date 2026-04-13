@@ -4,14 +4,28 @@ import com.agent.editor.agent.mcp.client.McpToolCallResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+/**
+ * Formats normalized MCP tool results into the plain string payload consumed by
+ * the existing tool loop runtime.
+ */
 public class McpToolResultFormatter {
 
     private final ObjectMapper objectMapper;
 
+    /**
+     * @param objectMapper mapper used to serialize MCP structured results
+     */
     public McpToolResultFormatter(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * Converts structured MCP output into a stable JSON wrapper while preserving
+     * plain text-only results as-is.
+     *
+     * @param result normalized MCP call result
+     * @return string payload to place into {@code ToolResult.message}
+     */
     public String format(McpToolCallResult result) {
         try {
             if (result.getStructuredContent() != null) {

@@ -5,6 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Normalized remote MCP execution payload consumed by the local tool loop.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

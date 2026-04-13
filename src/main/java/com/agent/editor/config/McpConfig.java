@@ -20,6 +20,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Spring wiring for MCP-backed tools.
+ * <p>
+ * This configuration reads declared MCP servers, creates SDK-backed clients,
+ * and registers only the explicitly mapped remote tools into the local tool
+ * registry pipeline.
+ */
 @Configuration
 public class McpConfig {
 
@@ -29,6 +36,12 @@ public class McpConfig {
         this.properties = properties;
     }
 
+    /**
+     * Creates local tool handlers for every active MCP server/tool mapping.
+     *
+     * @param objectMapper mapper used for result formatting and schema normalization
+     * @return immutable list of MCP-backed tool handlers
+     */
     @Bean
     public List<ToolHandler> mcpToolHandlers(ObjectMapper objectMapper) {
         List<ToolHandler> handlers = new ArrayList<>();
@@ -42,6 +55,14 @@ public class McpConfig {
         return List.copyOf(handlers);
     }
 
+    /**
+     * Wraps the SDK client inside the local {@link McpClient} abstraction.
+     *
+     * @param serverKey logical server key from configuration
+     * @param serverProperties MCP server settings
+     * @param objectMapper mapper used for schema/result normalization
+     * @return MCP client adapter consumed by local tool handlers
+     */
     protected McpClient createClient(String serverKey,
                                      McpServerProperties serverProperties,
                                      ObjectMapper objectMapper) {
@@ -52,6 +73,14 @@ public class McpConfig {
         );
     }
 
+    /**
+     * Creates the underlying LangChain4j MCP SDK client for a configured
+     * streamable HTTP server.
+     *
+     * @param serverKey logical server key from configuration
+     * @param serverProperties MCP server settings
+     * @return SDK MCP client with transport/session handling managed by the SDK
+     */
     protected dev.langchain4j.mcp.client.McpClient createSdkClient(String serverKey,
                                                                    McpServerProperties serverProperties) {
         StreamableHttpMcpTransport transport = StreamableHttpMcpTransport.builder()
@@ -70,6 +99,7 @@ public class McpConfig {
                                             McpServerProperties serverProperties,
                                             ObjectMapper objectMapper,
                                             McpToolResultFormatter resultFormatter) {
+        // 启动时先拉远端工具清单，只注册配置中白名单允许暴露给模型的本地工具映射。
         validateServer(serverKey, serverProperties);
         McpClient client = createClient(serverKey, serverProperties, objectMapper);
         Map<String, McpToolDescriptor> remoteTools = new LinkedHashMap<>();

@@ -8,6 +8,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Configuration for a single MCP server entry declared under
+ * {@code agent.mcp.servers.*}.
+ */
 @Data
 @NoArgsConstructor
 public class McpServerProperties {

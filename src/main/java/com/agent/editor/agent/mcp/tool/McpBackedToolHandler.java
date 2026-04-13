@@ -17,6 +17,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Local {@link ToolHandler} wrapper around a remote MCP tool.
+ * <p>
+ * This class is responsible for applying local naming/description overrides,
+ * exposing the remote input schema to the model, and mapping remote execution
+ * results back into the existing tool loop contract.
+ */
 public class McpBackedToolHandler implements ToolHandler {
 
     private final McpToolProperties toolProperties;
@@ -24,6 +31,12 @@ public class McpBackedToolHandler implements ToolHandler {
     private final McpClient mcpClient;
     private final McpToolResultFormatter resultFormatter;
 
+    /**
+     * @param toolProperties local exposure settings such as tool name and description
+     * @param remoteDescriptor normalized remote MCP tool descriptor
+     * @param mcpClient client used to invoke the remote MCP tool
+     * @param resultFormatter formatter that converts MCP results into tool loop messages
+     */
     public McpBackedToolHandler(McpToolProperties toolProperties,
                                 McpToolDescriptor remoteDescriptor,
                                 McpClient mcpClient,
@@ -34,11 +47,23 @@ public class McpBackedToolHandler implements ToolHandler {
         this.resultFormatter = resultFormatter;
     }
 
+    /**
+     * @return locally exposed tool name used by prompts and access policies
+     */
     @Override
     public String name() {
         return toolProperties.getToolName();
     }
 
+    /**
+     * Builds the tool specification visible to the model.
+     * <p>
+     * When the SDK already supplied a parsed {@link ToolSpecification}, that
+     * schema is reused directly; otherwise the legacy JSON schema fallback is
+     * converted back into LangChain4j's schema model.
+     *
+     * @return locally named tool specification
+     */
     @Override
     public ToolSpecification specification() {
         JsonObjectSchema parameters = remoteDescriptor.getToolSpecification() != null
@@ -52,6 +77,14 @@ public class McpBackedToolHandler implements ToolHandler {
                 .build();
     }
 
+    /**
+     * Executes the remote MCP tool and converts the response into the
+     * project-wide {@link ToolResult} contract.
+     *
+     * @param invocation local tool invocation carrying serialized JSON arguments
+     * @param context current tool execution context
+     * @return formatted tool result visible to the model
+     */
     @Override
     public ToolResult execute(ToolInvocation invocation, ToolContext context) {
         McpToolCallResult result = mcpClient.callTool(
@@ -97,6 +130,7 @@ public class McpBackedToolHandler implements ToolHandler {
     }
 
     private void addProperty(JsonObjectSchema.Builder builder, String propertyName, JsonNode propertySchema) {
+        // 旧JSON schema回退路径只保留当前项目真正需要的基础类型，避免在SDK迁移后继续扩大手写schema逻辑面。
         String description = propertySchema.path("description").asText(null);
         String type = propertySchema.path("type").asText("");
         switch (type) {
