@@ -41,6 +41,31 @@ class McpBackedToolHandlerTest {
     }
 
     @Test
+    void shouldReuseSdkToolSpecificationParametersWhenAvailable() {
+        McpClient client = mock(McpClient.class);
+        ToolSpecification remoteSpecification = ToolSpecification.builder()
+                .name("webSearch")
+                .description("Remote tool description")
+                .parameters(JsonObjectSchema.builder()
+                        .addStringProperty("query", "Search query")
+                        .required("query")
+                        .build())
+                .build();
+        McpBackedToolHandler handler = new McpBackedToolHandler(
+                toolProperties("webSearch", "webSearch", "Search real-time public web information"),
+                new McpToolDescriptor("webSearch", "Remote tool description", inputSchema(), remoteSpecification),
+                client,
+                new McpToolResultFormatter(OBJECT_MAPPER)
+        );
+
+        ToolSpecification specification = handler.specification();
+
+        assertThat(specification.name()).isEqualTo("webSearch");
+        assertThat(specification.description()).isEqualTo("Search real-time public web information");
+        assertThat(specification.parameters()).isSameAs(remoteSpecification.parameters());
+    }
+
+    @Test
     void shouldConvertStructuredContentAndTextIntoToolResultMessage() {
         McpClient client = mock(McpClient.class);
         when(client.callTool("webSearch", "{\"query\":\"latest ai news\"}"))

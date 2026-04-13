@@ -2,7 +2,9 @@ package com.agent.editor.config;
 
 import com.agent.editor.agent.mcp.client.McpClient;
 import com.agent.editor.agent.mcp.client.McpToolDescriptor;
+import com.agent.editor.agent.mcp.client.SdkMcpClientAdapter;
 import com.agent.editor.agent.mcp.config.McpProperties;
+import com.agent.editor.agent.mcp.config.McpServerProperties;
 import com.agent.editor.agent.tool.ToolRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -15,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class McpConfigTest {
 
@@ -65,6 +68,23 @@ class McpConfigTest {
         });
     }
 
+    @Test
+    void shouldCreateSdkBackedMcpClientForStreamableHttpServer() {
+        McpProperties properties = new McpProperties();
+        McpServerProperties serverProperties = new McpServerProperties();
+        serverProperties.setType("streamableHttp");
+        serverProperties.setActive(true);
+        serverProperties.setBaseUrl("https://example.test/mcp");
+        serverProperties.setHeaders(Map.of("Authorization", "Bearer test"));
+        serverProperties.getTools().add(new com.agent.editor.agent.mcp.config.McpToolProperties());
+        properties.setServers(Map.of("web-search", serverProperties));
+
+        TestableMcpConfig config = new TestableMcpConfig(properties, mock(dev.langchain4j.mcp.client.McpClient.class));
+
+        assertThat(config.exposeCreateClient("web-search", serverProperties, OBJECT_MAPPER))
+                .isInstanceOf(SdkMcpClientAdapter.class);
+    }
+
     @Configuration
     @EnableConfigurationProperties(McpProperties.class)
     static class TestMcpConfig extends McpConfig {
@@ -85,6 +105,29 @@ class McpConfigTest {
                                          com.agent.editor.agent.mcp.config.McpServerProperties serverProperties,
                                          ObjectMapper objectMapper) {
             return mcpClient;
+        }
+    }
+
+    static class TestableMcpConfig extends McpConfig {
+
+        private final dev.langchain4j.mcp.client.McpClient sdkClient;
+
+        TestableMcpConfig(McpProperties properties,
+                          dev.langchain4j.mcp.client.McpClient sdkClient) {
+            super(properties);
+            this.sdkClient = sdkClient;
+        }
+
+        McpClient exposeCreateClient(String serverKey,
+                                     McpServerProperties serverProperties,
+                                     ObjectMapper objectMapper) {
+            return super.createClient(serverKey, serverProperties, objectMapper);
+        }
+
+        @Override
+        protected dev.langchain4j.mcp.client.McpClient createSdkClient(String serverKey,
+                                                                       McpServerProperties serverProperties) {
+            return sdkClient;
         }
     }
 

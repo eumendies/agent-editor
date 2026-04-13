@@ -2,7 +2,7 @@ package com.agent.editor.config;
 
 import com.agent.editor.agent.mcp.client.McpClient;
 import com.agent.editor.agent.mcp.client.McpToolDescriptor;
-import com.agent.editor.agent.mcp.client.StreamableHttpMcpClient;
+import com.agent.editor.agent.mcp.client.SdkMcpClientAdapter;
 import com.agent.editor.agent.mcp.config.McpProperties;
 import com.agent.editor.agent.mcp.config.McpServerProperties;
 import com.agent.editor.agent.mcp.config.McpToolProperties;
@@ -10,9 +10,10 @@ import com.agent.editor.agent.mcp.tool.McpBackedToolHandler;
 import com.agent.editor.agent.mcp.tool.McpToolResultFormatter;
 import com.agent.editor.agent.tool.ToolHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.mcp.client.DefaultMcpClient;
+import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -45,12 +46,24 @@ public class McpConfig {
                                      McpServerProperties serverProperties,
                                      ObjectMapper objectMapper) {
         validateServer(serverKey, serverProperties);
-        return new StreamableHttpMcpClient(
-                serverProperties.getBaseUrl(),
-                serverProperties.getHeaders(),
-                new RestTemplate(),
+        return new SdkMcpClientAdapter(
+                createSdkClient(serverKey, serverProperties),
                 objectMapper
         );
+    }
+
+    protected dev.langchain4j.mcp.client.McpClient createSdkClient(String serverKey,
+                                                                   McpServerProperties serverProperties) {
+        StreamableHttpMcpTransport transport = StreamableHttpMcpTransport.builder()
+                .url(serverProperties.getBaseUrl())
+                .customHeaders(serverProperties.getHeaders())
+                .build();
+        return DefaultMcpClient.builder()
+                .key(serverKey)
+                .clientName("ai-editor")
+                .clientVersion("1.0.0")
+                .transport(transport)
+                .build();
     }
 
     private List<ToolHandler> buildHandlers(String serverKey,

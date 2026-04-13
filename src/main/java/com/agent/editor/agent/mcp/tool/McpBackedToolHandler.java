@@ -41,11 +41,14 @@ public class McpBackedToolHandler implements ToolHandler {
 
     @Override
     public ToolSpecification specification() {
+        JsonObjectSchema parameters = remoteDescriptor.getToolSpecification() != null
+                ? remoteDescriptor.getToolSpecification().parameters()
+                : toJsonObjectSchema(remoteDescriptor.getInputSchema());
         return ToolSpecification.builder()
                 // 本地 tool name 是权限控制和 prompt 里的稳定标识，不直接泄漏远端服务内部命名细节。
                 .name(name())
                 .description(resolveDescription())
-                .parameters(toJsonObjectSchema(remoteDescriptor.getInputSchema()))
+                .parameters(parameters)
                 .build();
     }
 
