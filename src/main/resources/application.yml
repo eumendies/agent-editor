@@ -35,8 +35,8 @@ springdoc:
 # Logging
 logging:
   level:
-    com.agent.editor: DEBUG
-    dev.langchain4j: DEBUG
+    com.agent.editor: INFO
+    dev.langchain4j: INFO
 
 rag:
   chunk-size: 500
@@ -53,7 +53,7 @@ agent:
       web-search:
         type: streamableHttp
         description: Aliyun Bailian WebSearch MCP server
-        active: false
+        active: ${WEB_SEARCH_MCP_ACTIVE:false}
         name: AliyunBailianMCP_WebSearch
         base-url: https://dashscope.aliyuncs.com/api/v1/mcps/WebSearch/mcp
         headers:
