@@ -11,6 +11,7 @@ import com.agent.editor.agent.core.state.ExecutionStage;
 import com.agent.editor.agent.support.NoOpMemoryCompressors;
 import com.agent.editor.agent.tool.document.DocumentToolMode;
 import com.agent.editor.agent.tool.document.DocumentToolNames;
+import com.agent.editor.agent.tool.memory.MemoryToolNames;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
@@ -140,6 +141,31 @@ class ReactAgentTest {
         assertTrue(stateMessage.singleText().contains("must use the nodeId values from the JSON structure"));
         assertTrue(stateMessage.singleText().contains("## Document Structure JSON"));
         assertTrue(stateMessage.singleText().contains("\"nodeId\":\"node-1\""));
+    }
+
+    @Test
+    void shouldPassProvidedWebSearchToolSpecificationIntoChatRequest() {
+        RecordingChatModel chatModel = new RecordingChatModel(ChatResponse.builder()
+                .aiMessage(AiMessage.from("final answer"))
+                .build());
+        ReactAgent definition = definition(chatModel);
+        AgentRunContext context = context().withToolSpecifications(java.util.List.of(
+                ToolSpecification.builder()
+                        .name(DocumentToolNames.WEB_SEARCH)
+                        .description("search the public web")
+                        .build(),
+                ToolSpecification.builder()
+                        .name(MemoryToolNames.SEARCH_MEMORY)
+                        .description("search memory")
+                        .build()
+        ));
+
+        definition.decide(context);
+
+        assertEquals(
+                java.util.List.of(DocumentToolNames.WEB_SEARCH, MemoryToolNames.SEARCH_MEMORY),
+                chatModel.lastRequest.toolSpecifications().stream().map(ToolSpecification::name).toList()
+        );
     }
 
     @Test

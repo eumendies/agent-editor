@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 class McpConfigTest {
@@ -66,6 +67,49 @@ class McpConfigTest {
 
             assertThat(toolRegistry.get("webSearch")).isNull();
         });
+    }
+
+    @Test
+    void shouldRegisterRemoteToolWhenNameDiffersOnlyByCaseOrSeparators() {
+        TestMcpConfig.mcpClient = new StubMcpClient(List.of(
+                new McpToolDescriptor("web_search", "Search the public web", inputSchema())
+        ));
+
+        contextRunner.withPropertyValues(
+                "agent.mcp.servers.web-search.type=streamableHttp",
+                "agent.mcp.servers.web-search.active=true",
+                "agent.mcp.servers.web-search.base-url=https://example.test/mcp",
+                "agent.mcp.servers.web-search.tools[0].tool-name=webSearch",
+                "agent.mcp.servers.web-search.tools[0].remote-tool-name=webSearch"
+        ).run(context -> {
+            ToolRegistry toolRegistry = context.getBean(ToolRegistry.class);
+
+            assertThat(toolRegistry.get("webSearch")).isNotNull();
+        });
+    }
+
+    @Test
+    void shouldExposeAvailableRemoteToolNamesWhenConfiguredRemoteToolIsMissing() {
+        McpProperties properties = new McpProperties();
+        McpServerProperties serverProperties = new McpServerProperties();
+        serverProperties.setType("streamableHttp");
+        serverProperties.setActive(true);
+        serverProperties.setBaseUrl("https://example.test/mcp");
+        com.agent.editor.agent.mcp.config.McpToolProperties toolProperties = new com.agent.editor.agent.mcp.config.McpToolProperties();
+        toolProperties.setToolName("webSearch");
+        toolProperties.setRemoteToolName("webSearch");
+        serverProperties.setTools(List.of(toolProperties));
+        properties.setServers(Map.of("web-search", serverProperties));
+        TestMcpConfig.mcpClient = new StubMcpClient(List.of(
+                new McpToolDescriptor("aliyun_web_search", "Search the public web", inputSchema())
+        ));
+
+        TestMcpConfig config = new TestMcpConfig(properties);
+
+        assertThatThrownBy(() -> config.mcpToolHandlers(OBJECT_MAPPER))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("webSearch")
+                .hasMessageContaining("aliyun_web_search");
     }
 
     @Test

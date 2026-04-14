@@ -16,9 +16,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 
 /**
  * Spring wiring for MCP-backed tools.
@@ -109,13 +111,66 @@ public class McpConfig {
 
         List<ToolHandler> handlers = new ArrayList<>();
         for (McpToolProperties toolProperties : serverProperties.getTools()) {
-            McpToolDescriptor descriptor = remoteTools.get(toolProperties.getRemoteToolName());
+            McpToolDescriptor descriptor = resolveRemoteToolDescriptor(serverKey, remoteTools, toolProperties);
             if (descriptor == null) {
-                throw new IllegalStateException("Remote MCP tool is not available for server " + serverKey + ": " + toolProperties.getRemoteToolName());
+                throw missingRemoteTool(serverKey, toolProperties, remoteTools);
             }
             handlers.add(new McpBackedToolHandler(toolProperties, descriptor, client, resultFormatter));
         }
         return handlers;
+    }
+
+    private McpToolDescriptor resolveRemoteToolDescriptor(String serverKey,
+                                                          Map<String, McpToolDescriptor> remoteTools,
+                                                          McpToolProperties toolProperties) {
+        String configuredRemoteToolName = toolProperties.getRemoteToolName();
+        McpToolDescriptor exactMatch = remoteTools.get(configuredRemoteToolName);
+        if (exactMatch != null) {
+            return exactMatch;
+        }
+
+        String normalizedConfiguredName = normalizeToolName(configuredRemoteToolName);
+        List<McpToolDescriptor> normalizedMatches = remoteTools.values().stream()
+                .filter(descriptor -> normalizedConfiguredName.equals(normalizeToolName(descriptor.getName())))
+                .toList();
+        if (normalizedMatches.size() == 1) {
+            return normalizedMatches.get(0);
+        }
+        if (normalizedMatches.size() > 1) {
+            throw new IllegalStateException(
+                    "Remote MCP tool name for server " + serverKey + " is ambiguous: " + configuredRemoteToolName
+                            + ". Matching remote tools: " + normalizedMatches.stream()
+                            .map(McpToolDescriptor::getName)
+                            .sorted()
+                            .toList()
+            );
+        }
+        return null;
+    }
+
+    private IllegalStateException missingRemoteTool(String serverKey,
+                                                    McpToolProperties toolProperties,
+                                                    Map<String, McpToolDescriptor> remoteTools) {
+        List<String> availableRemoteToolNames = remoteTools.values().stream()
+                .map(McpToolDescriptor::getName)
+                .sorted(Comparator.naturalOrder())
+                .toList();
+        return new IllegalStateException(
+                "Remote MCP tool is not available for server " + serverKey + ": "
+                        + toolProperties.getRemoteToolName()
+                        + ". Available remote tools: " + availableRemoteToolNames
+        );
+    }
+
+    private String normalizeToolName(String toolName) {
+        if (toolName == null) {
+            return "";
+        }
+        return toolName
+                .replace("_", "")
+                .replace("-", "")
+                .replace(" ", "")
+                .toLowerCase(Locale.ROOT);
     }
 
     private void validateServer(String serverKey, McpServerProperties serverProperties) {
