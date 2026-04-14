@@ -60,7 +60,7 @@ agent:
           Authorization: Bearer ${DASHSCOPE_API_KEY:}
         tools:
           - tool-name: webSearch
-            remote-tool-name: webSearch
+            remote-tool-name: bailian_web_search
             description: Search real-time information from the public web
   memory-compression:
     trigger-total-tokens: 128000

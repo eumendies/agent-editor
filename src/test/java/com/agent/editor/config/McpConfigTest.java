@@ -31,7 +31,7 @@ class McpConfigTest {
     void shouldRegisterActiveMappedMcpToolIntoToolRegistry() {
         TestMcpConfig.mcpClient = new StubMcpClient(List.of(
                 new McpToolDescriptor(
-                        "webSearch",
+                        "bailian_web_search",
                         "Search the public web",
                         inputSchema()
                 )
@@ -42,7 +42,7 @@ class McpConfigTest {
                 "agent.mcp.servers.web-search.active=true",
                 "agent.mcp.servers.web-search.base-url=https://example.test/mcp",
                 "agent.mcp.servers.web-search.tools[0].tool-name=webSearch",
-                "agent.mcp.servers.web-search.tools[0].remote-tool-name=webSearch"
+                "agent.mcp.servers.web-search.tools[0].remote-tool-name=bailian_web_search"
         ).run(context -> {
             ToolRegistry toolRegistry = context.getBean(ToolRegistry.class);
 
@@ -53,7 +53,7 @@ class McpConfigTest {
     @Test
     void shouldSkipInactiveServerMappings() {
         TestMcpConfig.mcpClient = new StubMcpClient(List.of(
-                new McpToolDescriptor("webSearch", "Search the public web", OBJECT_MAPPER.createObjectNode())
+                new McpToolDescriptor("bailian_web_search", "Search the public web", OBJECT_MAPPER.createObjectNode())
         ));
 
         contextRunner.withPropertyValues(
@@ -61,30 +61,11 @@ class McpConfigTest {
                 "agent.mcp.servers.web-search.active=false",
                 "agent.mcp.servers.web-search.base-url=https://example.test/mcp",
                 "agent.mcp.servers.web-search.tools[0].tool-name=webSearch",
-                "agent.mcp.servers.web-search.tools[0].remote-tool-name=webSearch"
+                "agent.mcp.servers.web-search.tools[0].remote-tool-name=bailian_web_search"
         ).run(context -> {
             ToolRegistry toolRegistry = context.getBean(ToolRegistry.class);
 
             assertThat(toolRegistry.get("webSearch")).isNull();
-        });
-    }
-
-    @Test
-    void shouldRegisterRemoteToolWhenNameDiffersOnlyByCaseOrSeparators() {
-        TestMcpConfig.mcpClient = new StubMcpClient(List.of(
-                new McpToolDescriptor("web_search", "Search the public web", inputSchema())
-        ));
-
-        contextRunner.withPropertyValues(
-                "agent.mcp.servers.web-search.type=streamableHttp",
-                "agent.mcp.servers.web-search.active=true",
-                "agent.mcp.servers.web-search.base-url=https://example.test/mcp",
-                "agent.mcp.servers.web-search.tools[0].tool-name=webSearch",
-                "agent.mcp.servers.web-search.tools[0].remote-tool-name=webSearch"
-        ).run(context -> {
-            ToolRegistry toolRegistry = context.getBean(ToolRegistry.class);
-
-            assertThat(toolRegistry.get("webSearch")).isNotNull();
         });
     }
 

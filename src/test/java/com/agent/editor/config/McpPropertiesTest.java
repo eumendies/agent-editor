@@ -22,7 +22,7 @@ class McpPropertiesTest {
                     "agent.mcp.servers.web-search.base-url=https://example.test/mcp",
                     "agent.mcp.servers.web-search.headers.Authorization=Bearer test-key",
                     "agent.mcp.servers.web-search.tools[0].tool-name=webSearch",
-                    "agent.mcp.servers.web-search.tools[0].remote-tool-name=webSearch",
+                    "agent.mcp.servers.web-search.tools[0].remote-tool-name=bailian_web_search",
                     "agent.mcp.servers.web-search.tools[0].description=Search the public web"
             );
 
@@ -43,7 +43,7 @@ class McpPropertiesTest {
             assertThat(server.getTools()).hasSize(1);
             McpToolProperties tool = server.getTools().get(0);
             assertThat(tool.getToolName()).isEqualTo("webSearch");
-            assertThat(tool.getRemoteToolName()).isEqualTo("webSearch");
+            assertThat(tool.getRemoteToolName()).isEqualTo("bailian_web_search");
             assertThat(tool.getDescription()).isEqualTo("Search the public web");
         });
     }
